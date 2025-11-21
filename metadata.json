@@ -1,0 +1,9 @@
+{
+  "name": "Fiilar Spaces",
+  "description": "A premium space booking platform for hourly and daily rentals of apartments, studios, and event centers.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ]
+}
