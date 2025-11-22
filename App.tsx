@@ -98,6 +98,14 @@ const App: React.FC = () => {
     }
   };
 
+  const handleSearch = (term: string) => {
+    setSearchTerm(term);
+    // Navigate to home if not already there
+    if (location.pathname !== '/') {
+      navigate('/');
+    }
+  };
+
   const handleLogin = (role: Role, provider: 'email' | 'google' | 'phone' = 'email') => {
     const u = loginUser(role, provider);
     setUser(u);
@@ -226,6 +234,8 @@ const App: React.FC = () => {
         onLogout={handleLogout}
         onBecomeHost={() => navigate('/login-host')}
         onNavigate={handleNavigate}
+        onSearch={handleSearch}
+        searchTerm={searchTerm}
       />
 
       {/* Email Verification Banner */}
