@@ -18,6 +18,8 @@ import HostOnboarding from './components/HostOnboarding';
 import KYCUpload from './components/KYCUpload';
 import TermsAndConditions from './components/TermsAndConditions';
 import PrivacyPolicy from './components/PrivacyPolicy';
+import EmailVerificationBanner from './components/EmailVerificationBanner';
+import VerifyEmailPage from './components/VerifyEmailPage';
 
 const ListingDetailsRoute: React.FC<{
   listings: Listing[];
@@ -96,8 +98,8 @@ const App: React.FC = () => {
     }
   };
 
-  const handleLogin = (role: Role) => {
-    const u = loginUser(role);
+  const handleLogin = (role: Role, provider: 'email' | 'google' | 'phone' = 'email') => {
+    const u = loginUser(role, provider);
     setUser(u);
     if (role === Role.HOST) {
       // If host is not verified, guide them
@@ -217,13 +219,22 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-white font-sans text-gray-900">
+    <div className="min-h-screen bg-gray-50">
       <Navbar
         user={user}
+        onLogin={() => navigate('/login')}
         onLogout={handleLogout}
-        searchTerm={searchTerm}
-        onSearch={setSearchTerm}
+        onBecomeHost={() => navigate('/login-host')}
+        onNavigate={handleNavigate}
       />
+
+      {/* Email Verification Banner */}
+      {user && !user.emailVerified && !user.phoneVerified && (
+        <EmailVerificationBanner
+          userId={user.id}
+          userEmail={user.email}
+        />
+      )}
 
       {/* Host KYC Banner */}
       {user?.role === Role.HOST && !user.kycVerified && location.pathname !== '/kyc' && (
@@ -321,6 +332,7 @@ const App: React.FC = () => {
               onRefreshUser={refreshData}
             />
           } />
+          <Route path="/verify-email" element={<VerifyEmailPage />} />
           <Route path="/terms" element={<TermsAndConditions />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="*" element={<Navigate to="/" replace />} />

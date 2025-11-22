@@ -1,14 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { paymentService } from '../services/paymentService';
 import { Transaction } from '../types';
+import { Download, Filter, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 
 interface TransactionHistoryProps {
-    refreshTrigger?: number; // Used to trigger refresh from parent
+    refreshTrigger?: number;
 }
 
 export const TransactionHistory: React.FC<TransactionHistoryProps> = ({ refreshTrigger }) => {
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [loading, setLoading] = useState(true);
+    const [filter, setFilter] = useState<'ALL' | 'DEPOSIT' | 'PAYMENT' | 'REFUND'>('ALL');
+    const [showInsights, setShowInsights] = useState(false);
+    const [showAll, setShowAll] = useState(false);
 
     const fetchTransactions = async () => {
         try {
@@ -24,6 +29,39 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({ refreshT
     useEffect(() => {
         fetchTransactions();
     }, [refreshTrigger]);
+
+    const exportToCSV = () => {
+        const headers = ['Date', 'Description', 'Type', 'Amount'];
+        const rows = filteredTransactions.map(tx => [
+            new Date(tx.date).toLocaleDateString(),
+            tx.description,
+            tx.type,
+            tx.amount
+        ]);
+        const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `transactions-${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+    };
+
+    const filteredTransactions = filter === 'ALL' 
+        ? transactions 
+        : transactions.filter(tx => tx.type === filter);
+
+    const insights = {
+        totalSpent: transactions.filter(tx => tx.type === 'PAYMENT').reduce((sum, tx) => sum + tx.amount, 0),
+        totalDeposited: transactions.filter(tx => tx.type === 'DEPOSIT').reduce((sum, tx) => sum + tx.amount, 0),
+        totalRefunded: transactions.filter(tx => tx.type === 'REFUND').reduce((sum, tx) => sum + tx.amount, 0),
+    };
+
+    const chartData = [
+        { name: 'Spent', value: insights.totalSpent, color: '#ef4444' },
+        { name: 'Deposited', value: insights.totalDeposited, color: '#10b981' },
+        { name: 'Refunded', value: insights.totalRefunded, color: '#3b82f6' },
+    ].filter(d => d.value > 0);
 
     if (loading) {
         return (
@@ -49,10 +87,106 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({ refreshT
         );
     }
 
+    if (showInsights) {
+        return (
+            <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                    <h3 className="font-semibold text-gray-900">Spending Insights</h3>
+                    <button onClick={() => setShowInsights(false)} className="text-sm text-brand-600 hover:text-brand-700">Back</button>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                    <div className="bg-red-50 p-3 rounded-lg">
+                        <div className="flex items-center gap-2 text-red-600 mb-1">
+                            <TrendingDown size={16} />
+                            <span className="text-xs font-medium">Spent</span>
+                        </div>
+                        <p className="text-lg font-bold text-red-900">₦{insights.totalSpent.toLocaleString()}</p>
+                    </div>
+                    <div className="bg-green-50 p-3 rounded-lg">
+                        <div className="flex items-center gap-2 text-green-600 mb-1">
+                            <TrendingUp size={16} />
+                            <span className="text-xs font-medium">Added</span>
+                        </div>
+                        <p className="text-lg font-bold text-green-900">₦{insights.totalDeposited.toLocaleString()}</p>
+                    </div>
+                    <div className="bg-blue-50 p-3 rounded-lg">
+                        <div className="flex items-center gap-2 text-blue-600 mb-1">
+                            <DollarSign size={16} />
+                            <span className="text-xs font-medium">Refunded</span>
+                        </div>
+                        <p className="text-lg font-bold text-blue-900">₦{insights.totalRefunded.toLocaleString()}</p>
+                    </div>
+                </div>
+                {chartData.length > 0 && (
+                    <div className="bg-gray-50 rounded-lg p-4">
+                        <ResponsiveContainer width="100%" height={200}>
+                            <PieChart>
+                                <Pie data={chartData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={60} label>
+                                    {chartData.map((entry, index) => <Cell key={index} fill={entry.color} />)}
+                                </Pie>
+                                <Tooltip formatter={(value: number) => `₦${value.toLocaleString()}`} />
+                                <Legend />
+                            </PieChart>
+                        </ResponsiveContainer>
+                    </div>
+                )}
+            </div>
+        );
+    }
+
+    const displayTransactions = showAll ? filteredTransactions : filteredTransactions.slice(0, 5);
+
     return (
         <div className="space-y-4">
+            <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-gray-900">Transaction History</h2>
+                {filteredTransactions.length > 5 && (
+                    <button 
+                        onClick={() => setShowAll(!showAll)} 
+                        className="text-sm text-brand-600 font-medium hover:text-brand-700"
+                    >
+                        {showAll ? 'Show Less' : `View All (${filteredTransactions.length})`}
+                    </button>
+                )}
+            </div>
+            <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => setFilter('ALL')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${filter === 'ALL' ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                    >
+                        All
+                    </button>
+                    <button
+                        onClick={() => setFilter('DEPOSIT')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${filter === 'DEPOSIT' ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                    >
+                        Deposits
+                    </button>
+                    <button
+                        onClick={() => setFilter('PAYMENT')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${filter === 'PAYMENT' ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                    >
+                        Payments
+                    </button>
+                    <button
+                        onClick={() => setFilter('REFUND')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${filter === 'REFUND' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                    >
+                        Refunds
+                    </button>
+                </div>
+                <div className="flex items-center gap-2">
+                    <button onClick={() => setShowInsights(true)} className="p-2 hover:bg-gray-100 rounded-lg transition-colors" title="View Insights">
+                        <TrendingUp size={16} className="text-gray-600" />
+                    </button>
+                    <button onClick={exportToCSV} className="p-2 hover:bg-gray-100 rounded-lg transition-colors" title="Export CSV">
+                        <Download size={16} className="text-gray-600" />
+                    </button>
+                </div>
+            </div>
             <div className="space-y-0 divide-y divide-gray-100">
-                {transactions.map((tx) => (
+                {displayTransactions.map((tx) => (
                     <div key={tx.id} className="flex items-center justify-between py-4 group hover:bg-gray-50/50 transition-colors rounded-lg px-2 -mx-2">
                         <div className="flex items-center gap-4">
                             <div className={`p-2.5 rounded-full ${tx.type === 'DEPOSIT' ? 'bg-green-100 text-green-600' :

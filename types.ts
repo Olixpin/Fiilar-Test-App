@@ -40,11 +40,21 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  password: string;
   role: Role;
-  kycVerified: boolean;
-  identityDocument?: string; // Renamed from proofOfAddress to be distinct
+  isHost: boolean;
+  createdAt: string;
   avatar?: string;
+  bio?: string;
+  phone?: string;
   walletBalance: number;
+  emailVerified: boolean;
+  phoneVerified?: boolean;
+  authProvider?: 'email' | 'google' | 'phone';
+  verificationToken?: string;
+  verificationTokenExpiry?: string;
+  kycVerified?: boolean;
+  identityDocument?: string;
   bankDetails?: BankDetails;
   favorites?: string[]; // List of Listing IDs
 }
@@ -120,7 +130,12 @@ export interface Booking {
   groupId?: string; // ID to group recurring bookings together
   guestCount?: number; // Number of guests for this booking
   selectedAddOns?: string[]; // IDs of selected add-ons
-  paymentStatus?: 'Paid - Escrow' | 'Released' | 'Refunded';
+  cancellationReason?: string;
+  cancelledAt?: string;
+  cancelledBy?: string;
+  refundAmount?: number;
+  refundProcessed?: boolean;
+  paymentStatus?: 'Pending' | 'Held' | 'Released' | 'Refunded' | 'Paid - Escrow';
   escrowReleaseDate?: string; // ISO string - when funds will be released
   transactionIds?: string[]; // Link to all related transactions
 }
@@ -216,4 +231,38 @@ export interface Review {
   rating: number; // 1-5 stars
   comment: string;
   createdAt: string; // ISO string
+}
+
+export interface Notification {
+  id: string;
+  userId: string; // Recipient
+  type: 'damage_report' | 'complaint' | 'platform_update' | 'booking' | 'message' | 'review';
+  title: string;
+  message: string;
+  severity: 'info' | 'warning' | 'urgent';
+  read: boolean;
+  actionRequired: boolean;
+  metadata?: {
+    bookingId?: string;
+    reportId?: string;
+    amount?: number;
+    images?: string[];
+    link?: string;
+  };
+  createdAt: string;
+  expiresAt?: string;
+}
+
+export interface DamageReport {
+  id: string;
+  bookingId: string;
+  reportedBy: string; // hostId
+  reportedTo: string; // userId
+  description: string;
+  images: string[];
+  estimatedCost: number;
+  status: 'pending' | 'disputed' | 'resolved' | 'escalated';
+  userResponse?: string;
+  createdAt: string;
+  resolvedAt?: string;
 }

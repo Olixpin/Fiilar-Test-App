@@ -21,7 +21,21 @@ export const paymentService = {
     getTransactions: async (): Promise<Transaction[]> => {
         await delay(500);
         const transactions = localStorage.getItem(STORAGE_KEYS.TRANSACTIONS);
-        return transactions ? JSON.parse(transactions) : [];
+        if (transactions) {
+            return JSON.parse(transactions);
+        }
+        // Return mock data if no transactions exist
+        const mockTransactions: Transaction[] = [
+            { id: 'tx_1', userId: 'user_1', amount: 2150, type: 'PAYMENT', date: new Date('2024-11-21T23:35:00').toISOString(), description: 'Payment for booking via Card', status: 'COMPLETED' },
+            { id: 'tx_2', userId: 'user_1', amount: 2150, type: 'PAYMENT', date: new Date('2024-11-22T01:27:00').toISOString(), description: 'Payment for booking via Card', status: 'COMPLETED' },
+            { id: 'tx_3', userId: 'user_1', amount: 72.4, type: 'PAYMENT', date: new Date('2024-11-22T05:32:00').toISOString(), description: 'Payment for booking via Card', status: 'COMPLETED' },
+            { id: 'tx_4', userId: 'user_1', amount: 5000, type: 'DEPOSIT', date: new Date('2024-11-20T10:15:00').toISOString(), description: 'Added funds to wallet', status: 'COMPLETED' },
+            { id: 'tx_5', userId: 'user_1', amount: 1500, type: 'PAYMENT', date: new Date('2024-11-19T14:20:00').toISOString(), description: 'Payment for booking via Wallet', status: 'COMPLETED' },
+            { id: 'tx_6', userId: 'user_1', amount: 800, type: 'REFUND', date: new Date('2024-11-18T09:45:00').toISOString(), description: 'Refund for cancelled booking', status: 'COMPLETED' },
+            { id: 'tx_7', userId: 'user_1', amount: 3200, type: 'PAYMENT', date: new Date('2024-11-17T16:30:00').toISOString(), description: 'Payment for booking via Card', status: 'COMPLETED' },
+        ];
+        localStorage.setItem(STORAGE_KEYS.TRANSACTIONS, JSON.stringify(mockTransactions));
+        return mockTransactions;
     },
 
     // Payment Methods
@@ -103,6 +117,34 @@ export const paymentService = {
             type: 'PAYMENT',
             date: new Date().toISOString(),
             description: `Payment for booking via ${method === 'WALLET' ? 'Wallet' : 'Card'}`,
+            status: 'COMPLETED'
+        };
+
+        const transactions = await paymentService.getTransactions();
+        transactions.unshift(transaction);
+        localStorage.setItem(STORAGE_KEYS.TRANSACTIONS, JSON.stringify(transactions));
+
+        return transaction;
+    },
+
+    withdrawFunds: async (amount: number): Promise<Transaction> => {
+        await delay(1500);
+
+        const currentBalance = await paymentService.getWalletBalance();
+        if (currentBalance < amount) {
+            throw new Error('Insufficient balance');
+        }
+
+        const newBalance = currentBalance - amount;
+        localStorage.setItem(STORAGE_KEYS.WALLET_BALANCE, newBalance.toString());
+
+        const transaction: Transaction = {
+            id: `tx_${Date.now()}`,
+            userId: 'user_1',
+            amount: amount,
+            type: 'PAYMENT',
+            date: new Date().toISOString(),
+            description: 'Withdrawal to bank account',
             status: 'COMPLETED'
         };
 

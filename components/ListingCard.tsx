@@ -79,7 +79,7 @@ const ListingCard: React.FC<ListingCardProps> = ({ listing }) => {
         <div className="flex justify-between items-center mt-1">
           <p className="text-gray-500 text-sm">
             <span className="font-semibold text-gray-900">${listing.price}</span>
-            <span> {listing.priceUnit === BookingType.HOURLY ? 'hour' : 'night'}</span>
+            <span> / {listing.priceUnit === BookingType.HOURLY ? 'hour' : 'night'}</span>
           </p>
 
           {listing.requiresIdentityVerification && (

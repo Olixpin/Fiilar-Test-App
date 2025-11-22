@@ -1,27 +1,43 @@
-import React from 'react';
-import { Booking, EscrowTransaction } from '../types';
-import { DollarSign, TrendingUp, Clock, Calendar } from 'lucide-react';
+import React, { useState } from 'react';
+import { Booking, EscrowTransaction, Listing } from '../types';
+import { DollarSign, TrendingUp, Clock, Calendar, Download, Filter, ChevronDown, BarChart3, PieChart } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart as RePieChart, Pie, Cell } from 'recharts';
 
 interface HostEarningsProps {
     hostBookings: Booking[];
     transactions: EscrowTransaction[];
     hostId: string;
+    listings?: Listing[];
 }
 
-const HostEarnings: React.FC<HostEarningsProps> = ({ hostBookings, transactions, hostId }) => {
-    // Calculate earnings
+const HostEarnings: React.FC<HostEarningsProps> = ({ hostBookings, transactions, hostId, listings = [] }) => {
+    const [timeFilter, setTimeFilter] = useState<'7d' | '30d' | '90d' | 'all'>('30d');
+    const [viewMode, setViewMode] = useState<'overview' | 'breakdown'>('overview');
+    const now = new Date();
+    const getFilterDate = () => {
+        if (timeFilter === '7d') return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        if (timeFilter === '30d') return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        if (timeFilter === '90d') return new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+        return new Date(0);
+    };
+
+    const filterDate = getFilterDate();
+    const filteredBookings = hostBookings.filter(b => new Date(b.date) >= filterDate);
+    const filteredTransactions = transactions.filter(tx => new Date(tx.timestamp) >= filterDate);
+
     const fundsInEscrow = hostBookings
         .filter(b => b.paymentStatus === 'Paid - Escrow')
         .reduce((sum, b) => sum + (b.totalPrice - b.serviceFee - b.cautionFee), 0);
 
-    const releasedEarnings = transactions
+    const releasedEarnings = filteredTransactions
         .filter(tx => tx.type === 'HOST_PAYOUT' && tx.toUserId === hostId && tx.status === 'COMPLETED')
         .reduce((sum, tx) => sum + tx.amount, 0);
 
-    const pendingPayouts = hostBookings.filter(b => b.paymentStatus === 'Paid - Escrow');
+    const totalRevenue = filteredBookings
+        .filter(b => b.status === 'Confirmed' || b.status === 'Completed')
+        .reduce((sum, b) => sum + (b.totalPrice - b.serviceFee - b.cautionFee), 0);
 
-    // Get upcoming payouts (next 7 days)
-    const now = new Date();
+    const pendingPayouts = hostBookings.filter(b => b.paymentStatus === 'Paid - Escrow');
     const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
     const upcomingPayouts = pendingPayouts.filter(b => {
         if (!b.escrowReleaseDate) return false;
@@ -29,39 +45,172 @@ const HostEarnings: React.FC<HostEarningsProps> = ({ hostBookings, transactions,
         return releaseDate >= now && releaseDate <= sevenDaysFromNow;
     });
 
+    // Revenue by listing
+    const revenueByListing = listings.map(listing => {
+        const revenue = filteredBookings
+            .filter(b => b.listingId === listing.id && (b.status === 'Confirmed' || b.status === 'Completed'))
+            .reduce((sum, b) => sum + (b.totalPrice - b.serviceFee - b.cautionFee), 0);
+        const bookings = filteredBookings.filter(b => b.listingId === listing.id).length;
+        return { listing, revenue, bookings };
+    }).filter(item => item.revenue > 0).sort((a, b) => b.revenue - a.revenue);
+
+    // Chart data
+    const chartData = Array.from({ length: timeFilter === '7d' ? 7 : timeFilter === '30d' ? 30 : 90 }, (_, i) => {
+        const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+        const dateStr = date.toISOString().split('T')[0];
+        const dayRevenue = filteredBookings
+            .filter(b => b.date === dateStr && (b.status === 'Confirmed' || b.status === 'Completed'))
+            .reduce((sum, b) => sum + (b.totalPrice - b.serviceFee - b.cautionFee), 0);
+        return {
+            date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+            revenue: dayRevenue
+        };
+    }).reverse();
+
+    const COLORS = ['#111827', '#6366f1', '#8b5cf6', '#ec4899', '#f59e0b'];
+
+    const exportCSV = () => {
+        const headers = ['Date', 'Amount', 'Status', 'Reference'];
+        const rows = filteredTransactions
+            .filter(tx => tx.type === 'HOST_PAYOUT' && tx.toUserId === hostId)
+            .map(tx => [
+                new Date(tx.timestamp).toLocaleDateString(),
+                tx.amount.toFixed(2),
+                tx.status,
+                tx.paystackReference || 'N/A'
+            ]);
+        const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `earnings-${timeFilter}.csv`;
+        a.click();
+    };
+
     return (
         <div className="space-y-6">
-            {/* Earnings Overview Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-6 text-white shadow-lg">
-                    <div className="flex items-center justify-between mb-2">
-                        <h3 className="text-sm font-medium opacity-90">In Escrow</h3>
-                        <Clock className="opacity-75" size={20} />
+            {/* Header with Filters */}
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div>
+                        <h2 className="text-xl font-bold text-gray-900">Earnings</h2>
+                        <p className="text-sm text-gray-500 mt-1">Track your revenue and payouts</p>
                     </div>
-                    <p className="text-3xl font-bold">${fundsInEscrow.toLocaleString()}</p>
-                    <p className="text-xs opacity-75 mt-1">{pendingPayouts.length} pending payout(s)</p>
-                </div>
-
-                <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-6 text-white shadow-lg">
-                    <div className="flex items-center justify-between mb-2">
-                        <h3 className="text-sm font-medium opacity-90">Total Earnings</h3>
-                        <TrendingUp className="opacity-75" size={20} />
+                    <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+                            {[{ key: '7d', label: '7D' }, { key: '30d', label: '30D' }, { key: '90d', label: '90D' }, { key: 'all', label: 'All' }].map(filter => (
+                                <button
+                                    key={filter.key}
+                                    onClick={() => setTimeFilter(filter.key as any)}
+                                    className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${
+                                        timeFilter === filter.key ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                                    }`}
+                                >
+                                    {filter.label}
+                                </button>
+                            ))}
+                        </div>
+                        <button
+                            onClick={exportCSV}
+                            className="flex items-center gap-2 px-3 py-2 bg-gray-900 text-white rounded-lg text-xs font-semibold hover:bg-black transition"
+                        >
+                            <Download size={14} /> Export
+                        </button>
                     </div>
-                    <p className="text-3xl font-bold">${releasedEarnings.toLocaleString()}</p>
-                    <p className="text-xs opacity-75 mt-1">All-time released</p>
-                </div>
-
-                <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-6 text-white shadow-lg">
-                    <div className="flex items-center justify-between mb-2">
-                        <h3 className="text-sm font-medium opacity-90">Upcoming (7 days)</h3>
-                        <Calendar className="opacity-75" size={20} />
-                    </div>
-                    <p className="text-3xl font-bold">{upcomingPayouts.length}</p>
-                    <p className="text-xs opacity-75 mt-1">Payouts releasing soon</p>
                 </div>
             </div>
 
-            {/* Upcoming Payouts */}
+            {/* Earnings Overview Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Revenue</h3>
+                        <div className="bg-green-100 p-2 rounded-lg text-green-700">
+                            <TrendingUp size={18} />
+                        </div>
+                    </div>
+                    <p className="text-2xl font-bold text-gray-900">${totalRevenue.toLocaleString()}</p>
+                    <p className="text-xs text-gray-500 mt-1">{filteredBookings.filter(b => b.status === 'Confirmed' || b.status === 'Completed').length} bookings</p>
+                </div>
+
+                <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Released</h3>
+                        <div className="bg-blue-100 p-2 rounded-lg text-blue-700">
+                            <DollarSign size={18} />
+                        </div>
+                    </div>
+                    <p className="text-2xl font-bold text-gray-900">${releasedEarnings.toLocaleString()}</p>
+                    <p className="text-xs text-gray-500 mt-1">Paid out</p>
+                </div>
+
+                <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">In Escrow</h3>
+                        <div className="bg-orange-100 p-2 rounded-lg text-orange-700">
+                            <Clock size={18} />
+                        </div>
+                    </div>
+                    <p className="text-2xl font-bold text-gray-900">${fundsInEscrow.toLocaleString()}</p>
+                    <p className="text-xs text-gray-500 mt-1">{pendingPayouts.length} pending</p>
+                </div>
+
+                <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Upcoming</h3>
+                        <div className="bg-purple-100 p-2 rounded-lg text-purple-700">
+                            <Calendar size={18} />
+                        </div>
+                    </div>
+                    <p className="text-2xl font-bold text-gray-900">{upcomingPayouts.length}</p>
+                    <p className="text-xs text-gray-500 mt-1">Next 7 days</p>
+                </div>
+            </div>
+
+            {/* View Toggle */}
+            <div className="flex items-center gap-2 bg-white rounded-xl border border-gray-200 shadow-sm p-1 w-fit">
+                <button
+                    onClick={() => setViewMode('overview')}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        viewMode === 'overview' ? 'bg-brand-600 text-white' : 'text-gray-600 hover:bg-gray-50'
+                    }`}
+                >
+                    <BarChart3 size={16} /> Overview
+                </button>
+                <button
+                    onClick={() => setViewMode('breakdown')}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        viewMode === 'breakdown' ? 'bg-brand-600 text-white' : 'text-gray-600 hover:bg-gray-50'
+                    }`}
+                >
+                    <PieChart size={16} /> By Listing
+                </button>
+            </div>
+
+            {viewMode === 'overview' ? (
+                <>
+                    {/* Revenue Chart */}
+                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                        <h3 className="font-bold text-gray-900 mb-4">Revenue Trend</h3>
+                        <div className="h-64 w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={chartData}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                                    <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#9ca3af' }} />
+                                    <YAxis axisLine={false} tickLine={false} tickFormatter={(val) => `$${val}`} tick={{ fontSize: 11, fill: '#9ca3af' }} />
+                                    <Tooltip
+                                        cursor={{ fill: '#f9fafb' }}
+                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                        formatter={(val: number) => [`$${val.toFixed(2)}`, 'Revenue']}
+                                    />
+                                    <Bar dataKey="revenue" fill="#111827" radius={[4, 4, 0, 0]} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+
+                    {/* Upcoming Payouts */}
             {upcomingPayouts.length > 0 && (
                 <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                     <div className="p-4 border-b border-gray-200 bg-gray-50">
@@ -96,7 +245,7 @@ const HostEarnings: React.FC<HostEarningsProps> = ({ hostBookings, transactions,
                 </div>
             )}
 
-            {/* Payout History */}
+                    {/* Payout History */}
             <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                 <div className="p-4 border-b border-gray-200 bg-gray-50">
                     <h3 className="font-bold text-gray-900">Payout History</h3>
@@ -138,6 +287,113 @@ const HostEarnings: React.FC<HostEarningsProps> = ({ hostBookings, transactions,
                     </table>
                 </div>
             </div>
+                </>
+            ) : (
+                <>
+                    {/* Revenue by Listing */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* Pie Chart */}
+                        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                            <h3 className="font-bold text-gray-900 mb-4">Revenue Distribution</h3>
+                            {revenueByListing.length > 0 ? (
+                                <div className="h-64 flex items-center justify-center">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <RePieChart>
+                                            <Pie
+                                                data={revenueByListing.slice(0, 5)}
+                                                dataKey="revenue"
+                                                nameKey="listing.title"
+                                                cx="50%"
+                                                cy="50%"
+                                                outerRadius={80}
+                                                label={(entry) => `$${entry.revenue.toFixed(0)}`}
+                                            >
+                                                {revenueByListing.slice(0, 5).map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                                ))}
+                                            </Pie>
+                                            <Tooltip formatter={(val: number) => `$${val.toFixed(2)}`} />
+                                        </RePieChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            ) : (
+                                <div className="h-64 flex items-center justify-center text-gray-400">
+                                    <p className="text-sm">No revenue data</p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Top Listings */}
+                        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                            <h3 className="font-bold text-gray-900 mb-4">Top Performing Listings</h3>
+                            <div className="space-y-3">
+                                {revenueByListing.slice(0, 5).map((item, idx) => (
+                                    <div key={item.listing.id} className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:border-gray-200 transition">
+                                        <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm" style={{ backgroundColor: COLORS[idx % COLORS.length], color: 'white' }}>
+                                            {idx + 1}
+                                        </div>
+                                        <img src={item.listing.images[0]} alt="" className="w-12 h-12 rounded-lg object-cover" />
+                                        <div className="flex-1 min-w-0">
+                                            <h4 className="font-medium text-sm text-gray-900 truncate">{item.listing.title}</h4>
+                                            <p className="text-xs text-gray-500">{item.bookings} bookings</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-sm font-bold text-gray-900">${item.revenue.toFixed(0)}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                                {revenueByListing.length === 0 && (
+                                    <div className="text-center py-8 text-gray-400">
+                                        <p className="text-sm">No listings with revenue yet</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Detailed Breakdown Table */}
+                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                        <div className="p-4 border-b border-gray-200 bg-gray-50">
+                            <h3 className="font-bold text-gray-900">All Listings Performance</h3>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead className="bg-gray-50 border-b border-gray-200">
+                                    <tr>
+                                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Listing</th>
+                                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Bookings</th>
+                                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Revenue</th>
+                                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Avg/Booking</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-200">
+                                    {revenueByListing.map(item => (
+                                        <tr key={item.listing.id} className="hover:bg-gray-50">
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-3">
+                                                    <img src={item.listing.images[0]} alt="" className="w-10 h-10 rounded-lg object-cover" />
+                                                    <div>
+                                                        <p className="text-sm font-medium text-gray-900">{item.listing.title}</p>
+                                                        <p className="text-xs text-gray-500">{item.listing.location}</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 text-sm text-gray-900">{item.bookings}</td>
+                                            <td className="px-6 py-4 text-sm font-bold text-gray-900">${item.revenue.toFixed(2)}</td>
+                                            <td className="px-6 py-4 text-sm text-gray-600">${(item.revenue / item.bookings).toFixed(2)}</td>
+                                        </tr>
+                                    ))}
+                                    {revenueByListing.length === 0 && (
+                                        <tr>
+                                            <td colSpan={4} className="px-6 py-8 text-center text-gray-500">No revenue data</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </>
+            )}
         </div>
     );
 };

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { paymentService } from '../services/paymentService';
 import { Transaction } from '../types';
+import { ArrowDownToLine } from 'lucide-react';
 
 interface WalletCardProps {
     onTransactionComplete?: (transaction: Transaction) => void;
@@ -10,7 +11,10 @@ export const WalletCard: React.FC<WalletCardProps> = ({ onTransactionComplete })
     const [balance, setBalance] = useState<number>(0);
     const [loading, setLoading] = useState(true);
     const [addingFunds, setAddingFunds] = useState(false);
+    const [withdrawing, setWithdrawing] = useState(false);
     const [amount, setAmount] = useState<string>('');
+    const [withdrawAmount, setWithdrawAmount] = useState<string>('');
+    const [showWithdraw, setShowWithdraw] = useState(false);
 
     const fetchBalance = async () => {
         try {
@@ -33,7 +37,6 @@ export const WalletCard: React.FC<WalletCardProps> = ({ onTransactionComplete })
 
         setAddingFunds(true);
         try {
-            // For mock purposes, we just pass a dummy payment method ID
             const tx = await paymentService.addFunds(Number(amount), 'mock_pm_id');
             setBalance(prev => prev + Number(amount));
             setAmount('');
@@ -44,6 +47,29 @@ export const WalletCard: React.FC<WalletCardProps> = ({ onTransactionComplete })
             alert('Failed to add funds');
         } finally {
             setAddingFunds(false);
+        }
+    };
+
+    const handleWithdraw = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const amt = Number(withdrawAmount);
+        if (!withdrawAmount || isNaN(amt) || amt > balance) {
+            alert('Invalid amount or insufficient balance');
+            return;
+        }
+
+        setWithdrawing(true);
+        try {
+            await paymentService.withdrawFunds(amt);
+            setBalance(prev => prev - amt);
+            setWithdrawAmount('');
+            setShowWithdraw(false);
+            alert('Withdrawal initiated! Funds will arrive in 1-3 business days.');
+        } catch (error) {
+            console.error('Failed to withdraw', error);
+            alert('Failed to process withdrawal');
+        } finally {
+            setWithdrawing(false);
         }
     };
 
@@ -70,34 +96,72 @@ export const WalletCard: React.FC<WalletCardProps> = ({ onTransactionComplete })
                     </div>
                 </div>
 
-                <div className="mt-8">
-                    <form onSubmit={handleAddFunds} className="relative">
-                        <label className="block text-xs text-gray-400 mb-2 uppercase tracking-wider font-semibold">Quick Top Up</label>
-                        <div className="flex gap-2">
-                            <div className="relative flex-1 group-focus-within:ring-2 ring-indigo-500/50 rounded-xl transition-all">
-                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-medium">₦</span>
-                                <input
-                                    type="number"
-                                    value={amount}
-                                    onChange={(e) => setAmount(e.target.value)}
-                                    placeholder="Enter amount"
-                                    className="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:bg-white/20 transition-all"
-                                    min="100"
-                                />
+                <div className="mt-8 space-y-3">
+                    {!showWithdraw ? (
+                        <form onSubmit={handleAddFunds} className="relative">
+                            <label className="block text-xs text-gray-400 mb-2 uppercase tracking-wider font-semibold">Quick Top Up</label>
+                            <div className="flex gap-2">
+                                <div className="relative flex-1 group-focus-within:ring-2 ring-indigo-500/50 rounded-xl transition-all">
+                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-medium">₦</span>
+                                    <input
+                                        type="number"
+                                        value={amount}
+                                        onChange={(e) => setAmount(e.target.value)}
+                                        placeholder="Enter amount"
+                                        className="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:bg-white/20 transition-all"
+                                        min="100"
+                                    />
+                                </div>
+                                <button
+                                    type="submit"
+                                    disabled={addingFunds || !amount}
+                                    className="bg-white text-gray-900 px-6 py-3 rounded-xl font-bold hover:bg-gray-100 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center shadow-lg shadow-white/10"
+                                >
+                                    {addingFunds ? (
+                                        <div className="w-5 h-5 border-2 border-gray-900/30 border-t-gray-900 rounded-full animate-spin" />
+                                    ) : (
+                                        'Top Up'
+                                    )}
+                                </button>
                             </div>
-                            <button
-                                type="submit"
-                                disabled={addingFunds || !amount}
-                                className="bg-white text-gray-900 px-6 py-3 rounded-xl font-bold hover:bg-gray-100 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center shadow-lg shadow-white/10"
-                            >
-                                {addingFunds ? (
-                                    <div className="w-5 h-5 border-2 border-gray-900/30 border-t-gray-900 rounded-full animate-spin" />
-                                ) : (
-                                    'Top Up'
-                                )}
-                            </button>
-                        </div>
-                    </form>
+                        </form>
+                    ) : (
+                        <form onSubmit={handleWithdraw} className="relative">
+                            <label className="block text-xs text-gray-400 mb-2 uppercase tracking-wider font-semibold">Withdraw to Bank</label>
+                            <div className="flex gap-2">
+                                <div className="relative flex-1">
+                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-medium">₦</span>
+                                    <input
+                                        type="number"
+                                        value={withdrawAmount}
+                                        onChange={(e) => setWithdrawAmount(e.target.value)}
+                                        placeholder="Enter amount"
+                                        className="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:bg-white/20 transition-all"
+                                        min="100"
+                                        max={balance}
+                                    />
+                                </div>
+                                <button
+                                    type="submit"
+                                    disabled={withdrawing || !withdrawAmount}
+                                    className="bg-white text-gray-900 px-6 py-3 rounded-xl font-bold hover:bg-gray-100 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center shadow-lg shadow-white/10"
+                                >
+                                    {withdrawing ? (
+                                        <div className="w-5 h-5 border-2 border-gray-900/30 border-t-gray-900 rounded-full animate-spin" />
+                                    ) : (
+                                        'Withdraw'
+                                    )}
+                                </button>
+                            </div>
+                        </form>
+                    )}
+                    <button
+                        onClick={() => setShowWithdraw(!showWithdraw)}
+                        className="text-xs text-gray-400 hover:text-white transition-colors flex items-center gap-1"
+                    >
+                        <ArrowDownToLine size={12} />
+                        {showWithdraw ? 'Back to Top Up' : 'Withdraw to Bank'}
+                    </button>
                 </div>
             </div>
         </div>

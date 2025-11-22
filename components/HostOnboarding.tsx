@@ -3,7 +3,7 @@ import { Role } from '../types';
 import { ArrowLeft, X, Mail } from 'lucide-react';
 
 interface HostOnboardingProps {
-    onLogin: (role: Role) => void;
+    onLogin: (role: Role, provider?: 'email' | 'google' | 'phone') => void;
     onBack: () => void;
 }
 
@@ -69,7 +69,7 @@ const HostOnboarding: React.FC<HostOnboardingProps> = ({ onLogin, onBack }) => {
 
                         <div className="space-y-3">
                             <button
-                                onClick={() => onLogin(Role.HOST)}
+                                onClick={() => onLogin(Role.HOST, 'google')}
                                 className="w-full border border-gray-900 text-gray-900 font-medium py-3 rounded-lg hover:bg-gray-50 transition relative flex items-center justify-between px-4"
                             >
                                 <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" alt="Google" />
@@ -110,7 +110,7 @@ const HostOnboarding: React.FC<HostOnboardingProps> = ({ onLogin, onBack }) => {
                             onChange={(e) => setEmail(e.target.value)}
                         />
                         <button
-                            onClick={() => onLogin(Role.HOST)}
+                            onClick={() => onLogin(Role.HOST, 'email')}
                             className="w-full bg-brand-600 text-white font-bold text-lg py-3 rounded-lg hover:shadow-lg transition-all"
                         >
                             Continue
@@ -136,7 +136,7 @@ const HostOnboarding: React.FC<HostOnboardingProps> = ({ onLogin, onBack }) => {
                             ))}
                         </div>
                         <button
-                            onClick={() => onLogin(Role.HOST)}
+                            onClick={() => onLogin(Role.HOST, 'phone')}
                             className="w-full bg-brand-600 text-white font-bold text-lg py-3 rounded-lg hover:shadow-lg transition-all"
                         >
                             Verify

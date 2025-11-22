@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Listing, User, BookingType, Booking, CancellationPolicy } from '../types';
 import { ArrowLeft, MapPin, Star, Clock, Calendar as CalendarIcon, AlertCircle, User as UserIcon, ShieldCheck, UploadCloud, X, Loader2, UserCheck, Repeat, Info, ChevronLeft, ChevronRight, CheckCircle, Ban, Users, Plus, Minus, PackagePlus, Grid, Share, Heart, FileText, Lock, Wallet, CreditCard, MessageSquare } from 'lucide-react';
-import { getBookings, toggleFavorite, saveBooking, startConversation, getReviews, getAverageRating, getAllUsers } from '../services/storage';
+import { getBookings, toggleFavorite, saveBooking, startConversation, getReviews, getAverageRating, getAllUsers, addNotification } from '../services/storage';
 import { useNavigate } from 'react-router-dom';
 import { paymentService } from '../services/paymentService';
 import { SERVICE_FEE_PERCENTAGE } from '../constants';
@@ -18,6 +18,7 @@ interface ListingDetailsProps {
 }
 
 const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, onBook, onVerify, onLogin, onRefreshUser }) => {
+  const host = useMemo(() => getAllUsers().find(u => u.id === listing.hostId), [listing.hostId]);
   const navigate = useNavigate();
   // Payment State
   const [paymentMethod, setPaymentMethod] = useState<'WALLET' | 'CARD'>('WALLET');
@@ -56,6 +57,7 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
   const [isBookingLoading, setIsBookingLoading] = useState(false);
   const [pendingBooking, setPendingBooking] = useState<any>(null);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [showMobileBookingModal, setShowMobileBookingModal] = useState(false);
 
   useEffect(() => {
     console.log('ListingDetails user effect:', user?.favorites, listing.id);
@@ -287,8 +289,14 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
       return;
     }
 
+    if (!user.emailVerified && !user.phoneVerified) {
+      alert("Please verify your email address or phone number before booking.");
+      return;
+    }
+
     if (isHourly && selectedHours.length === 0) {
-      alert("Please select at least one hour.");
+      alert("Please scroll up and select at least one hour to continue.");
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
@@ -396,7 +404,8 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
     }
 
     if (isHourly && selectedHours.length === 0) {
-      alert("Please select at least one hour.");
+      alert("Please scroll up and select at least one hour to continue.");
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
@@ -433,6 +442,37 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
         pendingBooking.guestCount,
         pendingBooking.selectedAddOns
       );
+
+      // Notify guest about booking request
+      if (user) {
+        addNotification({
+          userId: user.id,
+          type: 'booking',
+          title: 'Booking Request Sent',
+          message: `Your booking request for "${listing.title}" has been sent to the host`,
+          severity: 'info',
+          read: false,
+          actionRequired: false,
+          metadata: {
+            link: '/dashboard?tab=bookings'
+          }
+        });
+
+        // Notify host about new booking request
+        addNotification({
+          userId: listing.hostId,
+          type: 'booking',
+          title: 'New Booking Request',
+          message: `${user.name} requested to book "${listing.title}"`,
+          severity: 'warning',
+          read: false,
+          actionRequired: true,
+          metadata: {
+            link: '/dashboard?view=bookings'
+          }
+        });
+      }
+
       setShowConfirmModal(false);
       setShowVerificationModal(false);
     } catch (error: any) {
@@ -539,7 +579,7 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
   const fees = calculateFees();
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 animate-in slide-in-from-right duration-300">
+    <div className="max-w-7xl mx-auto px-4 py-4 sm:py-8 pb-24 lg:pb-8 animate-in slide-in-from-right duration-300">
       {/* Header & Nav */}
       <div className="flex items-center justify-between mb-4">
         <button
@@ -615,11 +655,11 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
         {/* Left Column: Images & Details */}
-        <div className="lg:col-span-2 space-y-8">
+        <div className="lg:col-span-2 space-y-6 lg:space-y-8">
           {/* Hero Gallery (Bento Grid) */}
-          <div className="relative rounded-2xl overflow-hidden h-[400px] group cursor-pointer" onClick={() => openGallery(0)}>
+          <div className="relative rounded-xl lg:rounded-2xl overflow-hidden h-[300px] sm:h-[400px] group cursor-pointer" onClick={() => openGallery(0)}>
             {listing.images.length >= 5 ? (
               <div className="grid grid-cols-4 grid-rows-2 gap-2 h-full">
                 {/* Hero Image */}
@@ -662,36 +702,47 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
 
           {/* Info */}
           <div>
-            <div className="flex justify-between items-start mb-4">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">{listing.title}</h1>
-                <div className="flex items-center text-gray-500">
-                  <MapPin size={18} className="mr-1" />
-                  {listing.location}
-                </div>
-              </div>
-              <div className="flex flex-col items-end gap-2">
-                <div className="bg-brand-50 text-brand-700 px-3 py-1 rounded-full text-sm font-bold uppercase">
+            <div className="mb-4">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">{listing.title}</h1>
+              <div className="flex flex-wrap items-center gap-2 mb-2">
+                <div className="bg-brand-50 text-brand-700 px-2.5 py-1 rounded-full text-xs font-bold uppercase">
                   {listing.type}
                 </div>
+                {listing.requiresIdentityVerification && (
+                  <div className="inline-flex items-center gap-1.5 bg-blue-50 border border-blue-100 text-blue-700 px-2.5 py-1 rounded-full text-xs font-medium">
+                    <UserCheck size={14} />
+                    <span>ID Required</span>
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center text-gray-500 text-sm">
+                <MapPin size={16} className="mr-1 flex-shrink-0" />
+                <span>{listing.location}</span>
               </div>
             </div>
 
-            {listing.requiresIdentityVerification && (
-              <div className="mb-4 inline-flex items-center gap-2 bg-blue-50 border border-blue-100 text-blue-800 px-3 py-1.5 rounded-md text-sm">
-                <UserCheck size={16} />
-                <span className="font-medium">Identity Verification Required</span>
-              </div>
-            )}
-
-            <div className="flex items-center space-x-6 border-y border-gray-100 py-6 my-6">
-              <div className="flex items-center gap-2">
-                <div className="p-2 bg-gray-100 rounded-full">
-                  <UserIcon size={20} className="text-gray-600" />
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 border-y border-gray-100 py-4 sm:py-6 mt-4 sm:mt-6 mb-6">
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  {host?.avatar ? (
+                    <img src={host.avatar} alt={host.name} className="w-12 h-12 rounded-full object-cover border border-gray-200" />
+                  ) : (
+                    <div className="p-2 bg-gray-100 rounded-full">
+                      <UserIcon size={24} className="text-gray-600" />
+                    </div>
+                  )}
+                  {host?.kycVerified && (
+                    <div className="absolute -bottom-1 -right-1 bg-blue-500 text-white p-0.5 rounded-full border-2 border-white" title="Verified Host">
+                      <CheckCircle size={12} strokeWidth={3} />
+                    </div>
+                  )}
                 </div>
-                <div>
+                <div className="flex-1">
                   <p className="text-xs text-gray-500 uppercase font-bold">Host</p>
-                  <p className="font-medium">Host ID: {listing.hostId}</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="font-medium text-gray-900">{host?.name || 'Unknown Host'}</p>
+                    {host?.kycVerified && <CheckCircle size={14} className="text-blue-500 fill-blue-50" />}
+                  </div>
                   <button
                     onClick={handleContactHost}
                     className="text-brand-600 text-sm font-semibold hover:underline mt-1 flex items-center gap-1"
@@ -700,7 +751,7 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
                   </button>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <div className="p-2 bg-gray-100 rounded-full">
                   <Star size={20} className="text-yellow-500" />
                 </div>
@@ -709,7 +760,7 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
                   <p className="font-medium">4.9 (12 reviews)</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <div className="p-2 bg-gray-100 rounded-full">
                   <Users size={20} className="text-gray-600" />
                 </div>
@@ -823,9 +874,9 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
             </div>
 
             {/* Things to Know - Policies & Safety */}
-            <div className="mt-10 pt-10 border-t border-gray-200">
-              <h3 className="text-xl font-bold text-gray-900 mb-6">Things to know</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="mt-8 pt-8 border-t border-gray-200 pb-0">
+              <h3 className="text-xl font-bold text-gray-900 mb-4 sm:mb-6">Things to know</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 pb-0">
                 {/* House Rules */}
                 <div>
                   <h4 className="font-semibold text-gray-900 mb-3">House Rules</h4>
@@ -877,7 +928,8 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
 
         {/* Right Column: Booking Widget */}
         <div className="lg:col-span-1">
-          <div className="sticky top-24 bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
+          {/* Desktop: Sticky sidebar */}
+          <div className="hidden lg:block sticky top-24 bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
             <div className="flex justify-between items-end mb-6 pb-6 border-b border-gray-100">
               <div>
                 <span className="text-3xl font-bold text-gray-900">${listing.price}</span>
@@ -1205,8 +1257,204 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
                 <p className="text-center text-xs text-gray-500">You won't be charged yet</p>
               )}
             </div>
-
           </div>
+
+          {/* Mobile: Fixed bottom bar */}
+          <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-40 shadow-lg">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <div className="text-xs text-gray-500">Total</div>
+                <div className="text-xl font-bold text-gray-900">${fees.total.toFixed(2)}</div>
+              </div>
+              <button
+                onClick={() => setShowMobileBookingModal(true)}
+                className="flex-1 py-3 rounded-lg font-bold transition shadow-md bg-brand-600 text-white hover:bg-brand-700"
+              >
+                Select Options
+              </button>
+            </div>
+          </div>
+
+          {/* Mobile Booking Modal */}
+          {showMobileBookingModal && (
+            <div className="lg:hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm">
+              <div className="absolute inset-x-0 bottom-0 bg-white rounded-t-2xl max-h-[90vh] overflow-hidden flex flex-col animate-in slide-in-from-bottom duration-300">
+                <div className="flex items-center justify-between p-4 border-b border-gray-200">
+                  <h2 className="text-lg font-bold">Booking Options</h2>
+                  <button onClick={() => setShowMobileBookingModal(false)} className="p-2 hover:bg-gray-100 rounded-full">
+                    <X size={20} />
+                  </button>
+                </div>
+                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Guests</label>
+                    <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden">
+                      <button type="button" onClick={() => setGuestCount(Math.max(1, guestCount - 1))} disabled={guestCount <= 1} className="px-4 py-3 bg-gray-50 hover:bg-gray-100 border-r border-gray-300 disabled:opacity-50"><Minus size={16} /></button>
+                      <div className="flex-1 text-center py-3 bg-white font-medium">{guestCount} {guestCount === 1 ? 'Guest' : 'Guests'}</div>
+                      <button type="button" onClick={() => setGuestCount(Math.min(listing.capacity || 10, guestCount + 1))} disabled={guestCount >= (listing.capacity || 10)} className="px-4 py-3 bg-gray-50 hover:bg-gray-100 border-l border-gray-300 disabled:opacity-50"><Plus size={16} /></button>
+                    </div>
+                    {guestCount > (listing.includedGuests || 1) && (listing.pricePerExtraGuest || 0) > 0 && (
+                      <div className="mt-1 text-xs text-gray-500 flex justify-between">
+                        <span>Included: {listing.includedGuests} guests</span>
+                        <span className="font-medium text-green-700">+${(guestCount - (listing.includedGuests || 1)) * (listing.pricePerExtraGuest || 0)}/unit extra</span>
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                    <button type="button" onClick={() => setIsCalendarOpen(!isCalendarOpen)} className="w-full p-3 pl-10 border border-gray-300 rounded-lg text-left flex items-center bg-white relative">
+                      <CalendarIcon className="absolute left-3 top-3.5 text-gray-500" size={18} />
+                      <span className="font-medium text-gray-900">{new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+                    </button>
+                    {isCalendarOpen && renderCalendar()}
+                  </div>
+                  {listing.addOns && listing.addOns.length > 0 && (
+                    <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                      <div className="flex items-center gap-2 text-sm font-bold text-gray-900 mb-2">
+                        <PackagePlus size={16} className="text-brand-600" /> Optional Extras
+                      </div>
+                      <div className="space-y-2">
+                        {listing.addOns.map(addon => (
+                          <div key={addon.id} onClick={() => toggleAddOn(addon.id)} className={`flex items-center justify-between p-2 rounded border cursor-pointer transition-colors ${selectedAddOns.includes(addon.id) ? 'bg-white border-brand-500 ring-1 ring-brand-500' : 'bg-white border-gray-200 hover:border-gray-300'}`}>
+                            <div className="flex items-start gap-2 overflow-hidden">
+                              <div className={`w-4 h-4 rounded border mt-0.5 flex items-center justify-center flex-shrink-0 ${selectedAddOns.includes(addon.id) ? 'bg-brand-600 border-brand-600' : 'border-gray-300'}`}>
+                                {selectedAddOns.includes(addon.id) && <CheckCircle size={12} className="text-white" />}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="text-sm font-medium truncate">{addon.name}</div>
+                                {addon.description && <div className="text-[10px] text-gray-500 truncate">{addon.description}</div>}
+                              </div>
+                            </div>
+                            <div className="text-sm font-bold whitespace-nowrap">+${addon.price}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {listing.settings?.allowRecurring && (
+                    <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                      <div className="flex items-center justify-between mb-2 cursor-pointer" onClick={() => setIsRecurring(!isRecurring)}>
+                        <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
+                          <Repeat size={16} className={isRecurring ? "text-brand-600" : "text-gray-400"} />
+                          {isHourly ? 'Repeat Booking?' : 'Book Series?'}
+                        </div>
+                        <div className={`w-10 h-5 rounded-full relative transition-colors ${isRecurring ? 'bg-brand-600' : 'bg-gray-300'}`}>
+                          <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${isRecurring ? 'left-6' : 'left-1'}`} />
+                        </div>
+                      </div>
+                      {isRecurring && (
+                        <div className="space-y-3 mt-3 pt-3 border-t border-gray-200">
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-500 mb-1">Frequency</label>
+                            <div className="flex gap-2">
+                              {isHourly && <button onClick={() => setRecurrenceFreq('DAILY')} className={`flex-1 py-1.5 text-xs rounded border ${recurrenceFreq === 'DAILY' ? 'bg-white border-brand-500 text-brand-600 ring-1 ring-brand-500' : 'bg-white border-gray-300 text-gray-600'}`}>Daily</button>}
+                              <button onClick={() => setRecurrenceFreq('WEEKLY')} className={`py-1.5 text-xs rounded border ${isHourly ? 'flex-1' : 'w-full'} ${recurrenceFreq === 'WEEKLY' ? 'bg-white border-brand-500 text-brand-600 ring-1 ring-brand-500' : 'bg-white border-gray-300 text-gray-600'}`}>Weekly</button>
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-500 mb-1">Occurrences</label>
+                            <div className="flex items-center gap-3">
+                              <input type="range" min={2} max={8} value={recurrenceCount} onChange={(e) => setRecurrenceCount(parseInt(e.target.value))} className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-brand-600" />
+                              <span className="text-sm font-bold w-8 text-center">{recurrenceCount}</span>
+                            </div>
+                          </div>
+                          <div className="text-[10px] bg-white p-2 rounded border border-gray-100">
+                            <div className="font-bold mb-1 text-gray-700">Series Preview:</div>
+                            <div className="grid grid-cols-2 gap-y-1 gap-x-2">
+                              {bookingSeries.map((item, i) => (
+                                <div key={i} className={`flex items-center gap-1 truncate ${item.status !== 'AVAILABLE' ? 'text-red-500 font-medium' : 'text-gray-500'}`}>
+                                  {item.status === 'AVAILABLE' ? <CheckCircle size={10} className="text-green-500" /> : <X size={10} />}
+                                  <span>{item.date.slice(5)}</span>
+                                  {item.status !== 'AVAILABLE' && <span className="text-[8px] uppercase ml-auto border border-red-200 px-1 rounded">Blocked</span>}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {isHourly && (
+                    <div>
+                      <div className="flex justify-between items-center mb-2">
+                        <label className="block text-sm font-medium text-gray-700">Select Hours</label>
+                        <span className="text-xs text-gray-500">{selectedHours.length} selected</span>
+                      </div>
+                      {hostOpenHours.length === 0 ? (
+                        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center text-gray-500 text-sm"><Ban className="mx-auto mb-2 text-gray-400" size={20} />Host is unavailable on this date.</div>
+                      ) : (
+                        <div className="grid grid-cols-4 gap-2">
+                          {hostOpenHours.map(hour => {
+                            const booked = isSlotBooked(selectedDate, hour);
+                            const isSelected = selectedHours.includes(hour);
+                            return (
+                              <button key={hour} onClick={() => !booked && handleHourToggle(hour)} disabled={booked} className={`py-2 rounded text-xs font-medium transition-all relative border ${booked ? 'bg-gray-100 text-gray-300 border-transparent cursor-not-allowed' : (isSelected ? 'bg-brand-600 text-white border-brand-600' : 'bg-white border-gray-200 text-gray-700 hover:border-brand-300')}`}>
+                                {hour.toString().padStart(2, '0')}:00
+                                {booked && <div className="absolute inset-0 flex items-center justify-center"><div className="w-[60%] h-[1px] bg-gray-300 transform -rotate-12"></div></div>}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                      {isRecurring && selectedHours.length > 0 && (
+                        <div className="mt-2 bg-blue-50 border border-blue-100 p-2 rounded flex items-start gap-2">
+                          <Info size={14} className="text-blue-600 shrink-0 mt-0.5" />
+                          <p className="text-xs text-blue-800">
+                            Selected hours will apply to all {recurrenceCount} dates in the series.
+                            <span className="block text-gray-500 text-[10px] mt-1">We check availability for every single date.</span>
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {!isHourly && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Duration (Nights)</label>
+                      <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden">
+                        <button type="button" onClick={() => setSelectedDays(Math.max(1, selectedDays - 1))} className="px-4 py-3 bg-gray-50 hover:bg-gray-100 border-r border-gray-300">-</button>
+                        <input type="number" value={selectedDays} readOnly className="w-full text-center p-3 outline-none bg-white" />
+                        <button type="button" onClick={() => setSelectedDays(selectedDays + 1)} className="px-4 py-3 bg-gray-50 hover:bg-gray-100 border-l border-gray-300">+</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div className="p-4 border-t border-gray-200 bg-white space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm text-gray-600">
+                      <span>Subtotal {isRecurring && `(${recurrenceCount} bookings)`}</span>
+                      <span>${fees.subtotal.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm text-gray-600">
+                      <span>Service Fee (10%)</span>
+                      <span>${fees.serviceFee.toFixed(2)}</span>
+                    </div>
+                    {fees.cautionFee > 0 && (
+                      <div className="flex justify-between text-sm text-gray-600">
+                        <span className="flex items-center gap-1">
+                          Caution Fee
+                          <Info size={12} className="text-gray-400" />
+                        </span>
+                        <span>${fees.cautionFee.toFixed(2)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between items-center text-lg font-bold text-gray-900 border-t border-gray-200 pt-2">
+                      <span>Total</span>
+                      <span>${fees.total.toFixed(2)}</span>
+                    </div>
+                  </div>
+                  {user && !user.kycVerified && listing.requiresIdentityVerification && (
+                    <div className="flex items-start gap-2 bg-yellow-50 p-3 rounded-lg text-xs text-yellow-800">
+                      <AlertCircle size={14} className="mt-0.5 shrink-0" />
+                      <span>One-time verification required to book.</span>
+                    </div>
+                  )}
+                  <button onClick={() => { setShowMobileBookingModal(false); handleBookClick(); }} disabled={(isHourly && selectedHours.length === 0) || isBookingLoading || bookingSeries.some(s => s.status !== 'AVAILABLE')} className={`w-full font-bold py-3 rounded-lg transition ${(isHourly && selectedHours.length === 0) || bookingSeries.some(s => s.status !== 'AVAILABLE') ? 'bg-gray-300 text-gray-500' : 'bg-brand-600 text-white hover:bg-brand-700'}`}>
+                    {isBookingLoading ? <Loader2 className="animate-spin" size={18} /> : (bookingSeries.some(s => s.status !== 'AVAILABLE') ? 'Dates Unavailable' : (user ? (listing.requiresIdentityVerification && !user.kycVerified ? 'Verify & Book' : (isRecurring ? 'Book Series' : 'Book Now')) : 'Sign in to Book'))}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

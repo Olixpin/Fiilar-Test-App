@@ -1,5 +1,5 @@
 
-import { User, Listing, Booking, Role, ListingStatus, Conversation, Message, Review } from '../types';
+import { User, Listing, Booking, Role, ListingStatus, Conversation, Message, Review, Notification, DamageReport } from '../types';
 import { MOCK_LISTINGS } from '../constants';
 
 export const STORAGE_KEYS = {
@@ -10,6 +10,8 @@ export const STORAGE_KEYS = {
   CONVERSATIONS: 'fiilar_conversations',
   MESSAGES: 'fiilar_messages',
   REVIEWS: 'fiilar_reviews',
+  NOTIFICATIONS: 'fiilar_notifications',
+  DAMAGE_REPORTS: 'fiilar_damage_reports',
 };
 
 // Initialize mock data
@@ -55,11 +57,14 @@ export const getCurrentUser = (): User | null => {
   return u ? JSON.parse(u) : null;
 };
 
-export const loginUser = (role: Role): User => {
+import { generateVerificationToken, getTokenExpiry, sendVerificationEmail } from './emailService';
+
+export const loginUser = (role: Role, provider: 'email' | 'google' | 'phone' = 'email'): User => {
   // Standardize IDs to ensure persistence across logins for the demo
   let userId = '';
   let name = '';
   let email = '';
+  let phone = '';
 
   switch (role) {
     case Role.HOST: userId = 'host_123'; name = 'Jane Host'; email = 'jane@example.com'; break;
@@ -72,17 +77,50 @@ export const loginUser = (role: Role): User => {
   let user = users.find(u => u.id === userId);
 
   if (!user) {
+    const token = generateVerificationToken();
+    const isGoogle = provider === 'google';
+
     user = {
       id: userId,
       name: name,
       email: email,
+      password: 'password', // Mock password
       role: role,
+      isHost: role === Role.HOST,
+      createdAt: new Date().toISOString(),
       kycVerified: role === Role.ADMIN, // Admin verified by default
       walletBalance: role === Role.HOST ? 1250.00 : 0,
       avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${userId}`,
-      favorites: []
+      favorites: [],
+      authProvider: provider,
+      // Google is auto-verified. Admin is auto-verified.
+      emailVerified: role === Role.ADMIN || isGoogle,
+      phoneVerified: provider === 'phone',
+      verificationToken: (role !== Role.ADMIN && !isGoogle) ? token : undefined,
+      verificationTokenExpiry: (role !== Role.ADMIN && !isGoogle) ? getTokenExpiry() : undefined
     };
+
     saveUserToDb(user);
+
+    // Send verification email for new non-admin users who didn't use Google
+    if (role !== Role.ADMIN && !isGoogle && provider === 'email') {
+      sendVerificationEmail(email, token, name);
+    }
+  } else {
+    // User exists, update verification if using trusted provider
+    let updated = false;
+    if (provider === 'google' && !user.emailVerified) {
+      user.emailVerified = true;
+      updated = true;
+    }
+    if (provider === 'phone' && !user.phoneVerified) {
+      user.phoneVerified = true;
+      updated = true;
+    }
+
+    if (updated) {
+      saveUserToDb(user);
+    }
   }
 
   // Set as active session
@@ -319,3 +357,112 @@ export const getAverageRating = (listingId: string): number => {
   return Math.round((sum / reviews.length) * 10) / 10; // Round to 1 decimal
 };
 
+// Notification System
+export const getNotifications = (userId: string): Notification[] => {
+  const n = localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS);
+  const notifications: Notification[] = n ? JSON.parse(n) : [];
+  return notifications
+    .filter(notif => notif.userId === userId)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+};
+
+export const addNotification = (notification: Omit<Notification, 'id' | 'createdAt'>): void => {
+  const n = localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS);
+  const notifications: Notification[] = n ? JSON.parse(n) : [];
+
+  const newNotification: Notification = {
+    ...notification,
+    id: Math.random().toString(36).substr(2, 9),
+    createdAt: new Date().toISOString()
+  };
+
+  notifications.push(newNotification);
+  localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(notifications));
+};
+
+export const markNotificationAsRead = (notificationId: string): void => {
+  const n = localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS);
+  const notifications: Notification[] = n ? JSON.parse(n) : [];
+
+  const notification = notifications.find(n => n.id === notificationId);
+  if (notification) {
+    notification.read = true;
+    localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(notifications));
+  }
+};
+
+export const markAllNotificationsAsRead = (userId: string): void => {
+  const n = localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS);
+  const notifications: Notification[] = n ? JSON.parse(n) : [];
+
+  notifications.forEach(notif => {
+    if (notif.userId === userId) {
+      notif.read = true;
+    }
+  });
+
+  localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(notifications));
+};
+
+export const getUnreadCount = (userId: string): number => {
+  const notifications = getNotifications(userId);
+  return notifications.filter(n => !n.read).length;
+};
+
+// Damage Report System
+export const createDamageReport = (report: Omit<DamageReport, 'id' | 'createdAt'>): string => {
+  const d = localStorage.getItem(STORAGE_KEYS.DAMAGE_REPORTS);
+  const reports: DamageReport[] = d ? JSON.parse(d) : [];
+
+  const newReport: DamageReport = {
+    ...report,
+    id: Math.random().toString(36).substr(2, 9),
+    createdAt: new Date().toISOString()
+  };
+
+  reports.push(newReport);
+  localStorage.setItem(STORAGE_KEYS.DAMAGE_REPORTS, JSON.stringify(reports));
+
+  // Create notification for the user
+  addNotification({
+    userId: report.reportedTo,
+    type: 'damage_report',
+    title: 'Damage Report Filed',
+    message: `A host has reported damage to your booking. Estimated cost: $${report.estimatedCost}`,
+    severity: 'urgent',
+    read: false,
+    actionRequired: true,
+    metadata: {
+      reportId: newReport.id,
+      amount: report.estimatedCost,
+      images: report.images
+    }
+  });
+
+  return newReport.id;
+};
+
+export const getDamageReports = (userId: string): DamageReport[] => {
+  const d = localStorage.getItem(STORAGE_KEYS.DAMAGE_REPORTS);
+  const reports: DamageReport[] = d ? JSON.parse(d) : [];
+  return reports
+    .filter(report => report.reportedBy === userId || report.reportedTo === userId)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+};
+
+export const updateDamageReport = (reportId: string, updates: Partial<DamageReport>): void => {
+  const d = localStorage.getItem(STORAGE_KEYS.DAMAGE_REPORTS);
+  const reports: DamageReport[] = d ? JSON.parse(d) : [];
+
+  const reportIndex = reports.findIndex(r => r.id === reportId);
+  if (reportIndex !== -1) {
+    reports[reportIndex] = { ...reports[reportIndex], ...updates };
+    localStorage.setItem(STORAGE_KEYS.DAMAGE_REPORTS, JSON.stringify(reports));
+  }
+};
+
+export const getDamageReportById = (reportId: string): DamageReport | undefined => {
+  const d = localStorage.getItem(STORAGE_KEYS.DAMAGE_REPORTS);
+  const reports: DamageReport[] = d ? JSON.parse(d) : [];
+  return reports.find(r => r.id === reportId);
+};

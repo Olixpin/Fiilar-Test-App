@@ -1,18 +1,22 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { User, Role, View } from '../types';
-import { Menu, X, LogOut, UserCircle, Search, Globe } from 'lucide-react';
+import { Menu, X, LogOut, UserCircle, Search, Globe, Bell } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { getAllUsers, STORAGE_KEYS, getCurrentUser } from '../services/storage';
+import { getAllUsers, STORAGE_KEYS, getCurrentUser, getUnreadCount } from '../services/storage';
+import NotificationCenter from './NotificationCenter';
 
 interface NavbarProps {
   user: User | null;
   onLogout: () => void;
   onSearch?: (term: string) => void;
   searchTerm?: string;
+  onLogin?: () => void;
+  onBecomeHost?: () => void;
+  onNavigate?: (path: string) => void;
 }
 
-const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onSearch, searchTerm }) => {
+const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onSearch, searchTerm, onLogin, onBecomeHost, onNavigate }) => {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const accountToggleRef = useRef<HTMLButtonElement | null>(null);
@@ -25,6 +29,9 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onSearch, searchTerm })
   );
 
   const [savedCount, setSavedCount] = useState<number>(0);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const notificationRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     // If logged in, use user's favorites. If logged out, read guest favorites from localStorage.
@@ -82,6 +89,38 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onSearch, searchTerm })
     </Link>
   );
 
+  // Poll for notifications every 30 seconds
+  useEffect(() => {
+    if (!user) return;
+
+    const updateNotificationCount = () => {
+      const count = getUnreadCount(user.id);
+      setUnreadCount(count);
+    };
+
+    updateNotificationCount();
+    const interval = setInterval(updateNotificationCount, 30000);
+
+    return () => clearInterval(interval);
+  }, [user]);
+
+  // Close notification dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
+        setIsNotificationOpen(false);
+      }
+    };
+
+    if (isNotificationOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isNotificationOpen]);
+
   return (
     <nav className="sticky top-0 z-50 bg-white/70 backdrop-blur-xl border-b border-gray-200/50 h-20 flex items-center">
       <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-8">
@@ -116,15 +155,42 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onSearch, searchTerm })
           {/* Right Side */}
           <div className="hidden md:flex items-center gap-2 flex-shrink-0">
             {!user && (
-              <Link to="/login-host" className="text-gray-900 hover:bg-gray-100 px-4 py-2 rounded-full text-sm font-semibold transition-colors">
+              <button
+                onClick={onBecomeHost}
+                className="text-gray-900 hover:bg-gray-100 px-4 py-2 rounded-full text-sm font-semibold transition-colors"
+              >
                 Become a host
-              </Link>
+              </button>
             )}
 
             <button title="Language" aria-label="Language" className="p-3 hover:bg-gray-100 rounded-full transition-colors text-gray-500">
               <Globe size={18} />
             </button>
 
+            {/* Notification Bell */}
+            {user && (
+              <div className="relative" ref={notificationRef}>
+                <button
+                  onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+                  className="relative p-2 hover:bg-gray-100 rounded-full transition"
+                >
+                  <Bell size={20} className="text-gray-700" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </button>
+                {isNotificationOpen && (
+                  <NotificationCenter
+                    userId={user.id}
+                    onClose={() => setIsNotificationOpen(false)}
+                  />
+                )}
+              </div>
+            )}
+
+            {/* Account Menu */}
             <div className="relative">
               <button
                 type="button"
@@ -187,10 +253,19 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onSearch, searchTerm })
               {isAccountOpen && user && (
                 <div ref={menuRef} aria-label="Account menu" className="absolute right-0 mt-2 w-44 bg-white border rounded-lg shadow-lg py-1 z-50">
                   <button onClick={() => fileInputRef.current?.click()} className="block px-4 py-2 text-sm hover:bg-gray-100 text-left">Change photo</button>
-                  <Link to="/dashboard" onClick={() => setIsAccountOpen(false)} className="block px-4 py-2 text-sm hover:bg-gray-100">Dashboard</Link>
-                  <Link to="/dashboard?tab=bookings" onClick={() => setIsAccountOpen(false)} className="block px-4 py-2 text-sm hover:bg-gray-100">Bookings</Link>
-                  <Link to="/dashboard?tab=wallet" onClick={() => setIsAccountOpen(false)} className="block px-4 py-2 text-sm hover:bg-gray-100">Payment Methods</Link>
-                  <Link to="/dashboard?tab=settings" onClick={() => setIsAccountOpen(false)} className="block px-4 py-2 text-sm hover:bg-gray-100">Settings</Link>
+                  <Link to={user.role === Role.HOST ? "/host/dashboard" : "/dashboard"} onClick={() => setIsAccountOpen(false)} className="block px-4 py-2 text-sm hover:bg-gray-100">Dashboard</Link>
+                  {user.role === Role.HOST ? (
+                    <>
+                      <Link to="/host/dashboard?view=listings" onClick={() => setIsAccountOpen(false)} className="block px-4 py-2 text-sm hover:bg-gray-100">Listings</Link>
+                      <Link to="/host/dashboard?view=earnings" onClick={() => setIsAccountOpen(false)} className="block px-4 py-2 text-sm hover:bg-gray-100">Earnings</Link>
+                    </>
+                  ) : (
+                    <>
+                      <Link to="/dashboard?tab=bookings" onClick={() => setIsAccountOpen(false)} className="block px-4 py-2 text-sm hover:bg-gray-100">Bookings</Link>
+                      <Link to="/dashboard?tab=wallet" onClick={() => setIsAccountOpen(false)} className="block px-4 py-2 text-sm hover:bg-gray-100">Wallet</Link>
+                    </>
+                  )}
+                  <Link to={user.role === Role.HOST ? "/host/dashboard?view=settings" : "/dashboard?tab=settings"} onClick={() => setIsAccountOpen(false)} className="block px-4 py-2 text-sm hover:bg-gray-100">Settings</Link>
                   <button onClick={() => { setIsAccountOpen(false); onLogout(); }} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100">Log out</button>
                 </div>
               )}
@@ -204,9 +279,9 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onSearch, searchTerm })
                     </button>
                     <div className="px-4 pb-1 text-xs text-gray-500">Sign in to save favorites</div>
                   </div>
-                  <Link to="/login" onClick={() => setIsAccountOpen(false)} className="block px-4 py-2 text-sm hover:bg-gray-100">Create an account</Link>
-                  <Link to="/login" onClick={() => setIsAccountOpen(false)} className="block px-4 py-2 text-sm hover:bg-gray-100">Log in</Link>
-                  <Link to="/login-host" onClick={() => setIsAccountOpen(false)} className="block px-4 py-2 text-sm hover:bg-gray-100">Become a host</Link>
+                  <button onClick={() => { onLogin?.(); setIsAccountOpen(false); }} className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100">Create an account</button>
+                  <button onClick={() => { onLogin?.(); setIsAccountOpen(false); }} className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100">Log in</button>
+                  <button onClick={() => { onBecomeHost?.(); setIsAccountOpen(false); }} className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100">Become a host</button>
                 </div>
               )}
             </div>

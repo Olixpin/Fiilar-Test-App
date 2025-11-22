@@ -1,7 +1,9 @@
 import React from 'react';
 import { Listing, User, ListingStatus, SpaceType } from '../types';
 import ListingCard from './ListingCard';
-import { Home as HomeIcon, Camera, Users, Music, Briefcase, Sun, Search, Plus } from 'lucide-react';
+import AdvancedSearch, { SearchFilters } from './AdvancedSearch';
+import { filterListings } from '../services/searchService';
+import { Home as HomeIcon, Camera, Users, Music, Briefcase, Sun, Search, Plus, X, SlidersHorizontal } from 'lucide-react';
 
 interface HomeProps {
     listings: Listing[];
@@ -30,14 +32,41 @@ const Home: React.FC<HomeProps> = ({
         { id: SpaceType.OPEN_SPACE, label: 'Open Air', icon: Sun },
     ];
 
-    const displayListings = listings.filter(l => {
-        const matchesStatus = l.status === ListingStatus.LIVE;
-        const matchesCategory = activeCategory === 'All' || l.type === activeCategory;
-        const matchesSearch = !searchTerm ||
-            l.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            l.title.toLowerCase().includes(searchTerm.toLowerCase());
-        return matchesStatus && matchesCategory && matchesSearch;
+    const [filters, setFilters] = React.useState<SearchFilters>({
+        searchTerm: searchTerm,
+        location: '',
+        priceMin: 0,
+        priceMax: 1000,
+        spaceType: 'all',
+        bookingType: 'all',
+        guestCount: 1,
+        dateFrom: '',
+        dateTo: ''
     });
+
+    const [showMobileFilters, setShowMobileFilters] = React.useState(false);
+
+
+
+    // Sync prop searchTerm with filters
+    React.useEffect(() => {
+        setFilters(prev => ({ ...prev, searchTerm }));
+    }, [searchTerm]);
+
+    const handleFilterChange = (newFilters: SearchFilters) => {
+        setFilters(newFilters);
+    };
+
+    const displayListings = React.useMemo(() => {
+        // First apply category filter if selected (unless it's 'All')
+        let filtered = listings;
+        if (activeCategory !== 'All') {
+            filtered = filtered.filter(l => l.type === activeCategory);
+        }
+
+        // Then apply advanced filters
+        return filterListings(filtered, filters).filter(l => l.status === ListingStatus.LIVE);
+    }, [listings, activeCategory, filters]);
 
     const renderListingsWithPromo = () => {
         const items: React.ReactNode[] = [];
@@ -86,28 +115,102 @@ const Home: React.FC<HomeProps> = ({
     };
 
     return (
-        <div className="max-w-[1600px] mx-auto px-4 sm:px-8 pb-20">
-            {/* Categories Bar - Sticky Top */}
-            <div className="flex items-center gap-8 overflow-x-auto pb-2 mb-6 no-scrollbar sticky top-[80px] bg-white z-30 pt-6">
-                {categories.map(cat => (
-                    <button
-                        key={cat.id}
-                        onClick={() => setActiveCategory(cat.id)}
-                        className={`flex flex-col items-center min-w-[64px] gap-2 group cursor-pointer transition-colors relative pb-3 ${activeCategory === cat.id ? 'text-black' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50 rounded-lg p-1'}`}
-                    >
-                        {cat.icon ? <cat.icon size={24} strokeWidth={activeCategory === cat.id ? 2 : 1.5} /> : <Search size={24} strokeWidth={1.5} />}
-                        <span className={`text-xs font-medium whitespace-nowrap ${activeCategory === cat.id ? 'font-bold' : ''}`}>{cat.label}</span>
-                        {activeCategory === cat.id && (
-                            <span className="absolute bottom-0 w-full h-0.5 bg-black animate-in fade-in zoom-in duration-200" />
-                        )}
-                    </button>
-                ))}
+        <div className="pt-6 pb-20">
+            <div className="max-w-[1600px] mx-auto px-4 sm:px-8">
+                <div className="flex gap-6">
+                    {/* Left Sidebar - Advanced Search - Hidden on mobile */}
+                    <div className="hidden lg:block">
+                        <AdvancedSearch
+                            filters={filters}
+                            onFilterChange={handleFilterChange}
+                        />
+                    </div>
+
+                    {/* Main Content Area */}
+                    <div className="flex-1 min-w-0">
+                        {/* Categories */}
+                        <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto py-3 sm:py-3 mb-4 sm:mb-6 no-scrollbar sticky top-[72px] sm:top-[80px] bg-white z-30 pl-4 pr-4 sm:pr-0">
+                            {/* Mobile Filter Button */}
+                            <button
+                                onClick={() => setShowMobileFilters(true)}
+                                className="lg:hidden flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200 font-medium text-xs sm:text-sm whitespace-nowrap transition-all ml-4"
+                            >
+                                <SlidersHorizontal size={16} className="sm:w-[18px] sm:h-[18px]" strokeWidth={1.5} />
+                                <span>Filters</span>
+                            </button>
+                            {categories.map((cat, idx) => (
+                                <button
+                                    key={cat.id}
+                                    data-category={cat.id}
+                                    onClick={() => {
+                                        setActiveCategory(cat.id);
+                                        setTimeout(() => {
+                                            const btn = document.querySelector(`button[data-category="${cat.id}"]`);
+                                            btn?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                                        }, 0);
+                                    }}
+                                    className={`flex items-center gap-1.5 sm:gap-2 ${idx === 0 ? 'pl-4 pr-3 sm:px-4' : 'px-3 sm:px-4'} py-1.5 sm:py-2 rounded-lg whitespace-nowrap transition-all text-xs sm:text-sm ${
+                                        activeCategory === cat.id 
+                                            ? 'bg-brand-600 text-white shadow-md' 
+                                            : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200'
+                                    }`}
+                                >
+                                    {cat.icon ? <cat.icon size={16} className="sm:w-[18px] sm:h-[18px]" strokeWidth={1.5} /> : <Search size={16} className="sm:w-[18px] sm:h-[18px]" strokeWidth={1.5} />}
+                                    <span className="font-medium">{cat.label}</span>
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Listings Grid */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 sm:gap-x-6 gap-y-8 sm:gap-y-10 animate-in fade-in duration-500">
+                            {renderListingsWithPromo()}
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            {/* Listings Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-6 gap-y-10 animate-in fade-in duration-500">
-                {renderListingsWithPromo()}
-            </div>
+            {/* Mobile Filter Modal */}
+            {showMobileFilters && (
+                <div className="fixed inset-0 z-50 lg:hidden">
+                    {/* Backdrop */}
+                    <div 
+                        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+                        onClick={() => setShowMobileFilters(false)}
+                    />
+                    
+                    {/* Modal Content */}
+                    <div className="absolute inset-x-0 bottom-0 bg-white rounded-t-2xl max-h-[85vh] overflow-hidden flex flex-col animate-in slide-in-from-bottom duration-300">
+                        {/* Header */}
+                        <div className="flex items-center justify-between p-4 border-b border-gray-200">
+                            <h2 className="text-lg font-bold">Filters</h2>
+                            <button
+                                onClick={() => setShowMobileFilters(false)}
+                                className="p-2 hover:bg-gray-100 rounded-full transition"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+                        
+                        {/* Filter Content */}
+                        <div className="flex-1 overflow-y-auto">
+                            <AdvancedSearch
+                                filters={filters}
+                                onFilterChange={handleFilterChange}
+                            />
+                        </div>
+                        
+                        {/* Footer */}
+                        <div className="p-4 border-t border-gray-200 bg-white">
+                            <button
+                                onClick={() => setShowMobileFilters(false)}
+                                className="w-full bg-brand-600 text-white font-bold py-3 rounded-lg hover:bg-brand-700 transition"
+                            >
+                                Show Results
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

@@ -1,19 +1,22 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Message, User } from '../types';
-import { getMessages, sendMessage, markAsRead, getAllUsers } from '../services/storage';
-import { Send, User as UserIcon, Check, CheckCheck, AlertTriangle, ShieldAlert } from 'lucide-react';
+import { Message, User, Conversation } from '../types';
+import { getMessages, sendMessage, markAsRead, getAllUsers, getConversations } from '../services/storage';
+import { Send, User as UserIcon, Check, CheckCheck, ShieldAlert, MessageSquare, ArrowLeft } from 'lucide-react';
 
 interface ChatWindowProps {
     conversationId: string;
     currentUserId: string;
+    onBack?: () => void;
 }
 
-export const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, currentUserId }) => {
+export const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, currentUserId, onBack }) => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [newMessage, setNewMessage] = useState('');
     const [otherUser, setOtherUser] = useState<User | null>(null);
     const [safetyWarning, setSafetyWarning] = useState<string | null>(null);
+    const [isTyping, setIsTyping] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     // Poll for new messages (simulating real-time)
     useEffect(() => {
@@ -41,33 +44,25 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, currentU
 
     // Fetch other user details
     useEffect(() => {
-        // We need to find the conversation first to know participants, but we don't have it passed in.
-        // We can infer it from the first message or we should pass participants prop.
-        // For simplicity, let's assume we can get it from storage or just wait for a message.
-        // Better approach: Pass participants or conversation object.
-        // But to keep props simple matching the plan, let's look up the user from the messages if possible,
-        // or simpler: just pass the other user name/avatar as props?
-        // Let's stick to the plan: ChatWindow takes conversationId.
-        // We can get the conversation from storage to find participants.
+        const convs = getConversations(currentUserId);
+        const conv = convs.find(c => c.id === conversationId);
+        if (conv) {
+            const otherId = conv.participants.find(p => p !== currentUserId);
+            const users = getAllUsers();
+            setOtherUser(users.find(u => u.id === otherId) || null);
+        }
+    }, [conversationId, currentUserId]);
 
-        // Actually, let's just fetch all users and find the one that isn't us in the messages?
-        // No, that's unreliable if no messages.
-        // Let's import getConversations and find the conversation.
-
-        // For this iteration, I'll just fetch the conversation details inside here.
-        const users = getAllUsers();
-        // We need to know who the other participant is.
-        // Let's cheat a bit and assume the parent passes the other user or we find it.
-        // I'll update the component to fetch the conversation details.
-
-        // Wait, I can't import getConversations easily if I didn't export it or if it causes circular deps?
-        // It's in storage.ts, so it's fine.
-        // But I didn't import it. Let's just use a hack: look at the first message not from us?
-        // No, empty chat needs a header.
-
-        // Let's assume for now we just show "Chat" if we can't find the user, or update props later.
-        // Actually, I'll add `getConversations` to imports.
-    }, [conversationId]);
+    // Simulate typing indicator
+    useEffect(() => {
+        if (newMessage.length > 0) {
+            setIsTyping(true);
+            if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+            typingTimeoutRef.current = setTimeout(() => setIsTyping(false), 1000);
+        } else {
+            setIsTyping(false);
+        }
+    }, [newMessage]);
 
     const handleSend = () => {
         if (!newMessage.trim()) return;
@@ -96,15 +91,44 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, currentU
             'come there myself', 'come over', 'visit first', 'see it first', 'viewing'
         ];
 
+        // Vulgar and profanity list
+        const vulgarWords = [
+            // Strong profanity
+            'fuck', 'shit', 'bitch', 'ass', 'damn', 'hell', 'crap',
+            'bastard', 'piss', 'dick', 'cock', 'pussy', 'asshole',
+            // Slurs and offensive terms (abbreviated to avoid offense)
+            'n*gger', 'n*gga', 'f*ggot', 'r*tard', 'c*nt',
+            // Sexual/inappropriate content
+            'sex', 'porn', 'nude', 'naked', 'horny', 'sexy',
+            // Harassment terms
+            'kill yourself', 'kys', 'die', 'hate you', 'stupid',
+            // Variations and leetspeak
+            'fck', 'fuk', 'sh1t', 'b1tch', 'a$$', 'azz',
+            'wtf', 'stfu', 'gtfo', 'ffs'
+        ];
+
         const lowerMsg = newMessage.toLowerCase();
         const hasKeyword = forbiddenKeywords.some(keyword => lowerMsg.includes(keyword));
+        const hasVulgarWord = vulgarWords.some(word => {
+            // Check for whole word matches to avoid false positives
+            const wordRegex = new RegExp(`\\b${word.replace(/\*/g, '.')}\\b`, 'i');
+            return wordRegex.test(lowerMsg);
+        });
 
+        // Check for contact info or off-platform communication
         if (emailRegex.test(newMessage) || phoneRegex.test(newMessage) || hasKeyword) {
-            setSafetyWarning("Message Blocked: Sharing contact details or requesting off-platform communication is strictly prohibited. Your message was not sent.");
+            setSafetyWarning("⚠️ Message Blocked: Sharing contact details or requesting off-platform communication is strictly prohibited. Your message was not sent.");
             return; // STRICT BLOCK: Do not proceed to sendMessage
-        } else {
-            setSafetyWarning(null);
         }
+
+        // Check for vulgar/profane content
+        if (hasVulgarWord) {
+            setSafetyWarning("⚠️ Message Blocked: Vulgar or inappropriate language is not allowed. Please keep communication professional and respectful.");
+            return; // STRICT BLOCK: Do not proceed to sendMessage
+        }
+
+        // All checks passed
+        setSafetyWarning(null);
 
         sendMessage(conversationId, newMessage.trim(), currentUserId);
         setNewMessage('');
@@ -115,11 +139,35 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, currentU
     return (
         <div className="flex flex-col h-full bg-gray-50">
             {/* Header */}
-            {/* We'll skip the header here since the parent layout might handle it, or we render a simple one */}
+            <div className="p-4 border-b border-gray-200 bg-white flex items-center gap-3">
+                {onBack && (
+                    <button onClick={onBack} className="md:hidden p-2 hover:bg-gray-100 rounded-full -ml-2">
+                        <ArrowLeft size={20} className="text-gray-700" />
+                    </button>
+                )}
+                {otherUser?.avatar ? (
+                    <img src={otherUser.avatar} alt={otherUser.name} className="w-10 h-10 rounded-full object-cover" />
+                ) : (
+                    <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                        <UserIcon size={20} className="text-gray-500" />
+                    </div>
+                )}
+                <div>
+                    <h3 className="font-semibold text-gray-900">{otherUser?.name || 'Chat'}</h3>
+                    {isTyping && <p className="text-xs text-gray-500">typing...</p>}
+                </div>
+            </div>
 
             {/* Messages Area */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                {messages.map((msg, idx) => {
+                {messages.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-full text-gray-400">
+                        <MessageSquare size={48} className="mb-3 opacity-20" />
+                        <p className="text-sm">No messages yet</p>
+                        <p className="text-xs">Start the conversation!</p>
+                    </div>
+                ) : (
+                messages.map((msg, idx) => {
                     const isMe = msg.senderId === currentUserId;
                     const showTime = idx === 0 || new Date(msg.timestamp).getTime() - new Date(messages[idx - 1].timestamp).getTime() > 5 * 60 * 1000;
 
@@ -143,7 +191,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, currentU
                             )}
                         </div>
                     );
-                })}
+                })
+                )}
                 <div ref={messagesEndRef} />
             </div>
 
@@ -175,9 +224,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, currentU
                     <button
                         onClick={handleSend}
                         disabled={!newMessage.trim()}
-                        className="bg-brand-600 text-white p-2 rounded-full hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="bg-brand-600 text-white w-10 h-10 flex items-center justify-center rounded-full hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
                     >
-                        <Send size={20} />
+                        <Send size={18} className="ml-0.5" />
                     </button>
                 </div>
             </div>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, Settings as SettingsIcon, HelpCircle, Info, MessageSquare, Phone, Mail, MessageCircle, Star, Upload, Check, AlertTriangle, Trash2 } from 'lucide-react';
+import { User, Settings as SettingsIcon, HelpCircle, Info, MessageSquare, Phone, Mail, MessageCircle, Star, Upload, Check, AlertTriangle, Trash2, FileText, Shield } from 'lucide-react';
 
 interface SettingsProps {
     user: any;
@@ -17,6 +17,28 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdateUser }) => {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [deleteConfirmText, setDeleteConfirmText] = useState('');
     const [isDeleting, setIsDeleting] = useState(false);
+    const [showSavedToast, setShowSavedToast] = useState(false);
+    const [notifications, setNotifications] = useState(() => {
+        const saved = localStorage.getItem('notification_preferences');
+        return saved ? JSON.parse(saved) : {
+            bookings: true,
+            messages: true,
+            damageReports: true,
+            reviews: true,
+            updates: true,
+            marketing: false
+        };
+    });
+
+    const updateNotificationPref = (key: string, value: boolean) => {
+        const updated = { ...notifications, [key]: value };
+        setNotifications(updated);
+        localStorage.setItem('notification_preferences', JSON.stringify(updated));
+        
+        // Show success toast
+        setShowSavedToast(true);
+        setTimeout(() => setShowSavedToast(false), 2000);
+    };
 
     const handleFeedbackSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -60,7 +82,17 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdateUser }) => {
     ];
 
     return (
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-6xl mx-auto relative">
+            {/* Success Toast */}
+            {showSavedToast && (
+                <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-2 fade-in">
+                    <div className="bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2">
+                        <Check size={20} />
+                        <span className="font-medium">Preferences saved</span>
+                    </div>
+                </div>
+            )}
+
             <h1 className="text-3xl font-bold text-gray-900 mb-8">Settings</h1>
 
             <div className="flex flex-col md:flex-row gap-6">
@@ -118,14 +150,60 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdateUser }) => {
                                 </div>
 
                                 <div className="pt-4 border-t border-gray-200">
-                                    <h3 className="text-sm font-semibold text-gray-900 mb-3">Notifications</h3>
+                                    <h3 className="text-sm font-semibold text-gray-900 mb-3">Notification Preferences</h3>
                                     <div className="space-y-3">
-                                        <label className="flex items-center gap-3">
-                                            <input type="checkbox" className="w-4 h-4 text-brand-600 rounded" defaultChecked />
+                                        <label className="flex items-center gap-3 cursor-pointer">
+                                            <input 
+                                                type="checkbox" 
+                                                className="w-4 h-4 text-brand-600 rounded" 
+                                                checked={notifications.bookings}
+                                                onChange={(e) => updateNotificationPref('bookings', e.target.checked)}
+                                            />
                                             <span className="text-sm text-gray-700">Email notifications for bookings</span>
                                         </label>
-                                        <label className="flex items-center gap-3">
-                                            <input type="checkbox" className="w-4 h-4 text-brand-600 rounded" defaultChecked />
+                                        <label className="flex items-center gap-3 cursor-pointer">
+                                            <input 
+                                                type="checkbox" 
+                                                className="w-4 h-4 text-brand-600 rounded" 
+                                                checked={notifications.messages}
+                                                onChange={(e) => updateNotificationPref('messages', e.target.checked)}
+                                            />
+                                            <span className="text-sm text-gray-700">Email notifications for messages</span>
+                                        </label>
+                                        <label className="flex items-center gap-3 cursor-pointer">
+                                            <input 
+                                                type="checkbox" 
+                                                className="w-4 h-4 text-brand-600 rounded" 
+                                                checked={notifications.damageReports}
+                                                onChange={(e) => updateNotificationPref('damageReports', e.target.checked)}
+                                            />
+                                            <span className="text-sm text-gray-700">Email notifications for damage reports</span>
+                                        </label>
+                                        <label className="flex items-center gap-3 cursor-pointer">
+                                            <input 
+                                                type="checkbox" 
+                                                className="w-4 h-4 text-brand-600 rounded" 
+                                                checked={notifications.reviews}
+                                                onChange={(e) => updateNotificationPref('reviews', e.target.checked)}
+                                            />
+                                            <span className="text-sm text-gray-700">Email notifications for reviews</span>
+                                        </label>
+                                        <label className="flex items-center gap-3 cursor-pointer">
+                                            <input 
+                                                type="checkbox" 
+                                                className="w-4 h-4 text-brand-600 rounded" 
+                                                checked={notifications.updates}
+                                                onChange={(e) => updateNotificationPref('updates', e.target.checked)}
+                                            />
+                                            <span className="text-sm text-gray-700">Platform updates and announcements</span>
+                                        </label>
+                                        <label className="flex items-center gap-3 cursor-pointer">
+                                            <input 
+                                                type="checkbox" 
+                                                className="w-4 h-4 text-brand-600 rounded" 
+                                                checked={notifications.marketing}
+                                                onChange={(e) => updateNotificationPref('marketing', e.target.checked)}
+                                            />
                                             <span className="text-sm text-gray-700">Marketing emails</span>
                                         </label>
                                     </div>
@@ -338,6 +416,24 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdateUser }) => {
                                 <p className="text-gray-700 leading-relaxed">
                                     To make space booking simple, secure, and accessible for everyone. We believe in creating connections through shared spaces.
                                 </p>
+                            </div>
+
+                            <div className="pt-6 border-t border-gray-200">
+                                <h3 className="font-semibold text-gray-900 mb-4">Legal & Privacy</h3>
+                                <div className="flex flex-wrap gap-4">
+                                    <a href="#" className="flex items-center gap-2 text-brand-600 hover:text-brand-700 text-sm font-medium">
+                                        <FileText size={16} />
+                                        Terms of Service
+                                    </a>
+                                    <a href="#" className="flex items-center gap-2 text-brand-600 hover:text-brand-700 text-sm font-medium">
+                                        <Shield size={16} />
+                                        Privacy Policy
+                                    </a>
+                                </div>
+                            </div>
+
+                            <div className="pt-6 border-t border-gray-200">
+                                <p className="text-xs text-gray-500">Version 1.0.0 • © 2024 Fiilar. All rights reserved.</p>
                             </div>
                         </div>
                     )}
