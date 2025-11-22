@@ -4,10 +4,13 @@ import { useNavigate } from 'react-router-dom';
 import { User, Listing, ListingStatus, SpaceType, BookingType, Booking, ListingAddOn, CancellationPolicy } from '../types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Plus, DollarSign, Briefcase, CheckCircle, AlertCircle, Loader2, Upload, X, Image as ImageIcon, Calendar as CalendarIcon, Clock, ChevronLeft, ChevronRight, Trash2, Shield, UserCheck, Users, FileText, AlertTriangle, Edit3, Copy, Settings, Repeat, Save, Ban, RefreshCw, MapPin, Home, Star, UserPlus, PackagePlus, Info, PenLine, ShieldCheck, Lock, Sparkles, Wand2, MessageSquare, TrendingUp } from 'lucide-react';
-import { saveListing, getBookings, deleteListing, updateBooking, getCurrentUser } from '../services/storage';
+import { saveListing, getBookings, deleteListing, updateBooking, getCurrentUser, getConversations } from '../services/storage';
 import { parseListingDescription } from '../services/geminiService';
 import { escrowService } from '../services/escrowService';
 import HostEarnings from './HostEarnings';
+import { ChatList } from './ChatList';
+import { ChatWindow } from './ChatWindow';
+import SettingsPage from './Settings';
 
 interface HostDashboardProps {
     user: User;
@@ -15,13 +18,14 @@ interface HostDashboardProps {
     refreshData: () => void;
 }
 
-type View = 'overview' | 'create' | 'edit' | 'calendar' | 'settings' | 'bookings' | 'earnings';
+type View = 'overview' | 'create' | 'edit' | 'calendar' | 'settings' | 'bookings' | 'earnings' | 'messages';
 
 const HostDashboard: React.FC<HostDashboardProps> = ({ user, listings, refreshData }) => {
     // ALL HOOKS MUST BE DECLARED BEFORE ANY EARLY RETURNS
     // This ensures hooks are called in the same order on every render
     const [view, setView] = useState<View>('overview');
     const navigate = useNavigate();
+    const [selectedConversationId, setSelectedConversationId] = useState<string | undefined>(undefined);
 
     // Listings Form State
     const [newListing, setNewListing] = useState<Partial<Listing>>({
@@ -623,9 +627,10 @@ const HostDashboard: React.FC<HostDashboardProps> = ({ user, listings, refreshDa
             const result = await escrowService.releaseFundsToHost(booking, listing.hostId);
 
             if (result.success) {
-                // Update booking status
+                // Update booking status to Confirmed
                 const updatedBooking = {
                     ...booking,
+                    status: 'Confirmed' as const,
                     paymentStatus: 'Released' as const,
                     transactionIds: [...(booking.transactionIds || []), result.transactionId]
                 };
@@ -1627,11 +1632,43 @@ const HostDashboard: React.FC<HostDashboardProps> = ({ user, listings, refreshDa
                                 <TrendingUp size={18} />
                                 <span>Earnings</span>
                             </button>
-                            <button className="flex items-center gap-2 px-4 py-3 border-b-2 border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300 transition-colors whitespace-nowrap">
+                            <button onClick={() => setView('messages')} className={`flex items-center gap-2 px-4 py-3 border-b-2 transition-colors whitespace-nowrap ${view === 'messages' ? 'border-brand-600 text-brand-700 font-semibold' : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'}`}>
                                 <MessageSquare size={18} />
                                 <span>Messages</span>
                             </button>
                         </nav>
+                    </div>
+                )}
+
+                {view === 'messages' && (
+                    <div className="h-[600px] bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex animate-in fade-in">
+                        <div className="w-1/3 border-r border-gray-200">
+                            <ChatList
+                                currentUserId={user.id}
+                                selectedId={selectedConversationId}
+                                onSelect={setSelectedConversationId}
+                            />
+                        </div>
+                        <div className="w-2/3">
+                            {selectedConversationId ? (
+                                <ChatWindow
+                                    conversationId={selectedConversationId}
+                                    currentUserId={user.id}
+                                />
+                            ) : (
+                                <div className="flex flex-col items-center justify-center h-full text-gray-400 bg-gray-50">
+                                    <MessageSquare size={48} className="mb-4 opacity-20" />
+                                    <p>Select a conversation to start chatting</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* Settings View */}
+                {view === 'settings' && (
+                    <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
+                        <SettingsPage user={user} />
                     </div>
                 )}
 
@@ -1961,7 +1998,7 @@ const HostDashboard: React.FC<HostDashboardProps> = ({ user, listings, refreshDa
                     )}
                 </div>
             </div>
-        </div>
+        </div >
     );
 
 };

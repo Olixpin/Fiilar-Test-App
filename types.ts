@@ -116,7 +116,7 @@ export interface Booking {
   serviceFee: number; // Platform fee
   cautionFee: number; // Security deposit included in total
 
-  status: 'Pending' | 'Confirmed' | 'Completed' | 'Cancelled';
+  status: 'Pending' | 'Confirmed' | 'Completed' | 'Cancelled' | 'Reserved';
   groupId?: string; // ID to group recurring bookings together
   guestCount?: number; // Number of guests for this booking
   selectedAddOns?: string[]; // IDs of selected add-ons
@@ -189,4 +189,31 @@ export interface PaymentMethod {
 export interface Recommendation {
   listing: Listing;
   reason: string;
+}
+
+export interface Message {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  content: string;
+  timestamp: string; // ISO string
+  read: boolean;
+}
+
+export interface Conversation {
+  id: string;
+  participants: string[]; // [userId, hostId]
+  listingId?: string;
+  lastMessage?: Message;
+  updatedAt: string; // ISO string for sorting
+}
+
+export interface Review {
+  id: string;
+  listingId: string;
+  userId: string;
+  bookingId: string;
+  rating: number; // 1-5 stars
+  comment: string;
+  createdAt: string; // ISO string
 }

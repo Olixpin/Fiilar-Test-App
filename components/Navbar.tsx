@@ -83,7 +83,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onSearch, searchTerm })
   );
 
   return (
-    <nav className="sticky top-0 z-50 bg-white border-b border-gray-100 h-20 flex items-center">
+    <nav className="sticky top-0 z-50 bg-white/70 backdrop-blur-xl border-b border-gray-200/50 h-20 flex items-center">
       <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-8">
         <div className="flex justify-between items-center gap-4">
 
@@ -92,7 +92,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onSearch, searchTerm })
             <img
               src="https://drive.google.com/thumbnail?id=11AM3I7DLtyDpwgduNdtbUaZXJUYpvruC&sz=w400"
               alt="Fiilar"
-              className="h-8 md:h-10 object-contain"
+              className="h-5 md:h-6 object-contain"
               referrerPolicy="no-referrer"
             />
           </Link>

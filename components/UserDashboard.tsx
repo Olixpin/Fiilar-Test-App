@@ -3,14 +3,19 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import { getCurrentUser } from '../services/storage';
-import { User, Listing } from '../types';
+import { User, Listing, Booking, ListingStatus } from '../types';
 import { getSpaceRecommendations } from '../services/geminiService';
 import { WalletCard } from './WalletCard';
 import { TransactionHistory } from './TransactionHistory';
 import { PaymentMethods } from './PaymentMethods';
-import { Wallet, CreditCard, LayoutGrid, Sparkles, Search, ArrowRight, Heart, Calendar } from 'lucide-react';
+import { Wallet, CreditCard, LayoutGrid, Sparkles, Search, ArrowRight, Heart, Calendar, Star } from 'lucide-react';
 import ListingCard from './ListingCard';
-import { getBookings } from '../services/storage';
+import { getBookings, deleteBooking, startConversation, getConversations, getReviews } from '../services/storage';
+import { ChatList } from './ChatList';
+import { ChatWindow } from './ChatWindow';
+import { MessageSquare } from 'lucide-react';
+import ReviewModal from './ReviewModal';
+import Settings from './Settings';
 
 interface UserDashboardProps {
   user: User | null;
@@ -25,8 +30,11 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings }) => {
   const [preference, setPreference] = useState('');
   const [recommendations, setRecommendations] = useState<{ listing: Listing, reason: string }[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'explore' | 'wallet' | 'favorites' | 'bookings'>('explore');
+  const [activeTab, setActiveTab] = useState<'explore' | 'wallet' | 'favorites' | 'bookings' | 'reserve-list' | 'messages' | 'settings'>('explore');
+  const [selectedConversationId, setSelectedConversationId] = useState<string | undefined>(undefined);
+  const [reviewModalBooking, setReviewModalBooking] = useState<{ bookingId: string; listingId: string; listingTitle: string } | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
+  const [refreshKey, setRefreshKey] = useState(0); // Force re-render for storage updates
 
   // If user is not signed in, redirect to login (or show a short message).
   // Early-return prevents reading properties on null.
@@ -45,8 +53,13 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings }) => {
   // IMPORTANT: This must be before the early return to maintain consistent hook order
   useEffect(() => {
     const tab = searchParams.get('tab');
-    if (tab === 'wallet' || tab === 'favorites' || tab === 'bookings' || tab === 'explore') {
+    if (tab === 'wallet' || tab === 'favorites' || tab === 'bookings' || tab === 'explore' || tab === 'reserve-list' || tab === 'messages') {
       setActiveTab(tab as any);
+    }
+
+    const convId = searchParams.get('conversationId');
+    if (convId) {
+      setSelectedConversationId(convId);
     }
   }, [searchParams]);
 
@@ -59,13 +72,19 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings }) => {
   }
 
   // Helper to change tab and update URL so history reflects tab changes
-  const setTab = (tab: 'explore' | 'wallet' | 'favorites' | 'bookings') => {
+  const setTab = (tab: 'explore' | 'wallet' | 'favorites' | 'bookings' | 'reserve-list' | 'messages' | 'settings') => {
     setActiveTab(tab);
     // Update query param without losing other params
     const params = new URLSearchParams(searchParams);
     params.set('tab', tab);
     setSearchParams(params);
   };
+  const handleMessageHost = (hostId: string, listingId: string) => {
+    const conversationId = startConversation(user.id, hostId, listingId);
+    setSelectedConversationId(conversationId);
+    setActiveTab('messages');
+  };
+
   const handleSearch = async () => {
     if (!preference.trim()) return;
     setIsLoading(true);
@@ -138,6 +157,36 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings }) => {
           >
             <Wallet size={18} />
             Wallet
+          </button>
+          <button
+            onClick={() => setTab('reserve-list')}
+            className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-semibold transition-all duration-300 ${activeTab === 'reserve-list'
+              ? 'bg-white text-brand-600 shadow-sm ring-1 ring-black/5'
+              : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'
+              }`}
+          >
+            <Sparkles size={18} />
+            Reserve List
+          </button>
+          <button
+            onClick={() => setTab('messages')}
+            className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-semibold transition-all duration-300 ${activeTab === 'messages'
+              ? 'bg-white text-brand-600 shadow-sm ring-1 ring-black/5'
+              : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'
+              }`}
+          >
+            <MessageSquare size={18} />
+            Messages
+          </button>
+          <button
+            onClick={() => setTab('settings')}
+            className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-semibold transition-all duration-300 ${activeTab === 'settings'
+              ? 'bg-white text-brand-600 shadow-sm ring-1 ring-black/5'
+              : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/50'
+              }`}
+          >
+            <LayoutGrid size={18} />
+            Settings
           </button>
         </div>
       </div>
@@ -333,6 +382,34 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings }) => {
                           ${b.totalPrice.toFixed(2)}
                         </div>
                       </div>
+
+                      {listing && (
+                        <div className="flex gap-3 mt-4">
+                          <button
+                            onClick={() => handleMessageHost(listing.hostId, listing.id)}
+                            className="text-sm font-medium text-brand-600 hover:text-brand-700 flex items-center gap-1"
+                          >
+                            <MessageSquare size={16} /> Message Host
+                          </button>
+
+                          {b.status === 'Confirmed' && (() => {
+                            const reviews = getReviews(listing.id);
+                            const hasReviewed = reviews.some(r => r.bookingId === b.id);
+                            return !hasReviewed ? (
+                              <button
+                                onClick={() => setReviewModalBooking({ bookingId: b.id, listingId: listing.id, listingTitle: listing.title })}
+                                className="text-sm font-medium text-green-600 hover:text-green-700 flex items-center gap-1"
+                              >
+                                <Star size={16} /> Leave Review
+                              </button>
+                            ) : (
+                              <span className="text-sm text-gray-500 flex items-center gap-1">
+                                <Star size={16} className="fill-yellow-400 text-yellow-400" /> Reviewed
+                              </span>
+                            );
+                          })()}
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -340,6 +417,125 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings }) => {
             </div>
           )}
         </div>
+      )}
+
+      {activeTab === 'reserve-list' && (
+        <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Your Reserve List (Drafts)</h2>
+          {getBookings().filter(b => b.userId === user.id && b.status === 'Reserved').length === 0 ? (
+            <div className="text-center py-20 bg-gray-50 rounded-2xl border border-dashed border-gray-300">
+              <Sparkles size={48} className="mx-auto text-gray-300 mb-4" />
+              <p className="text-gray-500">No saved drafts found.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {getBookings().filter(b => b.userId === user.id && b.status === 'Reserved').map(b => {
+                const listing = listings.find(l => l.id === b.listingId);
+                return (
+                  <div key={b.id} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col md:flex-row gap-6 relative overflow-hidden">
+                    {/* Draft Indicator Strip */}
+                    <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-yellow-400"></div>
+
+                    {listing && (
+                      <img src={listing.images[0]} alt={listing.title} className="w-full md:w-48 h-32 object-cover rounded-lg grayscale-[20%]" />
+                    )}
+                    <div className="flex-1">
+                      <div className="flex justify-between items-start mb-2">
+                        <h3 className="text-lg font-bold text-gray-900">{listing?.title || 'Unknown Space'}</h3>
+                        <span className="px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 border border-yellow-200">
+                          Draft / Reserved
+                        </span>
+                      </div>
+                      <p className="text-gray-500 text-sm mb-4">{listing?.location.address}</p>
+                      <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-4">
+                        <div className="flex items-center gap-1">
+                          <Calendar size={16} />
+                          {b.date}
+                        </div>
+                        <div className="font-medium text-gray-900">
+                          ${b.totalPrice.toFixed(2)}
+                        </div>
+                        <div className="text-gray-500">
+                          • {b.duration} {listing?.priceUnit === 'Hourly' ? 'Hours' : 'Days'}
+                        </div>
+                      </div>
+
+                      <div className="flex gap-3 mt-2">
+                        <button
+                          onClick={() => {
+                            // Navigate to listing details to complete booking
+                            // In a real app, we might pass the draft ID to pre-fill the modal
+                            // For now, just going to the listing is a good start, or we could open a modal here.
+                            // Let's just navigate to the listing for simplicity in this iteration.
+                            navigate(`/listing/${listing?.id}`);
+                          }}
+                          className="px-4 py-2 bg-brand-600 text-white text-sm font-semibold rounded-lg hover:bg-brand-700 transition-colors"
+                        >
+                          Complete Booking
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (window.confirm('Remove this draft?')) {
+                              deleteBooking(b.id);
+                              setRefreshKey(prev => prev + 1); // Force re-render
+                            }
+                          }}
+                          className="px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-50 transition-colors"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'messages' && (
+        <div className="animate-in fade-in slide-in-from-bottom-8 duration-700 h-[600px] bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex">
+          <div className="w-1/3 border-r border-gray-200">
+            <ChatList
+              currentUserId={user.id}
+              selectedId={selectedConversationId}
+              onSelect={setSelectedConversationId}
+            />
+          </div>
+          <div className="w-2/3">
+            {selectedConversationId ? (
+              <ChatWindow
+                conversationId={selectedConversationId}
+                currentUserId={user.id}
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full text-gray-400 bg-gray-50">
+                <MessageSquare size={48} className="mb-4 opacity-20" />
+                <p>Select a conversation to start chatting</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Settings Tab */}
+      {activeTab === 'settings' && (
+        <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
+          <Settings user={user} />
+        </div>
+      )}
+
+      {/* Review Modal */}
+      {reviewModalBooking && (
+        <ReviewModal
+          bookingId={reviewModalBooking.bookingId}
+          listingId={reviewModalBooking.listingId}
+          userId={user.id}
+          listingTitle={reviewModalBooking.listingTitle}
+          onClose={() => setReviewModalBooking(null)}
+          onSuccess={() => setRefreshKey(prev => prev + 1)}
+        />
       )}
     </div>
   );

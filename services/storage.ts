@@ -1,5 +1,5 @@
 
-import { User, Listing, Booking, Role, ListingStatus } from '../types';
+import { User, Listing, Booking, Role, ListingStatus, Conversation, Message, Review } from '../types';
 import { MOCK_LISTINGS } from '../constants';
 
 export const STORAGE_KEYS = {
@@ -7,6 +7,9 @@ export const STORAGE_KEYS = {
   USERS_DB: 'fiilar_users_db', // New DB key for persistence
   LISTINGS: 'fiilar_listings',
   BOOKINGS: 'fiilar_bookings',
+  CONVERSATIONS: 'fiilar_conversations',
+  MESSAGES: 'fiilar_messages',
+  REVIEWS: 'fiilar_reviews',
 };
 
 // Initialize mock data
@@ -125,6 +128,9 @@ export const createBooking = (booking: Booking) => {
   localStorage.setItem(STORAGE_KEYS.BOOKINGS, JSON.stringify(bookings));
 };
 
+// Alias for consistency with other services
+export const saveBooking = createBooking;
+
 export const updateBooking = (booking: Booking) => {
   const bookings = getBookings();
   const idx = bookings.findIndex(b => b.id === booking.id);
@@ -132,6 +138,12 @@ export const updateBooking = (booking: Booking) => {
     bookings[idx] = booking;
     localStorage.setItem(STORAGE_KEYS.BOOKINGS, JSON.stringify(bookings));
   }
+};
+
+export const deleteBooking = (id: string) => {
+  const bookings = getBookings();
+  const updatedBookings = bookings.filter(b => b.id !== id);
+  localStorage.setItem(STORAGE_KEYS.BOOKINGS, JSON.stringify(updatedBookings));
 };
 
 // Host/Admin Helpers
@@ -179,3 +191,131 @@ export const toggleFavorite = (userId: string, listingId: string): string[] => {
 
   return newFavorites;
 };
+
+// Messaging System
+export const getConversations = (userId: string): Conversation[] => {
+  const c = localStorage.getItem(STORAGE_KEYS.CONVERSATIONS);
+  console.log('Raw conversations from storage:', c);
+  const conversations: Conversation[] = c ? JSON.parse(c) : [];
+  const filtered = conversations.filter(conv => conv.participants.includes(userId));
+  console.log(`Filtering conversations for ${userId}. Found: ${filtered.length}`);
+  return filtered.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+};
+
+export const getMessages = (conversationId: string): Message[] => {
+  const m = localStorage.getItem(STORAGE_KEYS.MESSAGES);
+  const messages: Message[] = m ? JSON.parse(m) : [];
+  return messages.filter(msg => msg.conversationId === conversationId)
+    .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+};
+
+export const sendMessage = (conversationId: string, content: string, senderId: string) => {
+  const m = localStorage.getItem(STORAGE_KEYS.MESSAGES);
+  const messages: Message[] = m ? JSON.parse(m) : [];
+
+  const newMessage: Message = {
+    id: Math.random().toString(36).substr(2, 9),
+    conversationId,
+    senderId,
+    content,
+    timestamp: new Date().toISOString(),
+    read: false
+  };
+
+  messages.push(newMessage);
+  localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(messages));
+
+  // Update conversation lastMessage and updatedAt
+  const c = localStorage.getItem(STORAGE_KEYS.CONVERSATIONS);
+  const conversations: Conversation[] = c ? JSON.parse(c) : [];
+  const idx = conversations.findIndex(conv => conv.id === conversationId);
+
+  if (idx >= 0) {
+    conversations[idx].lastMessage = newMessage;
+    conversations[idx].updatedAt = newMessage.timestamp;
+    localStorage.setItem(STORAGE_KEYS.CONVERSATIONS, JSON.stringify(conversations));
+  }
+};
+
+export const markAsRead = (conversationId: string, userId: string) => {
+  const m = localStorage.getItem(STORAGE_KEYS.MESSAGES);
+  const messages: Message[] = m ? JSON.parse(m) : [];
+
+  let hasUpdates = false;
+  const updatedMessages = messages.map(msg => {
+    if (msg.conversationId === conversationId && msg.senderId !== userId && !msg.read) {
+      hasUpdates = true;
+      return { ...msg, read: true };
+    }
+    return msg;
+  });
+
+  if (hasUpdates) {
+    localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(updatedMessages));
+  }
+};
+
+export const startConversation = (userId: string, hostId: string, listingId?: string): string => {
+  const c = localStorage.getItem(STORAGE_KEYS.CONVERSATIONS);
+  const conversations: Conversation[] = c ? JSON.parse(c) : [];
+
+  // Check if conversation already exists
+  const existing = conversations.find(conv =>
+    conv.participants.includes(userId) &&
+    conv.participants.includes(hostId) &&
+    conv.listingId === listingId
+  );
+
+  if (existing) return existing.id;
+
+  // Create new conversation
+  const newConv: Conversation = {
+    id: Math.random().toString(36).substr(2, 9),
+    participants: [userId, hostId],
+    listingId,
+    updatedAt: new Date().toISOString()
+  };
+
+  conversations.push(newConv);
+  localStorage.setItem(STORAGE_KEYS.CONVERSATIONS, JSON.stringify(conversations));
+
+  return newConv.id;
+};
+
+// Review System
+export const getReviews = (listingId: string): Review[] => {
+  const r = localStorage.getItem(STORAGE_KEYS.REVIEWS);
+  const reviews: Review[] = r ? JSON.parse(r) : [];
+  return reviews
+    .filter(review => review.listingId === listingId)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+};
+
+export const addReview = (review: Omit<Review, 'id' | 'createdAt'>): void => {
+  const r = localStorage.getItem(STORAGE_KEYS.REVIEWS);
+  const reviews: Review[] = r ? JSON.parse(r) : [];
+
+  // Check if user already reviewed this booking
+  const existing = reviews.find(rev => rev.bookingId === review.bookingId);
+  if (existing) {
+    throw new Error('You have already reviewed this booking');
+  }
+
+  const newReview: Review = {
+    ...review,
+    id: Math.random().toString(36).substr(2, 9),
+    createdAt: new Date().toISOString()
+  };
+
+  reviews.push(newReview);
+  localStorage.setItem(STORAGE_KEYS.REVIEWS, JSON.stringify(reviews));
+};
+
+export const getAverageRating = (listingId: string): number => {
+  const reviews = getReviews(listingId);
+  if (reviews.length === 0) return 0;
+
+  const sum = reviews.reduce((acc, review) => acc + review.rating, 0);
+  return Math.round((sum / reviews.length) * 10) / 10; // Round to 1 decimal
+};
+
