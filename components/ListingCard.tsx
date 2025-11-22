@@ -40,23 +40,23 @@ const ListingCard: React.FC<ListingCardProps> = ({ listing }) => {
   return (
     <Link
       to={`/listing/${listing.id}`}
-      className="group cursor-pointer flex flex-col gap-2"
+      className="group cursor-pointer flex flex-col gap-2 hover:-translate-y-1 transition-all duration-300"
     >
-      <div className="relative aspect-square overflow-hidden rounded-xl bg-gray-200">
+      <div className="relative aspect-square overflow-hidden rounded-xl bg-gray-200 shadow-sm hover:shadow-xl transition-shadow duration-300">
         <img
           src={listing.images[0]}
           alt={listing.title}
-          className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
+          className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-700"
         />
         <button
           type="button"
           onClick={handleFavoriteClick}
           aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
           title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
-          className="absolute top-3 right-3 p-2 hover:scale-110 transition-transform z-10"
+          className="absolute top-3 right-3 p-2 hover:scale-125 active:scale-95 transition-all duration-200 z-10"
         >
           <Heart
-            className={`w-6 h-6 transition-colors ${isFavorite ? 'text-red-500 fill-red-500' : 'text-white fill-black/50 hover:fill-red-500'}`}
+            className={`w-6 h-6 transition-all duration-200 ${isFavorite ? 'text-red-500 fill-red-500' : 'text-white fill-black/50 hover:fill-red-500'}`}
           />
         </button>
         {listing.type && (

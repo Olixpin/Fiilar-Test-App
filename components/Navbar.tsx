@@ -1,6 +1,7 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { User, Role, View } from '../types';
-import { Menu, X, User as UserIcon, LogOut, Search, Bell, ArrowRight, Globe } from 'lucide-react';
+import { UploadCloud, Check, Home as HomeIcon, Camera, Users, Music, Briefcase, Sun, Search, Plus, X, Mail, ArrowLeft, AlertCircle, Clock, Shield, Bell, Menu, Globe, User as UserIcon, LogOut, Sparkles, ArrowRight } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getAllUsers, STORAGE_KEYS, getCurrentUser, getUnreadCount } from '../services/storage';
 import NotificationCenter from './NotificationCenter';
@@ -137,17 +138,17 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onSearch, searchTerm, o
           </Link>
 
           {/* Search Pill (Desktop) */}
-          <div className="hidden md:flex items-center bg-white border border-gray-300 rounded-full shadow-sm hover:shadow-md transition-shadow py-2.5 px-4 divide-x divide-gray-300 w-full max-w-md cursor-pointer">
+          <div className="hidden md:flex items-center bg-white border border-gray-300 rounded-full shadow-sm hover:shadow-md transition-shadow py-2.5 px-4 divide-x divide-gray-300 w-full max-w-md cursor-pointer group focus-within:ring-2 focus-within:ring-brand-500/20 focus-within:border-brand-500">
             <input
               type="text"
-              placeholder="Start your search"
-              className="bg-transparent outline-none text-sm text-gray-900 placeholder-gray-600 font-medium px-2 w-full truncate"
+              placeholder="Try 'Studio in Lagos for 20 people...'"
+              className="bg-transparent outline-none text-sm text-gray-900 placeholder-gray-500 font-medium px-2 w-full truncate"
               value={searchTerm || ''}
               onChange={(e) => onSearch && onSearch(e.target.value)}
             />
             <div className="pl-2">
-              <div className="bg-brand-600 text-white p-1.5 rounded-full">
-                <Search size={14} strokeWidth={3} />
+              <div className="bg-brand-600 text-white p-1.5 rounded-full group-hover:scale-110 group-hover:rotate-12 transition-all duration-300">
+                <Sparkles size={14} strokeWidth={2} />
               </div>
             </div>
           </div>
@@ -290,7 +291,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onSearch, searchTerm, o
           {/* Mobile Toggle */}
           <div className="flex items-center md:hidden gap-4">
             <button type="button" onClick={() => setIsMobileSearchOpen(true)} title="Search" aria-label="Search" className="p-2 text-gray-900">
-              <Search size={20} />
+              <Sparkles size={20} />
             </button>
             <button type="button" onClick={() => setIsMobileOpen(!isMobileOpen)} title="Toggle menu" aria-label="Toggle menu" className="text-gray-900 p-2 border border-gray-200 rounded-full">
               {isMobileOpen ? <X size={20} /> : <Menu size={20} />}
@@ -333,10 +334,10 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onSearch, searchTerm, o
           {/* Header Area */}
           <div className="flex items-center gap-3 p-4 border-b border-gray-100">
             <div className="relative flex-1">
-              <Search size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <Sparkles size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-600 animate-pulse" />
               <input
                 type="text"
-                placeholder="Search spaces..."
+                placeholder="Try 'Studio in Lagos for 20 people...'"
                 value={searchTerm || ''}
                 onChange={(e) => {
                   if (onSearch) {
@@ -352,7 +353,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onSearch, searchTerm, o
                   }
                 }}
                 autoFocus
-                className="w-full pl-10 pr-10 py-3 bg-gray-100 border-none rounded-xl text-base focus:ring-2 focus:ring-brand-500 focus:bg-white transition-all"
+                className="w-full pl-10 pr-10 py-3 bg-gray-100 border-none rounded-xl text-base outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white transition-all"
               />
               {searchTerm && (
                 <button
@@ -373,7 +374,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onSearch, searchTerm, o
 
           {/* Content Area */}
           <div className="flex-1 overflow-y-auto p-4">
-            {searchTerm ? (
+            {searchTerm && (
               <div className="space-y-4">
                 <button
                   onClick={() => {
@@ -385,28 +386,6 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onSearch, searchTerm, o
                   <span>See results for "{searchTerm}"</span>
                   <ArrowRight size={18} />
                 </button>
-              </div>
-            ) : (
-              <div>
-                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">
-                  Popular Categories
-                </h3>
-                <div className="space-y-2">
-                  {['Studios', 'Conference Rooms', 'Co-working', 'Event Centers'].map((term) => (
-                    <button
-                      key={term}
-                      onClick={() => {
-                        if (onSearch) onSearch(term);
-                      }}
-                      className="w-full flex items-center gap-4 p-3 hover:bg-gray-50 rounded-xl transition-colors group"
-                    >
-                      <div className="p-2 bg-gray-100 rounded-lg text-gray-500 group-hover:bg-brand-100 group-hover:text-brand-600 transition-colors">
-                        <Search size={18} />
-                      </div>
-                      <span className="text-gray-700 font-medium">{term}</span>
-                    </button>
-                  ))}
-                </div>
               </div>
             )}
           </div>

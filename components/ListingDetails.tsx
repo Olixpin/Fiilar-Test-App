@@ -2,6 +2,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Listing, User, BookingType, Booking, CancellationPolicy } from '../types';
 import { ArrowLeft, MapPin, Star, Clock, Calendar as CalendarIcon, AlertCircle, User as UserIcon, ShieldCheck, UploadCloud, X, Loader2, UserCheck, Repeat, Info, ChevronLeft, ChevronRight, CheckCircle, Ban, Users, Plus, Minus, PackagePlus, Grid, Share, Heart, FileText, Lock, Wallet, CreditCard, MessageSquare } from 'lucide-react';
+import ShareModal from './ShareModal';
+import ImmersiveGallery from './ImmersiveGallery';
 import { getBookings, toggleFavorite, saveBooking, startConversation, getReviews, getAverageRating, getAllUsers, addNotification } from '../services/storage';
 import { useNavigate } from 'react-router-dom';
 import { paymentService } from '../services/paymentService';
@@ -104,17 +106,7 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
     }
   }, [isHourly, isRecurring, recurrenceFreq]);
 
-  // Keyboard navigation for gallery
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (!isGalleryOpen) return;
-      if (e.key === 'Escape') setIsGalleryOpen(false);
-      if (e.key === 'ArrowRight') nextImage();
-      if (e.key === 'ArrowLeft') prevImage();
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isGalleryOpen, currentImageIndex]);
+
 
   // --- Availability Logic ---
 
@@ -578,8 +570,19 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
 
   const fees = calculateFees();
 
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+
+  const handleShare = () => {
+    setIsShareModalOpen(true);
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-4 sm:py-8 pb-24 lg:pb-8 animate-in slide-in-from-right duration-300">
+      <ShareModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        listing={listing}
+      />
       {/* Header & Nav */}
       <div className="flex items-center justify-between mb-4">
         <button
@@ -589,7 +592,12 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
           <ArrowLeft size={20} className="mr-2" /> Back to browse
         </button>
         <div className="flex items-center gap-2">
-          <button aria-label="Share listing" title="Share listing" className="p-2 hover:bg-gray-100 rounded-full text-gray-600 transition-colors flex items-center gap-2">
+          <button
+            onClick={handleShare}
+            aria-label="Share listing"
+            title="Share listing"
+            className="p-2 hover:bg-gray-100 rounded-full text-gray-600 transition-colors flex items-center gap-2"
+          >
             <Share size={18} /> <span className="text-sm underline hidden sm:inline">Share</span>
           </button>
           <button
@@ -601,59 +609,13 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
         </div>
       </div>
 
-      {/* Full Screen Gallery Modal */}
-      {isGalleryOpen && (
-        <div className="fixed inset-0 z-[100] bg-black flex flex-col animate-in fade-in duration-300">
-          {/* Gallery Header */}
-          <div className="flex items-center justify-between p-4 bg-black/50 absolute top-0 left-0 right-0 z-10">
-            <button aria-label="Close gallery" title="Close gallery" onClick={() => setIsGalleryOpen(false)} className="text-white hover:bg-white/20 p-2 rounded-full transition">
-              <X size={24} />
-            </button>
-            <div className="text-white font-medium text-sm">
-              {currentImageIndex + 1} / {listing.images.length}
-            </div>
-            <div className="w-10"></div> {/* Spacer */}
-          </div>
-
-          {/* Main Image Area */}
-          <div className="flex-1 relative flex items-center justify-center p-4">
-            <button aria-label="Previous image" title="Previous image"
-              onClick={(e) => prevImage(e)}
-              className="absolute left-4 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition hover:scale-110 backdrop-blur-sm"
-            >
-              <ChevronLeft size={32} />
-            </button>
-
-            <img
-              src={listing.images[currentImageIndex]}
-              className="max-h-full max-w-full object-contain shadow-2xl"
-              alt={`View ${currentImageIndex + 1}`}
-            />
-
-            <button aria-label="Next image" title="Next image"
-              onClick={(e) => nextImage(e)}
-              className="absolute right-4 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition hover:scale-110 backdrop-blur-sm"
-            >
-              <ChevronRight size={32} />
-            </button>
-          </div>
-
-          {/* Thumbnails Strip */}
-          <div className="h-20 bg-black/80 flex items-center justify-center gap-2 overflow-x-auto p-2">
-            {listing.images.map((img, idx) => (
-              <button
-                key={idx}
-                aria-label={`View image ${idx + 1}`}
-                title={`View image ${idx + 1}`}
-                onClick={() => setCurrentImageIndex(idx)}
-                className={`relative w-12 h-12 rounded overflow-hidden flex-shrink-0 transition ${idx === currentImageIndex ? 'ring-2 ring-white opacity-100' : 'opacity-50 hover:opacity-80'}`}
-              >
-                <img src={img} className="w-full h-full object-cover" alt={`thumbnail ${idx + 1}`} />
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Immersive Gallery */}
+      <ImmersiveGallery
+        images={listing.images}
+        initialIndex={currentImageIndex}
+        isOpen={isGalleryOpen}
+        onClose={() => setIsGalleryOpen(false)}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
         {/* Left Column: Images & Details */}

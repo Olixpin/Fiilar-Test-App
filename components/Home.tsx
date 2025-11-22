@@ -2,7 +2,7 @@ import React from 'react';
 import { Listing, User, ListingStatus, SpaceType } from '../types';
 import ListingCard from './ListingCard';
 import AdvancedSearch, { SearchFilters } from './AdvancedSearch';
-import { filterListings } from '../services/searchService';
+import { filterListings, parseNaturalLanguageQuery } from '../services/searchService';
 import { Home as HomeIcon, Camera, Users, Music, Briefcase, Sun, Search, Plus, X, SlidersHorizontal } from 'lucide-react';
 
 interface HomeProps {
@@ -48,9 +48,37 @@ const Home: React.FC<HomeProps> = ({
 
 
 
-    // Sync prop searchTerm with filters
+    // Sync prop searchTerm with filters and parse natural language
     React.useEffect(() => {
-        setFilters(prev => ({ ...prev, searchTerm }));
+        const initialFilters: SearchFilters = {
+            searchTerm: '',
+            location: '',
+            priceMin: 0,
+            priceMax: 1000,
+            spaceType: 'all',
+            bookingType: 'all',
+            guestCount: 1,
+            dateFrom: '',
+            dateTo: ''
+        };
+
+        if (!searchTerm) {
+            setFilters(initialFilters);
+            return;
+        }
+
+        // Parse natural language query
+        const parsedFilters = parseNaturalLanguageQuery(searchTerm);
+
+        // Reset to defaults and apply new parsed filters
+        // We clear 'searchTerm' here so the raw natural language string doesn't 
+        // cause the text-based filter to fail (e.g. "Apartment in Lagos" shouldn't fail 
+        // just because the title doesn't contain that exact sentence)
+        setFilters({
+            ...initialFilters,
+            ...parsedFilters,
+            searchTerm: ''
+        });
     }, [searchTerm]);
 
     const handleFilterChange = (newFilters: SearchFilters) => {
@@ -129,35 +157,38 @@ const Home: React.FC<HomeProps> = ({
                     {/* Main Content Area */}
                     <div className="flex-1 min-w-0">
                         {/* Categories */}
-                        <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto py-3 sm:py-3 mb-4 sm:mb-6 no-scrollbar sticky top-[72px] sm:top-[80px] bg-white z-30 pl-4 pr-4 sm:pr-0">
+                        <div className="flex items-center gap-2 sm:gap-3 lg:gap-0 overflow-x-auto py-3 sm:py-3 mb-4 sm:mb-6 no-scrollbar sticky top-[72px] sm:top-[80px] bg-white z-30 pl-4 pr-4 sm:pr-0 lg:justify-between lg:px-4 w-full lg:border lg:border-gray-200 lg:rounded-full lg:shadow-sm">
                             {/* Mobile Filter Button */}
                             <button
                                 onClick={() => setShowMobileFilters(true)}
-                                className="lg:hidden flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200 font-medium text-xs sm:text-sm whitespace-nowrap transition-all ml-4"
+                                className="lg:hidden flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200 font-medium text-xs sm:text-sm whitespace-nowrap transition-all"
                             >
                                 <SlidersHorizontal size={16} className="sm:w-[18px] sm:h-[18px]" strokeWidth={1.5} />
                                 <span>Filters</span>
                             </button>
                             {categories.map((cat, idx) => (
-                                <button
-                                    key={cat.id}
-                                    data-category={cat.id}
-                                    onClick={() => {
-                                        setActiveCategory(cat.id);
-                                        setTimeout(() => {
-                                            const btn = document.querySelector(`button[data-category="${cat.id}"]`);
-                                            btn?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-                                        }, 0);
-                                    }}
-                                    className={`flex items-center gap-1.5 sm:gap-2 ${idx === 0 ? 'pl-4 pr-3 sm:px-4' : 'px-3 sm:px-4'} py-1.5 sm:py-2 rounded-lg whitespace-nowrap transition-all text-xs sm:text-sm ${
-                                        activeCategory === cat.id 
-                                            ? 'bg-brand-600 text-white shadow-md' 
-                                            : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200'
-                                    }`}
-                                >
-                                    {cat.icon ? <cat.icon size={16} className="sm:w-[18px] sm:h-[18px]" strokeWidth={1.5} /> : <Search size={16} className="sm:w-[18px] sm:h-[18px]" strokeWidth={1.5} />}
-                                    <span className="font-medium">{cat.label}</span>
-                                </button>
+                                <React.Fragment key={cat.id}>
+                                    <button
+                                        data-category={cat.id}
+                                        onClick={() => {
+                                            setActiveCategory(cat.id);
+                                            setTimeout(() => {
+                                                const btn = document.querySelector(`button[data-category="${cat.id}"]`);
+                                                btn?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                                            }, 0);
+                                        }}
+                                        className={`flex items-center gap-1.5 sm:gap-2 ${idx === 0 ? 'pl-4 pr-3 sm:px-4' : 'px-3 sm:px-4'} py-1.5 sm:py-2 rounded-full whitespace-nowrap transition-all duration-200 text-xs sm:text-sm hover:scale-105 active:scale-95 ${activeCategory === cat.id
+                                            ? 'bg-brand-600 text-white shadow-md'
+                                            : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200 lg:bg-transparent lg:border-0 lg:hover:bg-gray-50'
+                                            }`}
+                                    >
+                                        {cat.icon ? <cat.icon size={16} className="sm:w-[18px] sm:h-[18px]" strokeWidth={1.5} /> : <Search size={16} className="sm:w-[18px] sm:h-[18px]" strokeWidth={1.5} />}
+                                        <span className="font-medium">{cat.label}</span>
+                                    </button>
+                                    {idx < categories.length - 1 && (
+                                        <div className="hidden lg:block h-5 w-px bg-gray-200 shrink-0 mx-2" />
+                                    )}
+                                </React.Fragment>
                             ))}
                         </div>
 
@@ -173,11 +204,11 @@ const Home: React.FC<HomeProps> = ({
             {showMobileFilters && (
                 <div className="fixed inset-0 z-50 lg:hidden">
                     {/* Backdrop */}
-                    <div 
+                    <div
                         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
                         onClick={() => setShowMobileFilters(false)}
                     />
-                    
+
                     {/* Modal Content */}
                     <div className="absolute inset-x-0 bottom-0 bg-white rounded-t-2xl max-h-[85vh] overflow-hidden flex flex-col animate-in slide-in-from-bottom duration-300">
                         {/* Header */}
@@ -190,7 +221,7 @@ const Home: React.FC<HomeProps> = ({
                                 <X size={20} />
                             </button>
                         </div>
-                        
+
                         {/* Filter Content */}
                         <div className="flex-1 overflow-y-auto">
                             <AdvancedSearch
@@ -198,7 +229,7 @@ const Home: React.FC<HomeProps> = ({
                                 onFilterChange={handleFilterChange}
                             />
                         </div>
-                        
+
                         {/* Footer */}
                         <div className="p-4 border-t border-gray-200 bg-white">
                             <button

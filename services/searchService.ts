@@ -176,3 +176,96 @@ export const isAvailableForDates = (
 
     return true;
 };
+
+/**
+ * Parse natural language query into structured filters
+ * e.g. "studio in Lagos under $100 for 5 people"
+ */
+export const parseNaturalLanguageQuery = (query: string): Partial<SearchFilters> => {
+    const filters: Partial<SearchFilters> = {};
+    const lowerQuery = query.toLowerCase();
+    console.log('Parsing query:', query);
+
+    // 1. Parse Space Type
+    if (lowerQuery.includes('apartment') || lowerQuery.includes('flat')) filters.spaceType = SpaceType.APARTMENT;
+    else if (lowerQuery.includes('studio')) filters.spaceType = SpaceType.STUDIO;
+    else if (lowerQuery.includes('conference') || lowerQuery.includes('meeting')) filters.spaceType = SpaceType.CONFERENCE;
+    else if (lowerQuery.includes('event') || lowerQuery.includes('party') || lowerQuery.includes('hall')) filters.spaceType = SpaceType.EVENT_CENTER;
+    else if (lowerQuery.includes('co-working') || lowerQuery.includes('office') || lowerQuery.includes('desk')) filters.spaceType = SpaceType.CO_WORKING;
+    else if (lowerQuery.includes('open space') || lowerQuery.includes('garden') || lowerQuery.includes('outdoor')) filters.spaceType = SpaceType.OPEN_SPACE;
+
+    // 2. Parse Price
+    // "under $100", "less than 100", "cheap" (<50), "luxury" (>200), "$100", "100 dollars", "budget 500"
+
+    // Check for explicit "under/below/budget" patterns first
+    const maxPriceMatch = lowerQuery.match(/(?:under|less than|below|budget|max)\s*:?\s*\$?(\d+)/);
+    if (maxPriceMatch) {
+        filters.priceMax = parseInt(maxPriceMatch[1]);
+    } else {
+        // Fallback: check for just "$100" or "100 dollars" and assume it's a max price preference
+        // unless it's clearly a "min" (which we'll handle separately if needed)
+        const simplePriceMatch = lowerQuery.match(/\$(\d+)|(\d+)\s*(?:dollars|usd|naira)/);
+        if (simplePriceMatch) {
+            filters.priceMax = parseInt(simplePriceMatch[1] || simplePriceMatch[2]);
+        }
+    }
+
+    if (lowerQuery.includes('cheap') || lowerQuery.includes('budget') || lowerQuery.includes('affordable')) {
+        filters.priceMax = 50; // Arbitrary "cheap" threshold
+    }
+
+    if (lowerQuery.includes('luxury') || lowerQuery.includes('expensive') || lowerQuery.includes('premium')) {
+        filters.priceMin = 200; // Arbitrary "luxury" threshold
+    }
+
+    // 3. Parse Guests & Size
+    // "5 people", "for 10", "2 guests"
+    const guestMatch = lowerQuery.match(/(?:for|with)\s*(\d+)|(\d+)\s*(?:people|guests|persons)/);
+    if (guestMatch) {
+        const count = parseInt(guestMatch[1] || guestMatch[2]);
+        if (!isNaN(count)) filters.guestCount = count;
+    }
+
+    // Size keywords
+    if (lowerQuery.includes('large') || lowerQuery.includes('huge') || lowerQuery.includes('big')) {
+        filters.guestCount = Math.max(filters.guestCount || 0, 20);
+    } else if (lowerQuery.includes('small') || lowerQuery.includes('tiny') || lowerQuery.includes('cozy')) {
+        filters.guestCount = Math.max(filters.guestCount || 0, 2); // Ensure at least 2 for small
+    }
+
+    // 4. Parse Location
+    // "in Lagos", "at Ikeja"
+    const locationMatch = lowerQuery.match(/(?:in|at|near)\s+([a-zA-Z\s]+?)(?:\s+(?:under|for|with|below|less|next|tomorrow|$)|$)/);
+    if (locationMatch) {
+        const location = locationMatch[1].trim();
+        if (!['the', 'a', 'an'].includes(location)) {
+            filters.location = location;
+        }
+    }
+
+    // 5. Parse Duration / Booking Type
+    if (lowerQuery.includes('daily') || lowerQuery.includes('day') || lowerQuery.includes('night') || lowerQuery.includes('week')) {
+        filters.bookingType = BookingType.DAILY;
+    } else if (lowerQuery.includes('hourly') || lowerQuery.includes('hour')) {
+        filters.bookingType = BookingType.HOURLY;
+    }
+
+    // 6. Parse Dates (Simple)
+    const today = new Date();
+    if (lowerQuery.includes('tomorrow')) {
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        filters.dateFrom = tomorrow.toISOString().split('T')[0];
+        filters.dateTo = tomorrow.toISOString().split('T')[0];
+    } else if (lowerQuery.includes('next week')) {
+        const nextWeek = new Date(today);
+        nextWeek.setDate(nextWeek.getDate() + 7);
+        filters.dateFrom = nextWeek.toISOString().split('T')[0];
+        const endNextWeek = new Date(nextWeek);
+        endNextWeek.setDate(endNextWeek.getDate() + 1); // Default 1 day
+        filters.dateTo = endNextWeek.toISOString().split('T')[0];
+    }
+
+    console.log('Parsed filters:', filters);
+    return filters;
+};
