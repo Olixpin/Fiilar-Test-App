@@ -2,7 +2,7 @@
 import { User, Listing, Booking, Role, ListingStatus } from '../types';
 import { MOCK_LISTINGS } from '../constants';
 
-const STORAGE_KEYS = {
+export const STORAGE_KEYS = {
   USER: 'fiilar_user',
   USERS_DB: 'fiilar_users_db', // New DB key for persistence
   LISTINGS: 'fiilar_listings',
@@ -16,30 +16,35 @@ export const initStorage = () => {
   }
   // Initialize Users DB if empty
   if (!localStorage.getItem(STORAGE_KEYS.USERS_DB)) {
-      localStorage.setItem(STORAGE_KEYS.USERS_DB, JSON.stringify([]));
+    localStorage.setItem(STORAGE_KEYS.USERS_DB, JSON.stringify([]));
   }
 };
 
 export const getAllUsers = (): User[] => {
-    const u = localStorage.getItem(STORAGE_KEYS.USERS_DB);
-    return u ? JSON.parse(u) : [];
+  const u = localStorage.getItem(STORAGE_KEYS.USERS_DB);
+  return u ? JSON.parse(u) : [];
 };
 
 const saveUserToDb = (user: User) => {
-    const users = getAllUsers();
-    const idx = users.findIndex(u => u.id === user.id);
-    if (idx >= 0) {
-        users[idx] = user;
-    } else {
-        users.push(user);
-    }
-    localStorage.setItem(STORAGE_KEYS.USERS_DB, JSON.stringify(users));
-    
-    // Sync with current session if applicable
-    const currentUser = getCurrentUser();
-    if (currentUser && currentUser.id === user.id) {
-        localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
-    }
+  const users = getAllUsers();
+  const idx = users.findIndex(u => u.id === user.id);
+  if (idx >= 0) {
+    users[idx] = user;
+  } else {
+    users.push(user);
+  }
+  console.log('Saving user to DB:', user);
+  localStorage.setItem(STORAGE_KEYS.USERS_DB, JSON.stringify(users));
+
+  // Sync with current session if applicable
+  const currentUser = getCurrentUser();
+  console.log('Current session user:', currentUser);
+  if (currentUser && currentUser.id === user.id) {
+    console.log('Updating session user storage');
+    localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
+  } else {
+    console.log('Session user not updated. Current:', currentUser?.id, 'Target:', user.id);
+  }
 };
 
 export const getCurrentUser = (): User | null => {
@@ -52,11 +57,11 @@ export const loginUser = (role: Role): User => {
   let userId = '';
   let name = '';
   let email = '';
-  
-  switch(role) {
-      case Role.HOST: userId = 'host_123'; name = 'Jane Host'; email = 'jane@example.com'; break;
-      case Role.USER: userId = 'user_123'; name = 'John User'; email = 'john@example.com'; break;
-      case Role.ADMIN: userId = 'admin_001'; name = 'Super Admin'; email = 'admin@fiilar.com'; break;
+
+  switch (role) {
+    case Role.HOST: userId = 'host_123'; name = 'Jane Host'; email = 'jane@example.com'; break;
+    case Role.USER: userId = 'user_123'; name = 'John User'; email = 'john@example.com'; break;
+    case Role.ADMIN: userId = 'admin_001'; name = 'Super Admin'; email = 'admin@fiilar.com'; break;
   }
 
   // Check DB first to load existing state (KYC, etc)
@@ -64,16 +69,17 @@ export const loginUser = (role: Role): User => {
   let user = users.find(u => u.id === userId);
 
   if (!user) {
-      user = {
-        id: userId,
-        name: name,
-        email: email,
-        role: role,
-        kycVerified: role === Role.ADMIN, // Admin verified by default
-        walletBalance: role === Role.HOST ? 1250.00 : 0,
-        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${userId}`
-      };
-      saveUserToDb(user);
+    user = {
+      id: userId,
+      name: name,
+      email: email,
+      role: role,
+      kycVerified: role === Role.ADMIN, // Admin verified by default
+      walletBalance: role === Role.HOST ? 1250.00 : 0,
+      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${userId}`,
+      favorites: []
+    };
+    saveUserToDb(user);
   }
 
   // Set as active session
@@ -119,15 +125,57 @@ export const createBooking = (booking: Booking) => {
   localStorage.setItem(STORAGE_KEYS.BOOKINGS, JSON.stringify(bookings));
 };
 
+export const updateBooking = (booking: Booking) => {
+  const bookings = getBookings();
+  const idx = bookings.findIndex(b => b.id === booking.id);
+  if (idx >= 0) {
+    bookings[idx] = booking;
+    localStorage.setItem(STORAGE_KEYS.BOOKINGS, JSON.stringify(bookings));
+  }
+};
+
 // Host/Admin Helpers
 export const updateKYC = (userId: string, status: boolean, proofUrl?: string) => {
   // Update in DB to persist across logins
   const users = getAllUsers();
   const user = users.find(u => u.id === userId);
   if (user) {
-      user.kycVerified = status;
-      // Use identityDocument instead of proofOfAddress for User object
-      if(proofUrl) user.identityDocument = proofUrl;
-      saveUserToDb(user);
+    user.kycVerified = status;
+    // Use identityDocument instead of proofOfAddress for User object
+    if (proofUrl) user.identityDocument = proofUrl;
+    saveUserToDb(user);
   }
+};
+
+export const toggleFavorite = (userId: string, listingId: string): string[] => {
+  console.log('Toggling favorite. User:', userId, 'Listing:', listingId);
+  const users = getAllUsers();
+  const user = users.find(u => u.id === userId);
+  if (!user) {
+    console.error('User not found in DB:', userId);
+    return [];
+  }
+
+  const favorites = user.favorites || [];
+  const idx = favorites.indexOf(listingId);
+
+  let newFavorites;
+  if (idx >= 0) {
+    newFavorites = favorites.filter(id => id !== listingId);
+  } else {
+    newFavorites = [...favorites, listingId];
+  }
+
+  user.favorites = newFavorites;
+  console.log('New favorites list:', newFavorites);
+  saveUserToDb(user);
+
+  // Force update session storage to ensure immediate UI reflection
+  const currentUser = getCurrentUser();
+  if (currentUser && currentUser.id === userId) {
+    console.log('Force updating session user in toggleFavorite');
+    localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
+  }
+
+  return newFavorites;
 };

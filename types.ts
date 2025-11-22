@@ -45,6 +45,16 @@ export interface User {
   identityDocument?: string; // Renamed from proofOfAddress to be distinct
   avatar?: string;
   walletBalance: number;
+  bankDetails?: BankDetails;
+  favorites?: string[]; // List of Listing IDs
+}
+
+export interface BankDetails {
+  bankName: string;
+  accountNumber: string;
+  accountName: string;
+  subaccountCode?: string; // Paystack Subaccount Code
+  isVerified: boolean;
 }
 
 export interface ListingSettings {
@@ -77,9 +87,9 @@ export interface Listing {
   proofOfAddress?: string; // URL for listing specific verification (Utility Bill)
   rejectionReason?: string; // Reason if rejected by admin
   settings?: ListingSettings; // New configuration object
-  
+
   // Capacity & Pricing Fields
-  capacity?: number; 
+  capacity?: number;
   includedGuests?: number; // How many guests are covered by the base price
   pricePerExtraGuest?: number; // Cost per guest above includedGuests
   cautionFee?: number; // Refundable security deposit
@@ -100,16 +110,80 @@ export interface Booking {
   date: string;
   duration: number; // hours or days
   hours?: number[]; // Specific hours booked (e.g. [9, 10]) for collision detection
-  
+
   // Financials
   totalPrice: number; // The final amount paid
   serviceFee: number; // Platform fee
   cautionFee: number; // Security deposit included in total
-  
+
   status: 'Pending' | 'Confirmed' | 'Completed' | 'Cancelled';
   groupId?: string; // ID to group recurring bookings together
   guestCount?: number; // Number of guests for this booking
   selectedAddOns?: string[]; // IDs of selected add-ons
+  paymentStatus?: 'Paid - Escrow' | 'Released' | 'Refunded';
+  escrowReleaseDate?: string; // ISO string - when funds will be released
+  transactionIds?: string[]; // Link to all related transactions
+}
+
+
+export interface Wallet {
+  balance: number;
+  currency: string;
+}
+
+export type TransactionType = 'DEPOSIT' | 'PAYMENT' | 'REFUND';
+
+export interface Transaction {
+  id: string;
+  userId: string;
+  amount: number;
+  type: TransactionType;
+  date: string; // ISO string
+  description: string;
+  status: 'PENDING' | 'COMPLETED' | 'FAILED';
+}
+
+// Escrow-specific transaction types
+export type EscrowTransactionType = 'GUEST_PAYMENT' | 'HOST_PAYOUT' | 'REFUND' | 'SERVICE_FEE';
+
+export interface EscrowTransaction {
+  id: string;
+  bookingId: string;
+  type: EscrowTransactionType;
+  amount: number;
+  status: 'PENDING' | 'COMPLETED' | 'FAILED';
+  paystackReference?: string; // Mock Paystack transaction reference
+  timestamp: string; // ISO string
+  fromUserId?: string; // Guest for payments
+  toUserId?: string; // Host for payouts
+  metadata?: {
+    listingId?: string;
+    listingTitle?: string;
+    hostName?: string;
+    guestName?: string;
+    [key: string]: any;
+  };
+}
+
+export interface PlatformFinancials {
+  totalEscrow: number; // Total funds currently held in escrow
+  totalReleased: number; // Total paid out to hosts
+  totalRevenue: number; // Total service fees collected
+  pendingPayouts: number; // Count of bookings awaiting release
+  totalRefunded: number; // Total refunded to guests
+}
+
+export type PaymentMethodType = 'CARD' | 'PAYPAL';
+
+export interface PaymentMethod {
+  id: string;
+  userId: string;
+  type: PaymentMethodType;
+  last4: string;
+  brand: string; // e.g., 'Visa', 'MasterCard'
+  expiryMonth: number;
+  expiryYear: number;
+  isDefault: boolean;
 }
 
 export interface Recommendation {
