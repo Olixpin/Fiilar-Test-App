@@ -1,7 +1,6 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { User, Role, View } from '../types';
-import { Menu, X, LogOut, UserCircle, Search, Globe, Bell } from 'lucide-react';
+import { Menu, X, User as UserIcon, LogOut, Search, Bell, ArrowRight, Globe } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getAllUsers, STORAGE_KEYS, getCurrentUser, getUnreadCount } from '../services/storage';
 import NotificationCenter from './NotificationCenter';
@@ -323,66 +322,93 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onSearch, searchTerm, o
         </div>
       )}
 
-      {/* Mobile Search Modal */}
+      {/* Mobile Search Full Screen Modal */}
       {isMobileSearchOpen && (
-        <div className="fixed inset-0 z-50 md:hidden">
-          {/* Backdrop */}
-          <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-            onClick={() => setIsMobileSearchOpen(false)}
-          />
-
-          {/* Modal Content */}
-          <div className="absolute inset-x-0 top-0 bg-white animate-in slide-in-from-top duration-300">
-            <div className="p-4">
-              <div className="flex items-center gap-3 mb-4">
-                <button
-                  onClick={() => setIsMobileSearchOpen(false)}
-                  className="p-2 hover:bg-gray-100 rounded-full transition"
-                >
-                  <X size={20} />
-                </button>
-                <h2 className="text-lg font-bold">Search</h2>
-              </div>
-
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Search for spaces..."
-                  value={searchTerm || ''}
-                  onChange={(e) => {
-                    if (onSearch) {
-                      onSearch(e.target.value);
-                    }
-                  }}
-                  autoFocus
-                  className="w-full px-4 py-3 pl-12 bg-gray-50 border border-gray-200 rounded-xl text-base focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
-                />
-                <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-                {searchTerm && (
-                  <button
-                    onClick={() => onSearch && onSearch('')}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-200 rounded-full transition"
-                  >
-                    <X size={16} className="text-gray-600" />
-                  </button>
-                )}
-              </div>
-
+        <div
+          className="fixed inset-0 z-[9999] md:hidden bg-white flex flex-col"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="mobile-search-title"
+        >
+          {/* Header Area */}
+          <div className="flex items-center gap-3 p-4 border-b border-gray-100">
+            <div className="relative flex-1">
+              <Search size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search spaces..."
+                value={searchTerm || ''}
+                onChange={(e) => {
+                  if (onSearch) {
+                    onSearch(e.target.value);
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    setIsMobileSearchOpen(false);
+                  } else if (e.key === 'Enter' && searchTerm) {
+                    setIsMobileSearchOpen(false);
+                    if (onNavigate) onNavigate('home');
+                  }
+                }}
+                autoFocus
+                className="w-full pl-10 pr-10 py-3 bg-gray-100 border-none rounded-xl text-base focus:ring-2 focus:ring-brand-500 focus:bg-white transition-all"
+              />
               {searchTerm && (
-                <div className="mt-4">
-                  <button
-                    onClick={() => {
-                      setIsMobileSearchOpen(false);
-                      if (onNavigate) onNavigate('home');
-                    }}
-                    className="w-full bg-brand-600 text-white py-3 rounded-xl font-semibold hover:bg-brand-700 transition"
-                  >
-                    View Results
-                  </button>
-                </div>
+                <button
+                  onClick={() => onSearch && onSearch('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full bg-gray-200 text-gray-600"
+                >
+                  <X size={14} />
+                </button>
               )}
             </div>
+            <button
+              onClick={() => setIsMobileSearchOpen(false)}
+              className="text-base font-semibold text-gray-600 px-2"
+            >
+              Cancel
+            </button>
+          </div>
+
+          {/* Content Area */}
+          <div className="flex-1 overflow-y-auto p-4">
+            {searchTerm ? (
+              <div className="space-y-4">
+                <button
+                  onClick={() => {
+                    setIsMobileSearchOpen(false);
+                    if (onNavigate) onNavigate('home');
+                  }}
+                  className="w-full flex items-center justify-between p-4 bg-brand-50 text-brand-700 rounded-xl font-medium"
+                >
+                  <span>See results for "{searchTerm}"</span>
+                  <ArrowRight size={18} />
+                </button>
+              </div>
+            ) : (
+              <div>
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">
+                  Popular Categories
+                </h3>
+                <div className="space-y-2">
+                  {['Studios', 'Conference Rooms', 'Co-working', 'Event Centers'].map((term) => (
+                    <button
+                      key={term}
+                      onClick={() => {
+                        if (onSearch) onSearch(term);
+                      }}
+                      className="w-full flex items-center gap-4 p-3 hover:bg-gray-50 rounded-xl transition-colors group"
+                    >
+                      <div className="p-2 bg-gray-100 rounded-lg text-gray-500 group-hover:bg-brand-100 group-hover:text-brand-600 transition-colors">
+                        <Search size={18} />
+                      </div>
+                      <span className="text-gray-700 font-medium">{term}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
