@@ -19,6 +19,7 @@ interface NavbarProps {
 const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onSearch, searchTerm, onLogin, onBecomeHost, onNavigate }) => {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isAccountOpen, setIsAccountOpen] = useState(false);
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const accountToggleRef = useRef<HTMLButtonElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -289,7 +290,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onSearch, searchTerm, o
 
           {/* Mobile Toggle */}
           <div className="flex items-center md:hidden gap-4">
-            <button type="button" title="Search" aria-label="Search" className="p-2 text-gray-900">
+            <button type="button" onClick={() => setIsMobileSearchOpen(true)} title="Search" aria-label="Search" className="p-2 text-gray-900">
               <Search size={20} />
             </button>
             <button type="button" onClick={() => setIsMobileOpen(!isMobileOpen)} title="Toggle menu" aria-label="Toggle menu" className="text-gray-900 p-2 border border-gray-200 rounded-full">
@@ -319,6 +320,70 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onSearch, searchTerm, o
               </button>
             </>
           )}
+        </div>
+      )}
+
+      {/* Mobile Search Modal */}
+      {isMobileSearchOpen && (
+        <div className="fixed inset-0 z-50 md:hidden">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setIsMobileSearchOpen(false)}
+          />
+
+          {/* Modal Content */}
+          <div className="absolute inset-x-0 top-0 bg-white animate-in slide-in-from-top duration-300">
+            <div className="p-4">
+              <div className="flex items-center gap-3 mb-4">
+                <button
+                  onClick={() => setIsMobileSearchOpen(false)}
+                  className="p-2 hover:bg-gray-100 rounded-full transition"
+                >
+                  <X size={20} />
+                </button>
+                <h2 className="text-lg font-bold">Search</h2>
+              </div>
+
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search for spaces..."
+                  value={searchTerm || ''}
+                  onChange={(e) => {
+                    if (onSearch) {
+                      onSearch(e.target.value);
+                    }
+                  }}
+                  autoFocus
+                  className="w-full px-4 py-3 pl-12 bg-gray-50 border border-gray-200 rounded-xl text-base focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                />
+                <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                {searchTerm && (
+                  <button
+                    onClick={() => onSearch && onSearch('')}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-200 rounded-full transition"
+                  >
+                    <X size={16} className="text-gray-600" />
+                  </button>
+                )}
+              </div>
+
+              {searchTerm && (
+                <div className="mt-4">
+                  <button
+                    onClick={() => {
+                      setIsMobileSearchOpen(false);
+                      if (onNavigate) onNavigate('home');
+                    }}
+                    className="w-full bg-brand-600 text-white py-3 rounded-xl font-semibold hover:bg-brand-700 transition"
+                  >
+                    View Results
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </nav>
