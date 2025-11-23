@@ -20,6 +20,8 @@ import TermsAndConditions from './components/TermsAndConditions';
 import PrivacyPolicy from './components/PrivacyPolicy';
 import EmailVerificationBanner from './components/EmailVerificationBanner';
 import VerifyEmailPage from './components/VerifyEmailPage';
+import ErrorBoundary from './components/ErrorBoundary';
+import NotFound from './components/NotFound';
 
 const ListingDetailsRoute: React.FC<{
   listings: Listing[];
@@ -226,17 +228,23 @@ const App: React.FC = () => {
     }, 2000);
   };
 
+  const validRoutes = ['/', '/login', '/login-host', '/kyc', '/dashboard', '/host/dashboard', '/admin', '/verify-email', '/terms', '/privacy'];
+  const isValidRoute = validRoutes.includes(location.pathname) || location.pathname.startsWith('/listing/');
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar
-        user={user}
-        onLogin={() => navigate('/login')}
-        onLogout={handleLogout}
-        onBecomeHost={() => navigate('/login-host')}
-        onNavigate={handleNavigate}
-        onSearch={handleSearch}
-        searchTerm={searchTerm}
-      />
+      {/* Show navbar only on valid routes */}
+      {isValidRoute && (
+        <Navbar
+          user={user}
+          onLogin={() => navigate('/login')}
+          onLogout={handleLogout}
+          onBecomeHost={() => navigate('/login-host')}
+          onNavigate={handleNavigate}
+          onSearch={handleSearch}
+          searchTerm={searchTerm}
+        />
+      )}
 
       {/* Email Verification Banner */}
       {user && !user.emailVerified && !user.phoneVerified && (
@@ -248,13 +256,13 @@ const App: React.FC = () => {
 
       {/* Host KYC Banner */}
       {user?.role === Role.HOST && !user.kycVerified && location.pathname !== '/kyc' && (
-        <div className={`${user.identityDocument ? 'bg-blue-50 border-blue-100' : 'bg-orange-50 border-orange-100'} border-b px-4 py-3 relative z-40`}>
+        <div className={`${user.identityDocument ? 'bg-blue-50 border-blue-100' : 'bg-orange-50 border-orange-100'} border - b px - 4 py - 3 relative z - 40`}>
           <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className={`${user.identityDocument ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'} p-1.5 rounded-full shrink-0`}>
+              <div className={`${user.identityDocument ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'} p - 1.5 rounded - full shrink - 0`}>
                 {user.identityDocument ? <Clock size={16} /> : <AlertCircle size={16} />}
               </div>
-              <div className={`text-sm ${user.identityDocument ? 'text-blue-900' : 'text-orange-900'}`}>
+              <div className={`text - sm ${user.identityDocument ? 'text-blue-900' : 'text-orange-900'} `}>
                 {user.identityDocument ? (
                   <>
                     <span className="font-bold">Identity Verification Pending:</span> Your ID is under review by our team. You will be notified once approved.
@@ -345,7 +353,9 @@ const App: React.FC = () => {
           <Route path="/verify-email" element={<VerifyEmailPage />} />
           <Route path="/terms" element={<TermsAndConditions />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+
+          {/* 404 Catch-all Route */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
       {/* Footer */}

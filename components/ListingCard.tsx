@@ -46,6 +46,7 @@ const ListingCard: React.FC<ListingCardProps> = ({ listing }) => {
         <img
           src={listing.images[0]}
           alt={listing.title}
+          loading="lazy"
           className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-700"
         />
         <button

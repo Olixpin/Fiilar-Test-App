@@ -127,6 +127,7 @@ export interface Booking {
   cautionFee: number; // Security deposit included in total
 
   status: 'Pending' | 'Confirmed' | 'Completed' | 'Cancelled' | 'Reserved';
+  createdAt?: string; // ISO timestamp when booking was created
   groupId?: string; // ID to group recurring bookings together
   guestCount?: number; // Number of guests for this booking
   selectedAddOns?: string[]; // IDs of selected add-ons
@@ -217,10 +218,11 @@ export interface Message {
 
 export interface Conversation {
   id: string;
-  participants: string[]; // [userId, hostId]
-  listingId?: string;
+  participants: string[]; // Array of user IDs
+  listingId?: string; // Optional: if conversation is about a specific listing
   lastMessage?: Message;
-  updatedAt: string; // ISO string for sorting
+  lastMessageTime: string; // ISO string for sorting
+  unreadCount?: number; // Number of unread messages for current user
 }
 
 export interface Review {
