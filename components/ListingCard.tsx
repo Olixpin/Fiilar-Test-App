@@ -12,6 +12,7 @@ interface ListingCardProps {
 const ListingCard: React.FC<ListingCardProps> = ({ listing }) => {
   const navigate = useNavigate();
   const [isFavorite, setIsFavorite] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   useEffect(() => {
     const u = getCurrentUser();
@@ -21,6 +22,14 @@ const ListingCard: React.FC<ListingCardProps> = ({ listing }) => {
       setIsFavorite(false);
     }
   }, [listing.id]);
+
+  useEffect(() => {
+    if (listing.images.length <= 1) return;
+    const interval = setInterval(() => {
+      setCurrentImageIndex((prev) => (prev + 1) % listing.images.length);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [listing.images.length]);
 
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.preventDefault(); // Prevent navigation when clicking favorite
@@ -44,10 +53,10 @@ const ListingCard: React.FC<ListingCardProps> = ({ listing }) => {
     >
       <div className="relative aspect-square overflow-hidden rounded-xl bg-gray-200 shadow-sm hover:shadow-xl transition-shadow duration-300">
         <img
-          src={listing.images[0]}
+          src={listing.images[currentImageIndex]}
           alt={listing.title}
           loading="lazy"
-          className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-700"
+          className="h-full w-full object-cover group-hover:scale-110 transition-all duration-700"
         />
         <button
           type="button"
