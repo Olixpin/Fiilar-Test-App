@@ -85,6 +85,21 @@ const App: React.FC = () => {
     };
   }, []);
 
+  // Listen for listing changes dispatched by other components and refresh
+  useEffect(() => {
+    const handler = (e: Event) => {
+      try {
+        // detail may contain listing info, but we just refresh the app state
+        refreshData();
+      } catch (err) {
+        console.error('Failed to refresh data on listings-updated event', err);
+      }
+    };
+
+    window.addEventListener('fiilar:listings-updated', handler as EventListener);
+    return () => window.removeEventListener('fiilar:listings-updated', handler as EventListener);
+  }, []);
+
   // Track page views
   useEffect(() => {
     analytics.pageView(location.pathname);
@@ -265,7 +280,7 @@ const App: React.FC = () => {
 
       {/* Host KYC Banner */}
       {user?.role === Role.HOST && !user.kycVerified && location.pathname !== '/kyc' && location.pathname === '/host/dashboard' && (
-        <div className={`${user.identityDocument ? 'bg-blue-50 border-blue-100' : 'bg-orange-50 border-orange-100'} border-b px-4 py-3 fixed top-16 left-0 right-0 z-50 shadow-sm`}>
+        <div className={`${user.identityDocument ? 'bg-blue-50 border-blue-100' : 'bg-orange-50 border-orange-100'} border-b px-4 py-3 fixed top-16 left-0 right-0 lg:ml-64 z-50 shadow-sm`}>
           <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <div className={`${user.identityDocument ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'} p-1.5 rounded-full shrink-0`}>

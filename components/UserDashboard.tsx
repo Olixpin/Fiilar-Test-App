@@ -614,7 +614,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings }) => {
                     <div className={`w-full md:w-2/5 lg:w-1/3 border-r border-gray-200 flex flex-col ${selectedConversationId ? 'hidden md:flex' : 'flex'}`}>
                       <div className="p-4 border-b border-gray-200 bg-gray-50">
                         <h3 className="font-bold text-gray-900 text-sm">Conversations</h3>
-                        <p className="text-xs text-gray-500 mt-1">{getConversations().filter(c => c.participants.includes(user.id)).length} active</p>
+                        <p className="text-xs text-gray-500 mt-1">{getConversations(user.id).filter(c => c.participants.includes(user.id)).length} active</p>
                       </div>
                       <div className="flex-1 overflow-y-auto">
                         <ChatList
@@ -655,7 +655,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings }) => {
                       </div>
                       <div>
                         <p className="text-xs text-gray-500 font-medium">Total Conversations</p>
-                        <p className="text-lg font-bold text-gray-900">{getConversations().filter(c => c.participants.includes(user.id)).length}</p>
+                        <p className="text-lg font-bold text-gray-900">{getConversations(user.id).filter(c => c.participants.includes(user.id)).length}</p>
                       </div>
                     </div>
                   </div>
@@ -666,7 +666,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings }) => {
                       </div>
                       <div>
                         <p className="text-xs text-gray-500 font-medium">Unread Messages</p>
-                        <p className="text-lg font-bold text-gray-900">{getConversations().filter(c => c.participants.includes(user.id) && c.unreadCount && c.unreadCount > 0).length}</p>
+                        <p className="text-lg font-bold text-gray-900">{getConversations(user.id).filter(c => c.participants.includes(user.id) && c.unreadCount && c.unreadCount > 0).length}</p>
                       </div>
                     </div>
                   </div>

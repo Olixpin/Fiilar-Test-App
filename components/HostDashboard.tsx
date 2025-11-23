@@ -17,11 +17,14 @@ interface HostDashboardProps {
     user: User;
     listings: Listing[];
     refreshData: () => void;
+    onCreateListing?: (l: Listing) => void;
+    onUpdateListing?: (l: Listing) => void;
 }
+
 
 type View = 'overview' | 'create' | 'edit' | 'calendar' | 'settings' | 'bookings' | 'earnings' | 'messages' | 'notifications';
 
-const HostDashboard: React.FC<HostDashboardProps> = ({ user, listings, refreshData }) => {
+const HostDashboard: React.FC<HostDashboardProps> = ({ user, listings, refreshData, onCreateListing, onUpdateListing }) => {
     // ALL HOOKS MUST BE DECLARED BEFORE ANY EARLY RETURNS
     // This ensures hooks are called in the same order on every render
     const [view, setView] = useState<View>('overview');
@@ -585,7 +588,24 @@ const HostDashboard: React.FC<HostDashboardProps> = ({ user, listings, refreshDa
                 };
 
                 saveListing(listing);
-                refreshData();
+                const isNew = !existingId || !listings.find(l => l.id === existingId);
+                if (isNew) {
+                    if (typeof onCreateListing === 'function') onCreateListing(listing);
+                } else {
+                    if (typeof onUpdateListing === 'function') onUpdateListing(listing);
+                }
+
+                // Call optional refresh to ensure parent reloads in-memory data
+                if (typeof refreshData === 'function') {
+                    refreshData();
+                }
+
+                // Dispatch a global event so any listeners (e.g., other components) can refresh
+                try {
+                    window.dispatchEvent(new CustomEvent('fiilar:listings-updated', { detail: { listing } }));
+                } catch (e) {
+                    // Ignore if window not available (server-side)
+                }
 
                 setView('listings');
                 setStep(1);
@@ -2133,7 +2153,7 @@ const HostDashboard: React.FC<HostDashboardProps> = ({ user, listings, refreshDa
                                         <div className="w-full md:w-2/5 lg:w-1/3 border-r border-gray-200 flex flex-col">
                                             <div className="p-4 border-b border-gray-200 bg-gray-50">
                                                 <h3 className="font-bold text-gray-900 text-sm">Conversations</h3>
-                                                <p className="text-xs text-gray-500 mt-1">{getConversations().filter(c => c.participants.includes(user.id)).length} active</p>
+                                                <p className="text-xs text-gray-500 mt-1">{getConversations(user.id).filter(c => c.participants.includes(user.id)).length} active</p>
                                             </div>
                                             <div className="flex-1 overflow-y-auto">
                                                 <ChatList
@@ -2173,7 +2193,7 @@ const HostDashboard: React.FC<HostDashboardProps> = ({ user, listings, refreshDa
                                             </div>
                                             <div>
                                                 <p className="text-xs text-gray-500 font-medium">Total Conversations</p>
-                                                <p className="text-lg font-bold text-gray-900">{getConversations().filter(c => c.participants.includes(user.id)).length}</p>
+                                                <p className="text-lg font-bold text-gray-900">{getConversations(user.id).filter(c => c.participants.includes(user.id)).length}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -2184,7 +2204,7 @@ const HostDashboard: React.FC<HostDashboardProps> = ({ user, listings, refreshDa
                                             </div>
                                             <div>
                                                 <p className="text-xs text-gray-500 font-medium">Unread Messages</p>
-                                                <p className="text-lg font-bold text-gray-900">{getConversations().filter(c => c.participants.includes(user.id) && c.unreadCount && c.unreadCount > 0).length}</p>
+                                                <p className="text-lg font-bold text-gray-900">{getConversations(user.id).filter(c => c.participants.includes(user.id) && c.unreadCount && c.unreadCount > 0).length}</p>
                                             </div>
                                         </div>
                                     </div>
