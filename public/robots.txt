@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://fiilar.com/sitemap.xml

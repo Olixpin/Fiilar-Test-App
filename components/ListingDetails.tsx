@@ -60,6 +60,8 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
   const [pendingBooking, setPendingBooking] = useState<any>(null);
   const [isFavorite, setIsFavorite] = useState(false);
   const [showMobileBookingModal, setShowMobileBookingModal] = useState(false);
+  const [showReviewsModal, setShowReviewsModal] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   useEffect(() => {
     console.log('ListingDetails user effect:', user?.favorites, listing.id);
@@ -897,10 +899,18 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
                 <span className="text-3xl font-bold text-gray-900">${listing.price}</span>
                 <span className="text-gray-500"> / {isHourly ? 'hour' : 'day'}</span>
               </div>
-              <div className="flex items-center text-sm text-gray-500">
-                <Star size={16} className="text-yellow-400 mr-1" />
-                <span className="font-medium text-gray-900 underline decoration-gray-300 underline-offset-2">12 reviews</span>
-              </div>
+              {(() => {
+                const reviews = getReviews(listing.id);
+                return reviews.length > 0 ? (
+                  <button 
+                    onClick={() => setShowReviewsModal(true)}
+                    className="flex items-center text-sm text-gray-500 hover:text-gray-700 transition-colors"
+                  >
+                    <Star size={16} className="text-yellow-400 mr-1" />
+                    <span className="font-medium text-gray-900 underline decoration-gray-300 underline-offset-2 hover:decoration-gray-500">{reviews.length} {reviews.length === 1 ? 'review' : 'reviews'}</span>
+                  </button>
+                ) : null;
+              })()}
             </div>
 
             <div className="space-y-4 mb-6">
@@ -1607,15 +1617,23 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
                 </section>
 
                 <div className="pt-6 border-t border-gray-200">
-                  <p className="text-xs text-gray-500 mb-4">
-                    By selecting the button below, I agree to the Host's House Rules, Ground rules for guests, and Fiilar's Rebooking and Refund Policy.
-                  </p>
+                  <label className="flex items-start gap-3 mb-6 cursor-pointer group">
+                    <input
+                      type="checkbox"
+                      checked={agreedToTerms}
+                      onChange={(e) => setAgreedToTerms(e.target.checked)}
+                      className="mt-1 w-5 h-5 rounded border-gray-300 text-brand-600 focus:ring-brand-500 cursor-pointer"
+                    />
+                    <span className="text-sm text-gray-700 group-hover:text-gray-900 transition-colors">
+                      I agree to the <button type="button" onClick={() => navigate('/terms')} className="text-brand-600 hover:text-brand-700 font-medium underline">Host's House Rules</button>, Ground rules for guests, and Fiilar's <button type="button" onClick={() => navigate('/terms')} className="text-brand-600 hover:text-brand-700 font-medium underline">Rebooking and Refund Policy</button>.
+                    </span>
+                  </label>
                   <button
                     onClick={handleConfirmBooking}
-                    disabled={isBookingLoading || (paymentMethod === 'WALLET' && walletBalance < pendingBooking.fees.total)}
+                    disabled={!agreedToTerms || isBookingLoading || (paymentMethod === 'WALLET' && walletBalance < pendingBooking.fees.total)}
                     className={`
                                     w-full font-bold text-lg py-3.5 rounded-xl shadow-lg transition flex items-center justify-center gap-2
-                                    ${isBookingLoading || (paymentMethod === 'WALLET' && walletBalance < pendingBooking.fees.total)
+                                    ${!agreedToTerms || isBookingLoading || (paymentMethod === 'WALLET' && walletBalance < pendingBooking.fees.total)
                         ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                         : 'bg-brand-600 hover:bg-brand-700 text-white hover:shadow-xl'}
                                 `}
@@ -1628,6 +1646,91 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
           </div>
         </div>
       )}
+
+      {/* Reviews Modal */}
+      {showReviewsModal && (() => {
+        const reviews = getReviews(listing.id);
+        const avgRating = getAverageRating(listing.id);
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[80vh] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+              <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">Reviews</h2>
+                  {avgRating > 0 && (
+                    <div className="flex items-center gap-2 mt-1">
+                      <div className="flex items-center">
+                        {[...Array(5)].map((_, i) => (
+                          <Star
+                            key={i}
+                            size={16}
+                            className={i < Math.round(avgRating) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-sm text-gray-600">
+                        {avgRating.toFixed(1)} ({reviews.length} {reviews.length === 1 ? 'review' : 'reviews'})
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={() => setShowReviewsModal(false)}
+                  className="p-2 hover:bg-gray-100 rounded-full transition"
+                >
+                  <X size={20} className="text-gray-500" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-6">
+                {reviews.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Star size={48} className="mx-auto text-gray-300 mb-3" />
+                    <p className="text-gray-500">No reviews yet</p>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {reviews.map(review => {
+                      const reviewer = getAllUsers().find(u => u.id === review.userId);
+                      return (
+                        <div key={review.id} className="border-b border-gray-100 pb-6 last:border-0">
+                          <div className="flex items-start gap-4">
+                            <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-semibold shrink-0">
+                              {reviewer?.name?.charAt(0).toUpperCase() || 'U'}
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center justify-between mb-2">
+                                <div>
+                                  <p className="font-semibold text-gray-900">{reviewer?.name || 'Anonymous'}</p>
+                                  <p className="text-xs text-gray-500">
+                                    {new Date(review.createdAt).toLocaleDateString('en-US', {
+                                      month: 'long',
+                                      year: 'numeric'
+                                    })}
+                                  </p>
+                                </div>
+                                <div className="flex items-center">
+                                  {[...Array(5)].map((_, i) => (
+                                    <Star
+                                      key={i}
+                                      size={14}
+                                      className={i < review.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                              <p className="text-gray-700 text-sm leading-relaxed">{review.comment}</p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
     </div>
   );

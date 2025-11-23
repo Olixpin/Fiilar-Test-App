@@ -1,0 +1,16 @@
+@import 'tailwindcss/theme' layer(theme);
+@import 'tailwindcss/preflight' layer(base);
+@import 'tailwindcss/utilities' layer(utilities);
+
+@theme {
+  --font-sans: 'Inter', sans-serif;
+  
+  --color-brand-50: #fdf4f3;
+  --color-brand-100: #fce8e6;
+  --color-brand-200: #fadbd8;
+  --color-brand-500: #e64c3c;
+  --color-brand-600: #d63b2f;
+  --color-brand-700: #c0392b;
+  --color-brand-900: #922b21;
+  --color-brand-red: #e64c3c;
+}

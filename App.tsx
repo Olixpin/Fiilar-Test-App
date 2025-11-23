@@ -1,27 +1,28 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import Navbar from './components/Navbar';
-import HostDashboard from './components/HostDashboard';
-import UserDashboard from './components/UserDashboard';
-import ListingCard from './components/ListingCard';
-import AdminPanel from './components/AdminPanel';
-import ListingDetails from './components/ListingDetails';
 import { User, Role, Listing, ListingStatus, Booking, SpaceType, View } from './types';
 import { getCurrentUser, loginUser, logoutUser, getListings, initStorage, updateKYC, createBooking, getAllUsers, STORAGE_KEYS } from './services/storage';
 import { escrowService } from './services/escrowService';
 import { startAutoReleaseScheduler, stopAutoReleaseScheduler } from './services/schedulerService';
-import { UploadCloud, Check, Home as HomeIcon, Camera, Users, Music, Briefcase, Sun, Search, Plus, X, Mail, ArrowLeft, AlertCircle, Clock, Shield } from 'lucide-react';
-import { Routes, Route, useNavigate, useLocation, useParams, Navigate } from 'react-router-dom';
+import { Check, AlertCircle, Clock } from 'lucide-react';
+import { Routes, Route, useNavigate, useLocation, useParams } from 'react-router-dom';
 import Home from './components/Home';
-import Login from './components/Login';
-import HostOnboarding from './components/HostOnboarding';
-import KYCUpload from './components/KYCUpload';
-import TermsAndConditions from './components/TermsAndConditions';
-import PrivacyPolicy from './components/PrivacyPolicy';
-import EmailVerificationBanner from './components/EmailVerificationBanner';
-import VerifyEmailPage from './components/VerifyEmailPage';
 import ErrorBoundary from './components/ErrorBoundary';
-import NotFound from './components/NotFound';
+import { analytics } from './services/analytics';
+
+const HostDashboard = lazy(() => import('./components/HostDashboard'));
+const UserDashboard = lazy(() => import('./components/UserDashboard'));
+const AdminPanel = lazy(() => import('./components/AdminPanel'));
+const ListingDetails = lazy(() => import('./components/ListingDetails'));
+const Login = lazy(() => import('./components/Login'));
+const HostOnboarding = lazy(() => import('./components/HostOnboarding'));
+const KYCUpload = lazy(() => import('./components/KYCUpload'));
+const TermsAndConditions = lazy(() => import('./components/TermsAndConditions'));
+const PrivacyPolicy = lazy(() => import('./components/PrivacyPolicy'));
+const EmailVerificationBanner = lazy(() => import('./components/EmailVerificationBanner'));
+const VerifyEmailPage = lazy(() => import('./components/VerifyEmailPage'));
+const NotFound = lazy(() => import('./components/NotFound'));
 
 const ListingDetailsRoute: React.FC<{
   listings: Listing[];
@@ -70,18 +71,24 @@ const App: React.FC = () => {
     setListings(getListings());
     setAllUsers(getAllUsers());
 
+    // Initialize analytics (add your GA4 ID here if you have one)
+    analytics.init();
+
     // Start automated release scheduler
     startAutoReleaseScheduler((bookingId, amount) => {
       console.log(`🎉 Auto-released $${amount} for booking ${bookingId}`);
-      // Refresh data to show updated status
       refreshData();
     });
 
-    // Cleanup on unmount
     return () => {
       stopAutoReleaseScheduler();
     };
   }, []);
+
+  // Track page views
+  useEffect(() => {
+    analytics.pageView(location.pathname);
+  }, [location.pathname]);
 
   const refreshData = () => {
     setUser(getCurrentUser());
@@ -111,6 +118,7 @@ const App: React.FC = () => {
   const handleLogin = (role: Role, provider: 'email' | 'google' | 'phone' = 'email') => {
     const u = loginUser(role, provider);
     setUser(u);
+    analytics.trackLogin(provider);
     if (role === Role.HOST) {
       // If host is not verified, guide them
       if (!u.kycVerified && !u.identityDocument) {
@@ -232,6 +240,7 @@ const App: React.FC = () => {
   const isValidRoute = validRoutes.includes(location.pathname) || location.pathname.startsWith('/listing/');
 
   return (
+    <ErrorBoundary>
     <div className="min-h-screen bg-gray-50">
       {/* Show navbar only on valid routes */}
       {isValidRoute && (
@@ -294,6 +303,7 @@ const App: React.FC = () => {
       )}
 
       <main className="flex-grow">
+        <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600"></div></div>}>
         <Routes>
           <Route path="/" element={
             <Home
@@ -357,6 +367,7 @@ const App: React.FC = () => {
           {/* 404 Catch-all Route */}
           <Route path="*" element={<NotFound />} />
         </Routes>
+        </Suspense>
       </main>
       {/* Footer */}
       {(location.pathname === '/' || location.pathname.startsWith('/listing/')) && (
@@ -450,6 +461,7 @@ const App: React.FC = () => {
         </footer>
       )}
     </div>
+    </ErrorBoundary>
   );
 };
 

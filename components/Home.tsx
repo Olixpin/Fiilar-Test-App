@@ -118,10 +118,11 @@ const Home: React.FC<HomeProps> = ({
 
             if (!user && !promoAdded && (index === 1 || (displayListings.length < 2 && index === displayListings.length - 1))) {
                 items.push(
-                    <div
+                    <button
                         key="promo"
                         onClick={onBecomeHostClick}
-                        className="group cursor-pointer flex flex-col gap-2 h-full"
+                        className="group cursor-pointer flex flex-col gap-2 h-full text-left"
+                        aria-label="Become a host and earn income"
                     >
                         <div className="relative aspect-square overflow-hidden rounded-xl bg-gray-50 border border-gray-200 flex flex-col items-center justify-center text-center p-6 hover:bg-gray-100 transition-colors">
                             <div className="w-12 h-12 rounded-full bg-white shadow-sm flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
@@ -131,7 +132,7 @@ const Home: React.FC<HomeProps> = ({
                             <p className="text-gray-500 text-sm mb-4 leading-tight">Earn extra income by sharing your space.</p>
                         </div>
                         <div className="mt-1 opacity-0">Placeholder</div>
-                    </div>
+                    </button>
                 );
                 promoAdded = true;
             }
