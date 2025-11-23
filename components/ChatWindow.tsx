@@ -141,7 +141,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, currentU
             {/* Header */}
             <div className="p-4 border-b border-gray-200 bg-white flex items-center gap-3">
                 {onBack && (
-                    <button onClick={onBack} className="md:hidden p-2 hover:bg-gray-100 rounded-full -ml-2">
+                    <button onClick={onBack} className="md:hidden p-2 hover:bg-gray-100 rounded-full -ml-2" title="Back">
                         <ArrowLeft size={20} className="text-gray-700" />
                     </button>
                 )}
@@ -224,7 +224,12 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, currentU
                     <button
                         onClick={handleSend}
                         disabled={!newMessage.trim()}
-                        className="bg-brand-600 text-white w-10 h-10 flex items-center justify-center rounded-full hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                        className={`p-2 rounded-full transition-colors ${
+                            newMessage.trim()
+                                ? 'bg-blue-600 text-white hover:bg-blue-700'
+                                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        }`}
+                        title="Send message"
                     >
                         <Send size={18} className="ml-0.5" />
                     </button>

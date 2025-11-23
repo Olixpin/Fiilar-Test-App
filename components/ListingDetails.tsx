@@ -127,7 +127,25 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
 
     // 2. Check Existing Bookings & Saturation
     if (!isHourly) {
-      const isBooked = listingBookings.some(b => b.date === dateStr && b.status !== 'Cancelled');
+      const isBooked = listingBookings.some(b => {
+        if (b.status === 'Cancelled') return false;
+
+        // Check for direct match (fast path)
+        if (b.date === dateStr) return true;
+
+        // Check for duration overlap (Multi-night bookings)
+        const start = new Date(b.date);
+        const check = new Date(dateStr);
+        
+        // Calculate end date (exclusive)
+        // duration is number of nights. If duration is 1, it occupies start date only.
+        const end = new Date(start);
+        end.setDate(start.getDate() + (b.duration || 1));
+        
+        // Check if the requested date falls within the booking range
+        return check >= start && check < end;
+      });
+
       if (isBooked) return 'ALREADY_BOOKED';
     } else {
       // Hourly Saturation Check
@@ -680,7 +698,7 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
                 )}
               </div>
               <div className="flex items-center text-gray-500 text-sm">
-                <MapPin size={16} className="mr-1 flex-shrink-0" />
+                <MapPin size={16} className="mr-1 shrink-0" />
                 <span>{listing.location}</span>
               </div>
             </div>
@@ -983,7 +1001,7 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
                         className={`flex items-center justify-between p-2 rounded border cursor-pointer transition-colors ${selectedAddOns.includes(addon.id) ? 'bg-white border-brand-500 ring-1 ring-brand-500' : 'bg-white border-gray-200 hover:border-gray-300'}`}
                       >
                         <div className="flex items-start gap-2 overflow-hidden">
-                          <div className={`w-4 h-4 rounded border mt-0.5 flex items-center justify-center flex-shrink-0 ${selectedAddOns.includes(addon.id) ? 'bg-brand-600 border-brand-600' : 'border-gray-300'}`}>
+                          <div className={`w-4 h-4 rounded border mt-0.5 flex items-center justify-center shrink-0 ${selectedAddOns.includes(addon.id) ? 'bg-brand-600 border-brand-600' : 'border-gray-300'}`}>
                             {selectedAddOns.includes(addon.id) && <CheckCircle size={12} className="text-white" />}
                           </div>
                           <div className="min-w-0">
@@ -1109,7 +1127,7 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
                             {hour.toString().padStart(2, '0')}:00
                             {booked && (
                               <div className="absolute inset-0 flex items-center justify-center">
-                                <div className="w-[60%] h-[1px] bg-gray-300 transform -rotate-12"></div>
+                                <div className="w-[60%] h-px bg-gray-300 transform -rotate-12"></div>
                               </div>
                             )}
                           </button>
@@ -1253,7 +1271,7 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
               <div className="absolute inset-x-0 bottom-0 bg-white rounded-t-2xl max-h-[90vh] overflow-hidden flex flex-col animate-in slide-in-from-bottom duration-300">
                 <div className="flex items-center justify-between p-4 border-b border-gray-200">
                   <h2 className="text-lg font-bold">Booking Options</h2>
-                  <button onClick={() => setShowMobileBookingModal(false)} className="p-2 hover:bg-gray-100 rounded-full">
+                  <button onClick={() => setShowMobileBookingModal(false)} aria-label="Close booking options" title="Close booking options" className="p-2 hover:bg-gray-100 rounded-full">
                     <X size={20} />
                   </button>
                 </div>
@@ -1261,9 +1279,9 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Guests</label>
                     <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden">
-                      <button type="button" onClick={() => setGuestCount(Math.max(1, guestCount - 1))} disabled={guestCount <= 1} className="px-4 py-3 bg-gray-50 hover:bg-gray-100 border-r border-gray-300 disabled:opacity-50"><Minus size={16} /></button>
+                      <button type="button" onClick={() => setGuestCount(Math.max(1, guestCount - 1))} disabled={guestCount <= 1} aria-label="Decrease guests" title="Decrease guests" className="px-4 py-3 bg-gray-50 hover:bg-gray-100 border-r border-gray-300 disabled:opacity-50"><Minus size={16} /></button>
                       <div className="flex-1 text-center py-3 bg-white font-medium">{guestCount} {guestCount === 1 ? 'Guest' : 'Guests'}</div>
-                      <button type="button" onClick={() => setGuestCount(Math.min(listing.capacity || 10, guestCount + 1))} disabled={guestCount >= (listing.capacity || 10)} className="px-4 py-3 bg-gray-50 hover:bg-gray-100 border-l border-gray-300 disabled:opacity-50"><Plus size={16} /></button>
+                      <button type="button" onClick={() => setGuestCount(Math.min(listing.capacity || 10, guestCount + 1))} disabled={guestCount >= (listing.capacity || 10)} aria-label="Increase guests" title="Increase guests" className="px-4 py-3 bg-gray-50 hover:bg-gray-100 border-l border-gray-300 disabled:opacity-50"><Plus size={16} /></button>
                     </div>
                     {guestCount > (listing.includedGuests || 1) && (listing.pricePerExtraGuest || 0) > 0 && (
                       <div className="mt-1 text-xs text-gray-500 flex justify-between">
@@ -1289,7 +1307,7 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
                         {listing.addOns.map(addon => (
                           <div key={addon.id} onClick={() => toggleAddOn(addon.id)} className={`flex items-center justify-between p-2 rounded border cursor-pointer transition-colors ${selectedAddOns.includes(addon.id) ? 'bg-white border-brand-500 ring-1 ring-brand-500' : 'bg-white border-gray-200 hover:border-gray-300'}`}>
                             <div className="flex items-start gap-2 overflow-hidden">
-                              <div className={`w-4 h-4 rounded border mt-0.5 flex items-center justify-center flex-shrink-0 ${selectedAddOns.includes(addon.id) ? 'bg-brand-600 border-brand-600' : 'border-gray-300'}`}>
+                              <div className={`w-4 h-4 rounded border mt-0.5 flex items-center justify-center shrink-0 ${selectedAddOns.includes(addon.id) ? 'bg-brand-600 border-brand-600' : 'border-gray-300'}`}>
                                 {selectedAddOns.includes(addon.id) && <CheckCircle size={12} className="text-white" />}
                               </div>
                               <div className="min-w-0">
@@ -1326,7 +1344,7 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
                           <div>
                             <label className="block text-xs font-semibold text-gray-500 mb-1">Occurrences</label>
                             <div className="flex items-center gap-3">
-                              <input type="range" min={2} max={8} value={recurrenceCount} onChange={(e) => setRecurrenceCount(parseInt(e.target.value))} className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-brand-600" />
+                              <input type="range" min={2} max={8} value={recurrenceCount} onChange={(e) => setRecurrenceCount(parseInt(e.target.value))} aria-label="Number of occurrences" title="Number of occurrences" className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-brand-600" />
                               <span className="text-sm font-bold w-8 text-center">{recurrenceCount}</span>
                             </div>
                           </div>
@@ -1362,7 +1380,7 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
                             return (
                               <button key={hour} onClick={() => !booked && handleHourToggle(hour)} disabled={booked} className={`py-2 rounded text-xs font-medium transition-all relative border ${booked ? 'bg-gray-100 text-gray-300 border-transparent cursor-not-allowed' : (isSelected ? 'bg-brand-600 text-white border-brand-600' : 'bg-white border-gray-200 text-gray-700 hover:border-brand-300')}`}>
                                 {hour.toString().padStart(2, '0')}:00
-                                {booked && <div className="absolute inset-0 flex items-center justify-center"><div className="w-[60%] h-[1px] bg-gray-300 transform -rotate-12"></div></div>}
+                                {booked && <div className="absolute inset-0 flex items-center justify-center"><div className="w-[60%] h-px bg-gray-300 transform -rotate-12"></div></div>}
                               </button>
                             );
                           })}
@@ -1383,9 +1401,9 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Duration (Nights)</label>
                       <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden">
-                        <button type="button" onClick={() => setSelectedDays(Math.max(1, selectedDays - 1))} className="px-4 py-3 bg-gray-50 hover:bg-gray-100 border-r border-gray-300">-</button>
-                        <input type="number" value={selectedDays} readOnly className="w-full text-center p-3 outline-none bg-white" />
-                        <button type="button" onClick={() => setSelectedDays(selectedDays + 1)} className="px-4 py-3 bg-gray-50 hover:bg-gray-100 border-l border-gray-300">+</button>
+                        <button type="button" onClick={() => setSelectedDays(Math.max(1, selectedDays - 1))} aria-label="Decrease nights" title="Decrease nights" className="px-4 py-3 bg-gray-50 hover:bg-gray-100 border-r border-gray-300">-</button>
+                        <input type="number" value={selectedDays} readOnly aria-label="Number of nights" title="Number of nights" className="w-full text-center p-3 outline-none bg-white" />
+                        <button type="button" onClick={() => setSelectedDays(selectedDays + 1)} aria-label="Increase nights" title="Increase nights" className="px-4 py-3 bg-gray-50 hover:bg-gray-100 border-l border-gray-300">+</button>
                       </div>
                     </div>
                   )}
@@ -1481,7 +1499,7 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
 
       {/* Booking Confirmation Modal */}
       {showConfirmModal && pendingBooking && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl max-w-4xl w-full shadow-2xl overflow-hidden flex flex-col md:flex-row max-h-[90vh] animate-in zoom-in-95 duration-200">
 
             {/* Left: Trip Details */}
@@ -1676,6 +1694,8 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
                 </div>
                 <button
                   onClick={() => setShowReviewsModal(false)}
+                  aria-label="Close reviews modal"
+                  title="Close reviews modal"
                   className="p-2 hover:bg-gray-100 rounded-full transition"
                 >
                   <X size={20} className="text-gray-500" />

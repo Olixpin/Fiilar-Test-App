@@ -158,7 +158,7 @@ const Home: React.FC<HomeProps> = ({
                     {/* Main Content Area */}
                     <div className="flex-1 min-w-0">
                         {/* Categories */}
-                        <div className="flex items-center gap-2 sm:gap-3 lg:gap-0 overflow-x-auto py-3 sm:py-3 mb-4 sm:mb-6 no-scrollbar sticky top-[72px] sm:top-[80px] bg-white z-30 pl-4 pr-4 sm:pr-0 lg:justify-between lg:px-4 w-full lg:border lg:border-gray-200 lg:rounded-full lg:shadow-sm">
+                        <div className="flex items-center gap-2 sm:gap-3 lg:gap-0 overflow-x-auto py-3 sm:py-3 mb-4 sm:mb-6 no-scrollbar sticky top-[72px] sm:top-20 bg-white z-30 pl-4 pr-4 sm:pr-0 lg:justify-between lg:px-4 w-full lg:border lg:border-gray-200 lg:rounded-full lg:shadow-sm">
                             {/* Mobile Filter Button */}
                             <button
                                 onClick={() => setShowMobileFilters(true)}
@@ -218,6 +218,8 @@ const Home: React.FC<HomeProps> = ({
                             <button
                                 onClick={() => setShowMobileFilters(false)}
                                 className="p-2 hover:bg-gray-100 rounded-full transition"
+                                title="Close filters"
+                                aria-label="Close filters"
                             >
                                 <X size={20} />
                             </button>

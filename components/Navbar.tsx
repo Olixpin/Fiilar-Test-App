@@ -128,7 +128,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onSearch, searchTerm, o
         <div className="flex justify-between items-center gap-4">
 
           {/* Logo */}
-          <Link to="/" className="flex items-center cursor-pointer flex-shrink-0">
+          <Link to="/" className="flex items-center cursor-pointer shrink-0">
             <img
               src="https://drive.google.com/thumbnail?id=11AM3I7DLtyDpwgduNdtbUaZXJUYpvruC&sz=w400"
               alt="Fiilar"
@@ -154,7 +154,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onSearch, searchTerm, o
           </div>
 
           {/* Right Side */}
-          <div className="hidden md:flex items-center gap-2 flex-shrink-0">
+          <div className="hidden md:flex items-center gap-2 shrink-0">
             {!user && (
               <button
                 onClick={onBecomeHost}
@@ -174,6 +174,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onSearch, searchTerm, o
                 <button
                   onClick={() => setIsNotificationOpen(!isNotificationOpen)}
                   className="relative p-2 hover:bg-gray-100 rounded-full transition"
+                  title="Notifications"
                 >
                   <Bell size={20} className="text-gray-700" />
                   {unreadCount > 0 && (
@@ -326,7 +327,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onSearch, searchTerm, o
       {/* Mobile Search Full Screen Modal */}
       {isMobileSearchOpen && (
         <div
-          className="fixed inset-0 z-[9999] md:hidden bg-white flex flex-col"
+          className="fixed inset-0 z-9999 md:hidden bg-white flex flex-col"
           role="dialog"
           aria-modal="true"
           aria-labelledby="mobile-search-title"
@@ -359,6 +360,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onSearch, searchTerm, o
                 <button
                   onClick={() => onSearch && onSearch('')}
                   className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full bg-gray-200 text-gray-600"
+                  title="Clear search"
                 >
                   <X size={14} />
                 </button>

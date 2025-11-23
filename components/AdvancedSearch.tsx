@@ -115,6 +115,7 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({ filters, onFilterChange
                             value={localFilters.spaceType}
                             onChange={(e) => handleChange('spaceType', e.target.value)}
                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                            aria-label="Select space type"
                         >
                             {SPACE_TYPES.map(type => (
                                 <option key={type.value} value={type.value}>{type.label}</option>
@@ -139,9 +140,10 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({ filters, onFilterChange
                 {/* Mobile-Friendly Space Type & Location */}
                 <div className="lg:hidden space-y-4">
                     <div>
-                        <label className="text-sm font-semibold text-gray-700 mb-2 block">Space Type</label>
+                        <label htmlFor="mobile-space-type" className="text-sm font-semibold text-gray-700 mb-2 block">Space Type</label>
                         <div className="relative">
                             <select
+                                id="mobile-space-type"
                                 value={localFilters.spaceType}
                                 onChange={(e) => handleChange('spaceType', e.target.value)}
                                 className="w-full py-3 px-4 pr-10 bg-gray-50 border border-gray-200 rounded-lg font-medium focus:outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20 text-gray-900 appearance-none text-base"
@@ -206,8 +208,9 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({ filters, onFilterChange
                         <label className="text-sm lg:text-sm font-semibold lg:font-bold text-gray-700 lg:text-gray-600 lg:uppercase lg:tracking-widest block">When</label>
                         <div className="space-y-3">
                             <div>
-                                <label className="text-sm lg:text-xs text-gray-600 lg:text-gray-500 mb-2 lg:mb-1 block font-medium">Check-in</label>
+                                <label htmlFor="check-in-date" className="text-sm lg:text-xs text-gray-600 lg:text-gray-500 mb-2 lg:mb-1 block font-medium">Check-in</label>
                                 <input
+                                    id="check-in-date"
                                     type="date"
                                     value={localFilters.dateFrom}
                                     onChange={(e) => handleChange('dateFrom', e.target.value)}
@@ -215,8 +218,9 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({ filters, onFilterChange
                                 />
                             </div>
                             <div>
-                                <label className="text-sm lg:text-xs text-gray-600 lg:text-gray-500 mb-2 lg:mb-1 block font-medium">Check-out</label>
+                                <label htmlFor="check-out-date" className="text-sm lg:text-xs text-gray-600 lg:text-gray-500 mb-2 lg:mb-1 block font-medium">Check-out</label>
                                 <input
+                                    id="check-out-date"
                                     type="date"
                                     value={localFilters.dateTo}
                                     onChange={(e) => handleChange('dateTo', e.target.value)}
@@ -231,9 +235,10 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({ filters, onFilterChange
                         <label className="text-sm lg:text-sm font-semibold lg:font-bold text-gray-700 lg:text-gray-600 lg:uppercase lg:tracking-widest block">Details</label>
                         <div className="space-y-3">
                             <div>
-                                <label className="text-sm lg:text-xs text-gray-600 lg:text-gray-500 mb-2 lg:mb-1 block font-medium">Duration</label>
+                                <label htmlFor="duration-select" className="text-sm lg:text-xs text-gray-600 lg:text-gray-500 mb-2 lg:mb-1 block font-medium">Duration</label>
                                 <div className="relative">
                                     <select
+                                        id="duration-select"
                                         value={localFilters.bookingType}
                                         onChange={(e) => handleChange('bookingType', e.target.value)}
                                         className="w-full py-3 lg:py-2 px-4 lg:px-0 pr-10 lg:pr-0 bg-gray-50 lg:bg-transparent border lg:border-0 border-gray-200 lg:border-b rounded-lg lg:rounded-none font-medium focus:outline-none focus:border-brand-600 lg:focus:border-black focus:ring-2 lg:focus:ring-0 focus:ring-brand-600/20 transition-all appearance-none text-gray-900 text-base"

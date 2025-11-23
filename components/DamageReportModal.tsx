@@ -99,6 +99,7 @@ const DamageReportModal: React.FC<DamageReportModalProps> = ({
                     <button
                         onClick={onClose}
                         className="p-2 hover:bg-gray-100 rounded-full transition"
+                        title="Close"
                     >
                         <X size={20} />
                     </button>
@@ -179,6 +180,7 @@ const DamageReportModal: React.FC<DamageReportModalProps> = ({
                                             type="button"
                                             onClick={() => handleRemoveImage(index)}
                                             className="absolute top-1 right-1 p-1 bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition"
+                                            title="Remove image"
                                         >
                                             <X size={14} />
                                         </button>

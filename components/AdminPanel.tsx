@@ -98,7 +98,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ users, listings, refreshData })
     <div className="bg-gray-50 min-h-screen">
       {/* Sidebar */}
       <aside className="hidden lg:flex lg:flex-col w-64 bg-white border-r border-gray-200 fixed top-16 left-0 bottom-0 z-40">
-        <div className="p-6 border-b border-gray-200 flex-shrink-0">
+        <div className="p-6 border-b border-gray-200 shrink-0">
           <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
             <ShieldCheck size={20} className="text-brand-600" />
             Admin Panel
@@ -364,7 +364,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ users, listings, refreshData })
                         <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Images</h4>
                         <div className="flex gap-2 overflow-x-auto pb-2">
                           {l.images.map((img, i) => (
-                            <img key={i} src={img} alt="" className="h-32 w-48 object-cover rounded-lg border border-gray-100 flex-shrink-0" />
+                            <img key={i} src={img} alt="" className="h-32 w-48 object-cover rounded-lg border border-gray-100 shrink-0" />
                           ))}
                         </div>
                       </div>
@@ -417,7 +417,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ users, listings, refreshData })
                     <h3 className="font-bold text-red-600 flex items-center gap-2">
                       <AlertTriangle size={20} /> Decline Listing
                     </h3>
-                    <button onClick={() => setRejectionModal({ isOpen: false, listingId: null, reason: '' })} className="p-1 hover:bg-gray-200 rounded-full"><X size={18} /></button>
+                    <button onClick={() => setRejectionModal({ isOpen: false, listingId: null, reason: '' })} className="p-1 hover:bg-gray-200 rounded-full" title="Close"><X size={18} /></button>
                   </div>
                   <div className="p-6">
                     <p className="text-sm text-gray-600 mb-4">Please provide a reason for declining this listing. This will be sent to the host.</p>

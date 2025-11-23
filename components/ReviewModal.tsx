@@ -70,6 +70,7 @@ const ReviewModal: React.FC<ReviewModalProps> = ({
                     <button
                         onClick={onClose}
                         className="p-2 hover:bg-gray-100 rounded-full transition"
+                        title="Close"
                     >
                         <X size={20} />
                     </button>
@@ -91,6 +92,7 @@ const ReviewModal: React.FC<ReviewModalProps> = ({
                                     onMouseEnter={() => setHoverRating(star)}
                                     onMouseLeave={() => setHoverRating(0)}
                                     className="transition-transform hover:scale-110"
+                                    title={`${star} stars`}
                                 >
                                     <Star
                                         size={40}

@@ -34,7 +34,7 @@ const VerifyEmailPage: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-brand-50 to-white flex items-center justify-center p-4">
+        <div className="min-h-screen bg-linear-to-br from-brand-50 to-white flex items-center justify-center p-4">
             <div className="max-w-md w-full">
                 <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
                     {isVerifying ? (
@@ -99,7 +99,7 @@ const VerifyEmailPage: React.FC = () => {
                 {/* Info Box */}
                 <div className="mt-6 bg-blue-50 border border-blue-200 rounded-xl p-4">
                     <div className="flex items-start gap-3">
-                        <Mail size={20} className="text-blue-600 flex-shrink-0 mt-0.5" />
+                        <Mail size={20} className="text-blue-600 shrink-0 mt-0.5" />
                         <div className="text-sm text-blue-900">
                             <p className="font-semibold mb-1">Need help?</p>
                             <p className="text-blue-700">

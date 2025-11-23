@@ -16,7 +16,7 @@ const HostOnboarding: React.FC<HostOnboardingProps> = ({ onLogin, onBack }) => {
             {step === 0 && (
                 <div className="max-w-[480px] w-full bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
                     <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-                        <button onClick={onBack} className="p-2 -ml-2 hover:bg-gray-100 rounded-full transition">
+                        <button onClick={onBack} className="p-2 -ml-2 hover:bg-gray-100 rounded-full transition" title="Close">
                             <X size={18} />
                         </button>
                         <span className="font-bold text-base">Log in or sign up</span>
@@ -29,8 +29,8 @@ const HostOnboarding: React.FC<HostOnboardingProps> = ({ onLogin, onBack }) => {
                         {/* Phone Input */}
                         <div className="mb-3">
                             <div className="border border-gray-300 rounded-t-lg px-3 py-2 relative hover:border-black focus-within:border-black focus-within:border-2 group">
-                                <label className="text-xs text-gray-500 block">Country/Region</label>
-                                <select className="w-full bg-transparent outline-none appearance-none text-gray-900 text-base pt-0.5">
+                                <label htmlFor="country-select" className="text-xs text-gray-500 block">Country/Region</label>
+                                <select id="country-select" className="w-full bg-transparent outline-none appearance-none text-gray-900 text-base pt-0.5">
                                     <option>Nigeria (+234)</option>
                                     <option>United States (+1)</option>
                                     <option>United Kingdom (+44)</option>
@@ -41,8 +41,9 @@ const HostOnboarding: React.FC<HostOnboardingProps> = ({ onLogin, onBack }) => {
                                 </div>
                             </div>
                             <div className="border border-gray-300 border-t-0 rounded-b-lg px-3 py-2 hover:border-black focus-within:border-black focus-within:border-2">
-                                <label className="text-xs text-gray-500 block">Phone number</label>
+                                <label htmlFor="phone-input" className="text-xs text-gray-500 block">Phone number</label>
                                 <input
+                                    id="phone-input"
                                     type="tel"
                                     className="w-full bg-transparent outline-none text-gray-900 text-base pt-0.5"
                                     placeholder="(555) 555-5555"
@@ -56,15 +57,15 @@ const HostOnboarding: React.FC<HostOnboardingProps> = ({ onLogin, onBack }) => {
 
                         <button
                             onClick={() => setStep(2)}
-                            className="w-full bg-gradient-to-r from-brand-600 to-brand-700 text-white font-bold text-lg py-3 rounded-lg hover:shadow-lg transition-all active:scale-[0.98]"
+                            className="w-full bg-linear-to-r from-brand-600 to-brand-700 text-white font-bold text-lg py-3 rounded-lg hover:shadow-lg transition-all active:scale-[0.98]"
                         >
                             Continue
                         </button>
 
                         <div className="flex items-center gap-4 my-6">
-                            <div className="h-[1px] bg-gray-200 flex-1"></div>
+                            <div className="h-px bg-gray-200 flex-1"></div>
                             <span className="text-xs text-gray-500 font-medium">or</span>
-                            <div className="h-[1px] bg-gray-200 flex-1"></div>
+                            <div className="h-px bg-gray-200 flex-1"></div>
                         </div>
 
                         <div className="space-y-3">
@@ -94,7 +95,7 @@ const HostOnboarding: React.FC<HostOnboardingProps> = ({ onLogin, onBack }) => {
             {step === 1 && (
                 <div className="max-w-[480px] w-full bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
                     <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-                        <button onClick={() => setStep(0)} className="p-2 -ml-2 hover:bg-gray-100 rounded-full transition">
+                        <button onClick={() => setStep(0)} className="p-2 -ml-2 hover:bg-gray-100 rounded-full transition" title="Back">
                             <ArrowLeft size={18} />
                         </button>
                         <span className="font-bold text-base">Log in or sign up</span>
@@ -122,7 +123,7 @@ const HostOnboarding: React.FC<HostOnboardingProps> = ({ onLogin, onBack }) => {
             {step === 2 && (
                 <div className="max-w-[480px] w-full bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
                     <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-                        <button onClick={() => setStep(0)} className="p-2 -ml-2 hover:bg-gray-100 rounded-full transition">
+                        <button onClick={() => setStep(0)} className="p-2 -ml-2 hover:bg-gray-100 rounded-full transition" title="Back">
                             <ArrowLeft size={18} />
                         </button>
                         <span className="font-bold text-base">Confirm your number</span>
@@ -132,7 +133,12 @@ const HostOnboarding: React.FC<HostOnboardingProps> = ({ onLogin, onBack }) => {
                         <p className="text-gray-500 mb-6">Enter the code we sent to your phone.</p>
                         <div className="flex gap-3 mb-8">
                             {[1, 2, 3, 4, 5, 6].map(i => (
-                                <input key={i} type="text" className="w-12 h-14 border border-gray-300 rounded-lg text-center text-xl focus:border-black outline-none" />
+                                <input
+                                    key={i}
+                                    type="text"
+                                    className="w-12 h-14 border border-gray-300 rounded-lg text-center text-xl focus:border-black outline-none"
+                                    aria-label={`Digit ${i}`}
+                                />
                             ))}
                         </div>
                         <button

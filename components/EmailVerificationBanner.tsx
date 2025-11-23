@@ -33,7 +33,7 @@ const EmailVerificationBanner: React.FC<EmailVerificationBannerProps> = ({ userI
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
                 <div className="flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3 flex-1">
-                        <div className="flex-shrink-0">
+                        <div className="shrink-0">
                             <Mail size={20} className="text-yellow-600" />
                         </div>
                         <div className="flex-1">
@@ -75,6 +75,7 @@ const EmailVerificationBanner: React.FC<EmailVerificationBannerProps> = ({ userI
                                 onClick={onDismiss}
                                 className="text-yellow-600 hover:text-yellow-800 p-1"
                                 aria-label="Dismiss"
+                                title="Dismiss"
                             >
                                 <X size={18} />
                             </button>

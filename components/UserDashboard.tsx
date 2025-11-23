@@ -123,7 +123,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings }) => {
     <div className="bg-gray-50">
       {/* Sidebar */}
       <aside className="hidden lg:flex lg:flex-col w-64 bg-white border-r border-gray-200 fixed top-16 left-0 bottom-0 z-40">
-        <div className="p-6 border-b border-gray-200 flex-shrink-0">
+        <div className="p-6 border-b border-gray-200 shrink-0">
           <h2 className="text-lg font-bold text-gray-900">Dashboard</h2>
           <p className="text-xs text-gray-500 mt-1">Welcome, {user.name.split(' ')[0]}</p>
         </div>
@@ -162,7 +162,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings }) => {
             Messages
           </button>
         </nav>
-        <div className="p-4 space-y-1 border-t border-gray-100 flex-shrink-0">
+        <div className="p-4 space-y-1 border-t border-gray-100 shrink-0">
           <button onClick={() => navigate('/')} className="w-full bg-brand-600 text-white px-4 py-2.5 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-brand-700 transition shadow-sm mb-2">
             <Search size={18} /> Browse Spaces
           </button>
@@ -232,7 +232,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings }) => {
             {activeTab === 'explore' && (
               <>
                 {/* AI Search */}
-                <div className="bg-brand-50 p-8 md:p-12 rounded-[2rem] text-gray-900 shadow-sm relative overflow-hidden animate-in zoom-in-95 duration-700">
+                <div className="bg-brand-50 p-8 md:p-12 rounded-4xl text-gray-900 shadow-sm relative overflow-hidden animate-in zoom-in-95 duration-700">
                   <div className="relative z-10 max-w-3xl mx-auto text-center">
                     <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/60 backdrop-blur-sm border border-brand-100 text-sm font-medium text-brand-700 mb-6">
                       <Sparkles size={14} className="text-brand-500" />
@@ -246,7 +246,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings }) => {
                     </p>
 
                     <div className="relative max-w-2xl mx-auto group">
-                      <div className="absolute -inset-1 bg-gradient-to-r from-brand-400 via-brand-500 to-brand-600 rounded-2xl blur opacity-30 group-hover:opacity-50 transition duration-500"></div>
+                      <div className="absolute -inset-1 bg-linear-to-r from-brand-400 via-brand-500 to-brand-600 rounded-2xl blur opacity-30 group-hover:opacity-50 transition duration-500"></div>
                       <div className="relative flex flex-col sm:flex-row gap-2 bg-white p-2 rounded-2xl shadow-sm">
                         <input
                           type="text"
@@ -254,6 +254,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings }) => {
                           onChange={(e) => setPreference(e.target.value)}
                           onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                           placeholder="Describe your ideal space..."
+                          aria-label="Describe your ideal space"
                           className="w-full bg-transparent text-gray-900 placeholder-gray-400 px-4 py-3 sm:py-0 text-base sm:text-lg outline-none"
                         />
                         <button
@@ -514,6 +515,8 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings }) => {
                                   type="checkbox"
                                   checked={selectedForCompare.includes(b.id)}
                                   onChange={() => toggleCompare(b.id)}
+                                  aria-label={`Select ${listing?.title || 'listing'} for comparison`}
+                                  title={`Select ${listing?.title || 'listing'} for comparison`}
                                   className="w-5 h-5 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
                                 />
                               </div>
@@ -599,6 +602,8 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings }) => {
                         <input
                           type="text"
                           placeholder="Search conversations..."
+                          title="Search conversations"
+                          aria-label="Search conversations"
                           className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none"
                         />
                         <MessageSquare size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />

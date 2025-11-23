@@ -58,7 +58,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, listing }) => 
     ];
 
     return (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-9999 flex items-center justify-center p-4">
             {/* Backdrop */}
             <div
                 className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
@@ -73,6 +73,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, listing }) => 
                     <button
                         onClick={onClose}
                         className="p-2 hover:bg-gray-100 rounded-full transition-all duration-200 hover:scale-110 active:scale-95"
+                        title="Close"
                     >
                         <X size={20} className="text-gray-500" />
                     </button>
@@ -85,7 +86,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, listing }) => 
                         <img
                             src={listing.images[0]}
                             alt={listing.title}
-                            className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
+                            className="w-16 h-16 rounded-lg object-cover shrink-0"
                         />
                         <div className="flex-1 min-w-0 flex flex-col justify-center">
                             <h4 className="font-bold text-gray-900 truncate">{listing.title}</h4>
@@ -114,11 +115,12 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, listing }) => 
 
                     {/* Copy Link */}
                     <div className="relative">
-                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                        <label htmlFor="share-link" className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
                             Page Link
                         </label>
                         <div className="flex items-center gap-2 p-1.5 bg-gray-50 border border-gray-200 rounded-xl focus-within:ring-2 focus-within:ring-brand-500 focus-within:border-brand-500 transition-all">
                             <input
+                                id="share-link"
                                 type="text"
                                 readOnly
                                 value={url}

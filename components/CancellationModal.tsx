@@ -82,7 +82,7 @@ const CancellationModal: React.FC<CancellationModalProps> = ({ booking, policy, 
                 {/* Header */}
                 <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
                     <h2 className="text-xl font-bold text-gray-900">Cancel Booking</h2>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600" title="Close">
                         <X size={24} />
                     </button>
                 </div>
@@ -92,7 +92,7 @@ const CancellationModal: React.FC<CancellationModalProps> = ({ booking, policy, 
                     {!refundCalc.canCancel && (
                         <div className="bg-red-50 border border-red-200 rounded-xl p-4">
                             <div className="flex items-start gap-3">
-                                <AlertTriangle size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
+                                <AlertTriangle size={20} className="text-red-600 shrink-0 mt-0.5" />
                                 <div>
                                     <p className="font-semibold text-red-900">Cannot Cancel</p>
                                     <p className="text-sm text-red-700 mt-1">{refundCalc.reason}</p>
@@ -134,7 +134,7 @@ const CancellationModal: React.FC<CancellationModalProps> = ({ booking, policy, 
                     {/* Cancellation Policy */}
                     <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
                         <div className="flex items-start gap-3">
-                            <Info size={20} className="text-blue-600 flex-shrink-0 mt-0.5" />
+                            <Info size={20} className="text-blue-600 shrink-0 mt-0.5" />
                             <div>
                                 <p className="font-semibold text-blue-900 mb-1">Cancellation Policy: {policy}</p>
                                 <p className="text-sm text-blue-700">{getCancellationPolicyDescription(policy)}</p>
@@ -146,10 +146,11 @@ const CancellationModal: React.FC<CancellationModalProps> = ({ booking, policy, 
                         <>
                             {/* Reason Selection */}
                             <div>
-                                <label className="block text-sm font-semibold text-gray-900 mb-2">
+                                <label htmlFor="cancellation-reason" className="block text-sm font-semibold text-gray-900 mb-2">
                                     Reason for cancellation *
                                 </label>
                                 <select
+                                    id="cancellation-reason"
                                     value={reason}
                                     onChange={(e) => setReason(e.target.value)}
                                     className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-500"

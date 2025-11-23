@@ -130,8 +130,9 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdateUser }) => {
 
                             <div className="space-y-4">
                                 <div>
-                                    <label className="block text-sm font-semibold text-gray-900 mb-2">Name</label>
+                                    <label htmlFor="account-name" className="block text-sm font-semibold text-gray-900 mb-2">Name</label>
                                     <input
+                                        id="account-name"
                                         type="text"
                                         value={user?.name || ''}
                                         className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-500"
@@ -140,8 +141,9 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdateUser }) => {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-semibold text-gray-900 mb-2">Email</label>
+                                    <label htmlFor="account-email" className="block text-sm font-semibold text-gray-900 mb-2">Email</label>
                                     <input
+                                        id="account-email"
                                         type="email"
                                         value={user?.email || ''}
                                         className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-500"
@@ -270,10 +272,11 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdateUser }) => {
                                         </div>
 
                                         <div className="mb-6">
-                                            <label className="block text-sm font-semibold text-gray-900 mb-2">
+                                            <label htmlFor="delete-confirm-input" className="block text-sm font-semibold text-gray-900 mb-2">
                                                 Type <span className="text-red-600 font-mono">DELETE</span> to confirm
                                             </label>
                                             <input
+                                                id="delete-confirm-input"
                                                 type="text"
                                                 value={deleteConfirmText}
                                                 onChange={(e) => setDeleteConfirmText(e.target.value)}
@@ -463,6 +466,7 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdateUser }) => {
                                                     type="button"
                                                     onClick={() => setFeedbackRating(rating)}
                                                     className="transition-transform hover:scale-110"
+                                                    title={`${rating} stars`}
                                                 >
                                                     <Star
                                                         size={36}
@@ -474,8 +478,9 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdateUser }) => {
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-semibold text-gray-900 mb-2">Category</label>
+                                        <label htmlFor="feedback-category" className="block text-sm font-semibold text-gray-900 mb-2">Category</label>
                                         <select
+                                            id="feedback-category"
                                             value={feedbackCategory}
                                             onChange={(e) => setFeedbackCategory(e.target.value)}
                                             className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-500"
@@ -488,8 +493,9 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdateUser }) => {
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-semibold text-gray-900 mb-2">Your Feedback</label>
+                                        <label htmlFor="feedback-message" className="block text-sm font-semibold text-gray-900 mb-2">Your Feedback</label>
                                         <textarea
+                                            id="feedback-message"
                                             value={feedbackMessage}
                                             onChange={(e) => setFeedbackMessage(e.target.value)}
                                             placeholder="Tell us what you think..."

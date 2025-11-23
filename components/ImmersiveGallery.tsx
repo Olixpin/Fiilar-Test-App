@@ -184,13 +184,13 @@ const ImmersiveGallery: React.FC<ImmersiveGalleryProps> = ({
 
     return (
         <div
-            className="fixed inset-0 z-[10000] bg-black flex items-center justify-center"
+            className="fixed inset-0 z-10000 bg-black flex items-center justify-center"
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
         >
             {/* Header */}
-            <div className="absolute top-0 left-0 right-0 z-50 flex items-center justify-between p-4 sm:p-6 bg-gradient-to-b from-black/90 via-black/50 to-transparent pointer-events-none">
+            <div className="absolute top-0 left-0 right-0 z-50 flex items-center justify-between p-4 sm:p-6 bg-linear-to-b from-black/90 via-black/50 to-transparent pointer-events-none">
                 <div className="text-white text-sm sm:text-base font-medium backdrop-blur-sm bg-white/5 px-3 py-1.5 rounded-full">
                     {currentIndex + 1} / {images.length}
                 </div>
@@ -300,7 +300,7 @@ const ImmersiveGallery: React.FC<ImmersiveGalleryProps> = ({
             )}
 
             {/* Thumbnail Strip */}
-            <div className="absolute bottom-0 left-0 right-0 z-50 p-3 sm:p-4 bg-gradient-to-t from-black/90 via-black/50 to-transparent">
+            <div className="absolute bottom-0 left-0 right-0 z-50 p-3 sm:p-4 bg-linear-to-t from-black/90 via-black/50 to-transparent">
                 <div className="flex gap-2 overflow-x-auto no-scrollbar justify-center pb-safe">
                     {images.map((image, index) => (
                         <button
@@ -311,10 +311,11 @@ const ImmersiveGallery: React.FC<ImmersiveGalleryProps> = ({
                                 setDragOffset(0);
                                 setVelocity(0);
                             }}
-                            className={`flex-shrink-0 w-14 h-14 sm:w-16 sm:h-16 rounded-lg overflow-hidden border-2 transition-all duration-300 ${index === currentIndex
+                            className={`shrink-0 w-14 h-14 sm:w-16 sm:h-16 rounded-lg overflow-hidden border-2 transition-all duration-300 ${index === currentIndex
                                     ? 'border-white shadow-lg shadow-white/20 scale-110 ring-2 ring-white/30'
                                     : 'border-white/20 opacity-50 hover:opacity-100 hover:scale-105 hover:border-white/40'
                                 }`}
+                            title={`View image ${index + 1}`}
                         >
                             <img
                                 src={image}

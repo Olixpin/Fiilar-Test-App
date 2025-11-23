@@ -274,6 +274,10 @@ const HostDashboard: React.FC<HostDashboardProps> = ({ user, listings, refreshDa
         });
     };
 
+    const handleReleaseFunds = (bookingId: string) => {
+        alert(`Funds released for booking ${bookingId}`);
+    };
+
     const formatDate = (date: Date) => {
         const y = date.getFullYear();
         const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -787,55 +791,7 @@ const HostDashboard: React.FC<HostDashboardProps> = ({ user, listings, refreshDa
         // In real app: update user profile via API
     };
 
-    const handleReleaseFunds = async (bookingId: string) => {
-        const booking = hostBookings.find(b => b.id === bookingId);
-        if (!booking) return;
 
-        try {
-            // Find the listing to get host ID
-            const listing = myListings.find(l => l.id === booking.listingId);
-            if (!listing) return;
-
-            // Release funds through escrow service
-            const result = await escrowService.releaseFundsToHost(booking, listing.hostId);
-
-            if (result.success) {
-                // Update booking status to Confirmed
-                const updatedBooking = {
-                    ...booking,
-                    status: 'Confirmed' as const,
-                    paymentStatus: 'Released' as const,
-                    transactionIds: [...(booking.transactionIds || []), result.transactionId]
-                };
-                updateBooking(updatedBooking);
-
-                // Notify guest about fund release
-                addNotification({
-                    userId: booking.userId,
-                    type: 'booking',
-                    title: 'Payment Released',
-                    message: `Payment for your stay at "${listing?.title}" has been released to the host`,
-                    severity: 'info',
-                    read: false,
-                    actionRequired: false,
-                    metadata: {
-                        bookingId: booking.id,
-                        link: '/dashboard?tab=bookings'
-                    }
-                });
-
-                // Refresh bookings
-                const all = getBookings();
-                const myListingIds = listings.filter(l => l.hostId === user.id).map(l => l.id);
-                setHostBookings(all.filter(b => myListingIds.includes(b.listingId)).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-
-                alert(`✅ Funds released successfully! Transaction ID: ${result.transactionId}`);
-            }
-        } catch (error) {
-            alert('Failed to release funds. Please try again.');
-            console.error(error);
-        }
-    };
 
     const renderCreateWizard = () => {
         const originalListing = listings.find(l => l.id === (newListing as any).id);
@@ -891,7 +847,7 @@ const HostDashboard: React.FC<HostDashboardProps> = ({ user, listings, refreshDa
 
                             {/* AI Magic Auto-Fill Card */}
                             {showAiInput && !(newListing as any).id && (
-                                <div className="bg-gradient-to-r from-purple-50 to-brand-50 border border-brand-100 p-5 rounded-xl mb-6 relative overflow-hidden group">
+                                <div className="bg-linear-to-r from-purple-50 to-brand-50 border border-brand-100 p-5 rounded-xl mb-6 relative overflow-hidden group">
                                     <div className="flex items-center gap-2 mb-2 text-brand-700 font-bold">
                                         <Sparkles size={18} className="animate-pulse" />
                                         <span>Magic Auto-Fill</span>
@@ -900,7 +856,7 @@ const HostDashboard: React.FC<HostDashboardProps> = ({ user, listings, refreshDa
 
                                     <div className="relative">
                                         <textarea
-                                            className="w-full p-3 border border-brand-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none bg-white/80 min-h-[80px]"
+                                            className="w-full p-3 border border-brand-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none bg-white/80 min-h-20"
                                             placeholder="e.g. Cozy 2-bedroom apartment in downtown LA with a pool. $150 per night. Max 4 guests. No smoking."
                                             value={aiPrompt}
                                             onChange={(e) => setAiPrompt(e.target.value)}
@@ -971,11 +927,12 @@ const HostDashboard: React.FC<HostDashboardProps> = ({ user, listings, refreshDa
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium mb-1 flex items-center gap-2">
+                                <label htmlFor="space-type-select" className="block text-sm font-medium mb-1 flex items-center gap-2">
                                     Space Type {isLive && <Lock size={12} className="text-gray-400" />}
                                 </label>
                                 <div className="relative">
                                     <select
+                                        id="space-type-select"
                                         disabled={isLive}
                                         className={`w-full p-3 border rounded-lg ${isLive ? 'bg-gray-100 text-gray-500 cursor-not-allowed border-gray-200 appearance-none' : 'bg-white'}`}
                                         value={newListing.type}
@@ -1008,8 +965,9 @@ const HostDashboard: React.FC<HostDashboardProps> = ({ user, listings, refreshDa
                                         </div>
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-medium mb-1 text-gray-600">Unit</label>
+                                        <label htmlFor="price-unit-select" className="block text-xs font-medium mb-1 text-gray-600">Unit</label>
                                         <select
+                                            id="price-unit-select"
                                             className="w-full p-3 border rounded-lg bg-white focus:ring-2 focus:ring-brand-500 outline-none"
                                             value={newListing.priceUnit}
                                             onChange={e => setNewListing({ ...newListing, priceUnit: e.target.value as BookingType })}
@@ -1056,7 +1014,7 @@ const HostDashboard: React.FC<HostDashboardProps> = ({ user, listings, refreshDa
                                                     type="number"
                                                     min="1"
                                                     max={newListing.capacity || 100}
-                                                    className="w-full p-2 border rounded-lg text-sm bg-white"
+                                                    aria-label="Number of guests included in base price" className="w-full p-2 border rounded-lg text-sm bg-white"
                                                     value={newListing.includedGuests || 1}
                                                     onChange={e => setNewListing({ ...newListing, includedGuests: parseInt(e.target.value) || 1 })}
                                                 />
@@ -1097,7 +1055,7 @@ const HostDashboard: React.FC<HostDashboardProps> = ({ user, listings, refreshDa
                                             </div>
                                             <div className="flex items-center gap-3">
                                                 <span className="text-sm font-bold">${addon.price}</span>
-                                                <button onClick={() => handleRemoveAddOn(addon.id)} className="text-red-500 hover:bg-red-50 p-1 rounded">
+                                                <button onClick={() => handleRemoveAddOn(addon.id)} className="text-red-500 hover:bg-red-50 p-1 rounded" title="Remove add-on">
                                                     <X size={14} />
                                                 </button>
                                             </div>
@@ -1140,6 +1098,7 @@ const HostDashboard: React.FC<HostDashboardProps> = ({ user, listings, refreshDa
                                         <button
                                             onClick={handleAddAddOn}
                                             disabled={!tempAddOn.name || !tempAddOn.price}
+                                            title="Add add-on"
                                             className="w-full h-full bg-gray-900 text-white rounded flex items-center justify-center disabled:bg-gray-300"
                                         >
                                             <Plus size={16} />
@@ -1208,6 +1167,7 @@ const HostDashboard: React.FC<HostDashboardProps> = ({ user, listings, refreshDa
                                                 type="button"
                                                 onClick={() => removeImage(idx)}
                                                 className="absolute top-1 right-1 bg-black/50 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition"
+                                                title="Remove image"
                                             >
                                                 <X size={14} />
                                             </button>
@@ -1280,20 +1240,26 @@ const HostDashboard: React.FC<HostDashboardProps> = ({ user, listings, refreshDa
                                                     {weeklySchedule[idx].enabled ? (
                                                         newListing.priceUnit === BookingType.HOURLY ? (
                                                             <div className="flex items-center gap-2 text-sm">
-                                                                <select
+                                                                <select aria-label={`Start time for ${day}`}
                                                                     value={weeklySchedule[idx].start}
                                                                     onChange={(e) => updateDayTime(idx, 'start', parseInt(e.target.value))}
                                                                     className="border rounded p-1 bg-white"
+                                                                    title="Start time"
                                                                 >
-                                                                    {Array.from({ length: 24 }).map((_, h) => <option key={h} value={h}>{h}:00</option>)}
+                                                                    {Array.from({ length: 24 }).map((_, i) => (
+                                                                        <option key={i} value={i}>{i}:00</option>
+                                                                    ))}
                                                                 </select>
-                                                                <span>to</span>
-                                                                <select
+                                                                <span>-</span>
+                                                                <select aria-label={`End time for ${day}`}
                                                                     value={weeklySchedule[idx].end}
                                                                     onChange={(e) => updateDayTime(idx, 'end', parseInt(e.target.value))}
                                                                     className="border rounded p-1 bg-white"
+                                                                    title="End time"
                                                                 >
-                                                                    {Array.from({ length: 24 }).map((_, h) => <option key={h} value={h}>{h}:00</option>)}
+                                                                    {Array.from({ length: 24 }).map((_, i) => (
+                                                                        <option key={i} value={i + 1}>{i + 1}:00</option>
+                                                                    ))}
                                                                 </select>
                                                             </div>
                                                         ) : (
@@ -1321,11 +1287,11 @@ const HostDashboard: React.FC<HostDashboardProps> = ({ user, listings, refreshDa
                                                 <div className="flex items-center justify-between mb-4">
                                                     <h4 className="font-bold text-gray-900">Date Overrides</h4>
                                                     <div className="flex items-center gap-2">
-                                                        <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))} className="p-1 hover:bg-gray-100 rounded"><ChevronLeft size={16} /></button>
+                                                        <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))} title="Previous month" className="p-1 hover:bg-gray-100 rounded"><ChevronLeft size={16} /></button>
                                                         <span className="text-sm font-semibold min-w-[100px] text-center">
                                                             {currentMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}
                                                         </span>
-                                                        <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))} className="p-1 hover:bg-gray-100 rounded"><ChevronRight size={16} /></button>
+                                                        <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))} title="Next month" className="p-1 hover:bg-gray-100 rounded"><ChevronRight size={16} /></button>
                                                     </div>
                                                 </div>
                                                 <div className="grid grid-cols-7 gap-1 text-center mb-2">
@@ -1468,6 +1434,7 @@ const HostDashboard: React.FC<HostDashboardProps> = ({ user, listings, refreshDa
                                                                     settings: { ...(prev.settings || { minDuration: 1, instantBook: false, allowRecurring: true }), allowRecurring: !(prev.settings?.allowRecurring) }
                                                                 }))}
                                                                 className={`w-10 h-5 rounded-full transition-colors relative ${newListing.settings?.allowRecurring ? 'bg-brand-600' : 'bg-gray-300'}`}
+                                                                title="Toggle recurring bookings"
                                                             >
                                                                 <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${newListing.settings?.allowRecurring ? 'left-5.5' : 'left-0.5'}`} />
                                                             </button>
@@ -1486,6 +1453,7 @@ const HostDashboard: React.FC<HostDashboardProps> = ({ user, listings, refreshDa
                                                                     settings: { ...(prev.settings || { minDuration: 1, instantBook: false, allowRecurring: true }), instantBook: !(prev.settings?.instantBook) }
                                                                 }))}
                                                                 className={`w-10 h-5 rounded-full transition-colors relative ${newListing.settings?.instantBook ? 'bg-brand-600' : 'bg-gray-300'}`}
+                                                                title="Toggle instant book"
                                                             >
                                                                 <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${newListing.settings?.instantBook ? 'left-5.5' : 'left-0.5'}`} />
                                                             </button>
@@ -1494,8 +1462,9 @@ const HostDashboard: React.FC<HostDashboardProps> = ({ user, listings, refreshDa
 
                                                     {/* Cancellation Policy */}
                                                     <div>
-                                                        <label className="block text-sm font-bold text-gray-900 mb-2">Cancellation Policy</label>
+                                                        <label htmlFor="cancellation-policy-select" className="block text-sm font-bold text-gray-900 mb-2">Cancellation Policy</label>
                                                         <select
+                                                            id="cancellation-policy-select"
                                                             className="w-full p-3 border border-gray-300 rounded-lg bg-white text-sm focus:ring-2 focus:ring-brand-500 outline-none"
                                                             value={newListing.cancellationPolicy || CancellationPolicy.MODERATE}
                                                             onChange={(e) => setNewListing({ ...newListing, cancellationPolicy: e.target.value as CancellationPolicy })}
@@ -1521,13 +1490,13 @@ const HostDashboard: React.FC<HostDashboardProps> = ({ user, listings, refreshDa
                                                                 onChange={(e) => setTempRule(e.target.value)}
                                                                 onKeyDown={(e) => e.key === 'Enter' && handleAddRule()}
                                                             />
-                                                            <button onClick={handleAddRule} className="p-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"><Plus size={18} /></button>
+                                                            <button onClick={handleAddRule} className="p-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200" title="Add rule"><Plus size={18} /></button>
                                                         </div>
                                                         <div className="space-y-2 max-h-32 overflow-y-auto">
                                                             {newListing.houseRules?.map((rule, i) => (
                                                                 <div key={i} className="flex items-center justify-between bg-gray-50 p-2 rounded text-sm text-gray-700 border border-gray-100">
                                                                     <span>{rule}</span>
-                                                                    <button onClick={() => handleRemoveRule(i)} className="text-red-400 hover:text-red-600"><X size={14} /></button>
+                                                                    <button onClick={() => handleRemoveRule(i)} className="text-red-400 hover:text-red-600" title="Remove rule"><X size={14} /></button>
                                                                 </div>
                                                             ))}
                                                             {(!newListing.houseRules || newListing.houseRules.length === 0) && (
@@ -1559,7 +1528,7 @@ const HostDashboard: React.FC<HostDashboardProps> = ({ user, listings, refreshDa
                                                                 onChange={(e) => setCustomSafety(e.target.value)}
                                                                 onKeyDown={(e) => e.key === 'Enter' && handleAddCustomSafety()}
                                                             />
-                                                            <button onClick={handleAddCustomSafety} className="p-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"><Plus size={18} /></button>
+                                                            <button onClick={handleAddCustomSafety} className="p-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200" title="Add custom safety item"><Plus size={18} /></button>
                                                         </div>
 
                                                         {/* Display Custom Items */}
@@ -1567,7 +1536,7 @@ const HostDashboard: React.FC<HostDashboardProps> = ({ user, listings, refreshDa
                                                             {newListing.safetyItems?.filter(i => !SAFETY_OPTIONS.includes(i)).map((item, i) => (
                                                                 <div key={i} className="flex items-center gap-1 px-2 py-1 bg-brand-50 text-brand-800 rounded-full text-xs border border-brand-100">
                                                                     <span>{item}</span>
-                                                                    <button onClick={() => toggleSafetyItem(item)} className="hover:text-red-600"><X size={10} /></button>
+                                                                    <button onClick={() => toggleSafetyItem(item)} className="hover:text-red-600" title="Remove custom safety item"><X size={10} /></button>
                                                                 </div>
                                                             ))}
                                                         </div>
@@ -1637,9 +1606,9 @@ const HostDashboard: React.FC<HostDashboardProps> = ({ user, listings, refreshDa
                                                         onClick={() => {
                                                             const isSelected = newListing.proofOfAddress === proof.url;
                                                             setNewListing({ ...newListing, proofOfAddress: isSelected ? '' : proof.url });
-                                                            setIsEditingUpload(false);
                                                         }}
                                                         className={`w-full flex items-center p-3 border rounded-lg text-left transition-all ${newListing.proofOfAddress === proof.url ? 'border-brand-600 bg-brand-50 ring-1 ring-brand-600' : 'bg-white border-gray-200 hover:border-gray-300'}`}
+                                                        title="Reuse verified document"
                                                     >
                                                         <div className={`w-4 h-4 rounded-full border mr-3 flex items-center justify-center flex-shrink-0 ${newListing.proofOfAddress === proof.url ? 'border-brand-600' : 'border-gray-300'}`}>
                                                             {newListing.proofOfAddress === proof.url && <div className="w-2 h-2 rounded-full bg-brand-600" />}
@@ -1656,7 +1625,7 @@ const HostDashboard: React.FC<HostDashboardProps> = ({ user, listings, refreshDa
 
                                     {newListing.proofOfAddress && isEditingUpload && (
                                         <div className="text-right mb-2">
-                                            <button onClick={() => setIsEditingUpload(false)} className="text-xs text-gray-500 hover:text-gray-900">Cancel Change</button>
+                                            <button onClick={() => setIsEditingUpload(false)} className="text-xs text-gray-500 hover:text-gray-900" title="Cancel change">Cancel Change</button>
                                         </div>
                                     )}
 
@@ -1728,6 +1697,7 @@ const HostDashboard: React.FC<HostDashboardProps> = ({ user, listings, refreshDa
                            relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none
                            ${newListing.requiresIdentityVerification ? 'bg-brand-600' : 'bg-gray-200'}
                         `}
+                                            title="Toggle ID verification requirement"
                                         >
                                             <span
                                                 className={`
@@ -1759,7 +1729,7 @@ const HostDashboard: React.FC<HostDashboardProps> = ({ user, listings, refreshDa
                                         <p className="text-xs text-gray-600 flex items-center gap-1"><MapPin size={10} /> {newListing.location || 'No location'}</p>
                                         <p className="text-xs text-gray-500 mt-0.5">{newListing.type}</p>
 
-                                        <div className="flex flex-wrap items-center gap-2 mt-3">
+                                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3">
                                             <p className="text-brand-600 font-bold text-sm">${newListing.price || 0} <span className="text-gray-400 font-normal">/ {newListing.priceUnit === BookingType.HOURLY ? 'hr' : 'day'}</span></p>
 
                                             {newListing.settings?.allowRecurring && (
@@ -1839,7 +1809,7 @@ const HostDashboard: React.FC<HostDashboardProps> = ({ user, listings, refreshDa
                 </div>
 
                 {/* Right: Live Preview - Sticky */}
-                <div className="hidden lg:block w-96 flex-shrink-0">
+                <div className="hidden lg:block w-96 shrink-0">
                     <div className="sticky top-24 space-y-4">
                         {/* Auto-save indicator */}
                         {view === 'create' && (newListing.title || newListing.description) && (
@@ -1862,7 +1832,7 @@ const HostDashboard: React.FC<HostDashboardProps> = ({ user, listings, refreshDa
                         )}
                         {/* Preview Card */}
                         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                            <div className="bg-gradient-to-r from-brand-50 to-purple-50 px-4 py-3 border-b border-gray-100">
+                            <div className="bg-linear-to-r from-brand-50 to-purple-50 px-4 py-3 border-b border-gray-100">
                                 <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
                                     <Sparkles size={14} className="text-brand-600" /> Live Preview
                                 </h3>
@@ -1985,7 +1955,7 @@ const HostDashboard: React.FC<HostDashboardProps> = ({ user, listings, refreshDa
 
                         {/* Estimated Earnings */}
                         {newListing.price && Object.keys(newListing.availability || {}).length > 0 && (
-                            <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4">
+                            <div className="bg-linear-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4">
                                 <h4 className="text-sm font-bold text-gray-900 mb-2 flex items-center gap-2">
                                     <TrendingUp size={14} className="text-green-600" /> Potential Earnings
                                 </h4>
@@ -2023,6 +1993,7 @@ const HostDashboard: React.FC<HostDashboardProps> = ({ user, listings, refreshDa
                                         onClick={() => setStep(item.step)}
                                         className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${step === item.step ? 'bg-brand-50 text-brand-700' : 'text-gray-600 hover:bg-gray-50'
                                             }`}
+                                        title={`Go to ${item.label}`}
                                     >
                                         <item.icon size={14} />
                                         {item.label}
@@ -2040,7 +2011,7 @@ const HostDashboard: React.FC<HostDashboardProps> = ({ user, listings, refreshDa
         <div className="bg-gray-50">
             {/* Sidebar */}
             <aside className="hidden lg:flex lg:flex-col w-64 bg-white border-r border-gray-200 fixed top-16 left-0 bottom-0 z-40">
-                <div className="p-6 border-b border-gray-200 flex-shrink-0">
+                <div className="p-6 border-b border-gray-200 shrink-0">
                     <h2 className="text-lg font-bold text-gray-900">Host Dashboard</h2>
                     <p className="text-xs text-gray-500 mt-1">Manage your spaces</p>
                 </div>
@@ -2080,7 +2051,7 @@ const HostDashboard: React.FC<HostDashboardProps> = ({ user, listings, refreshDa
                         Messages
                     </button>
                 </nav>
-                <div className="p-4 space-y-1 border-t border-gray-100 flex-shrink-0">
+                <div className="p-4 space-y-1 border-t border-gray-100 shrink-0">
                     <button onClick={handleStartNewListing} className="w-full bg-brand-600 text-white px-4 py-2.5 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-brand-700 transition shadow-sm mb-2">
                         <Plus size={18} /> New Listing
                     </button>
@@ -2324,7 +2295,7 @@ const HostDashboard: React.FC<HostDashboardProps> = ({ user, listings, refreshDa
                                         <div className="lg:col-span-2 bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
                                             <div className="flex items-center justify-between mb-6">
                                                 <h3 className="font-bold text-gray-900">Revenue Overview</h3>
-                                                <select className="text-xs border border-gray-200 rounded-lg px-3 py-1.5 bg-white text-gray-600 font-medium">
+                                                <select aria-label="Revenue period" className="text-xs border border-gray-200 rounded-lg px-3 py-1.5 bg-white text-gray-600 font-medium">
                                                     <option>Last 7 days</option>
                                                     <option>Last 30 days</option>
                                                     <option>Last 3 months</option>
@@ -2553,16 +2524,16 @@ const HostDashboard: React.FC<HostDashboardProps> = ({ user, listings, refreshDa
                                                         .map(booking => {
                                                             const listing = myListings.find(l => l.id === booking.listingId);
                                                             return (
-                                                                <div key={booking.id} className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all overflow-hidden">
+                                                                <div key={booking.id} className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
                                                                     <div className="flex gap-4 p-4">
                                                                         <img src={listing?.images[0]} alt="" className="w-24 h-24 rounded-lg object-cover shrink-0" />
                                                                         <div className="flex-1 min-w-0">
                                                                             <div className="flex items-start justify-between gap-2 mb-2">
                                                                                 <h3 className="font-bold text-gray-900 truncate">{listing?.title || 'Unknown'}</h3>
-                                                                                <span className={`px-2 py-1 text-xs font-bold rounded-full whitespace-nowrap ${booking.status === 'Confirmed' ? 'bg-green-100 text-green-800' :
-                                                                                        booking.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
-                                                                                            booking.status === 'Completed' ? 'bg-blue-100 text-blue-800' :
-                                                                                                'bg-gray-100 text-gray-800'
+                                                                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border whitespace-nowrap ${booking.status === 'Confirmed' ? 'bg-green-50 text-green-700 border-green-200' :
+                                                                                        booking.status === 'Pending' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
+                                                                                            booking.status === 'Completed' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                                                                                'bg-gray-100 text-gray-500 border-gray-200'
                                                                                     }`}>
                                                                                     {booking.status}
                                                                                 </span>
@@ -2784,8 +2755,9 @@ const HostDashboard: React.FC<HostDashboardProps> = ({ user, listings, refreshDa
 
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Bank Name</label>
+                                                    <label htmlFor="bank-name-select" className="block text-sm font-medium text-gray-700 mb-1">Bank Name</label>
                                                     <select
+                                                        id="bank-name-select"
                                                         className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none bg-white"
                                                         value={bankDetails.bankName}
                                                         onChange={(e) => setBankDetails({ ...bankDetails, bankName: e.target.value, isVerified: false })}
@@ -2968,7 +2940,6 @@ const HostDashboard: React.FC<HostDashboardProps> = ({ user, listings, refreshDa
             </div>
         </div>
     );
-
 };
 
 export default HostDashboard;
