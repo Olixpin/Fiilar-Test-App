@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, AlertTriangle, Clock, Info } from 'lucide-react';
 import { Booking, CancellationPolicy } from '@fiilar/types';
 import { calculateRefund, processCancellation, getCancellationPolicyDescription } from '../../../services/cancellationService';
+import { useLocale } from '../../../contexts/LocaleContext';
 
 interface CancellationModalProps {
     booking: Booking;
@@ -20,6 +21,7 @@ const CANCELLATION_REASONS = [
 ];
 
 const CancellationModal: React.FC<CancellationModalProps> = ({ booking, policy, onClose, onSuccess }) => {
+    const { locale } = useLocale();
     const [reason, setReason] = useState('');
     const [customReason, setCustomReason] = useState('');
     const [confirmed, setConfirmed] = useState(false);
@@ -113,7 +115,7 @@ const CancellationModal: React.FC<CancellationModalProps> = ({ booking, policy, 
                         <div className="border-t border-gray-200 pt-3 space-y-2">
                             <div className="flex justify-between text-sm">
                                 <span className="text-gray-600">Original amount:</span>
-                                <span className="font-semibold">${booking.totalPrice.toFixed(2)}</span>
+                                <span className="font-semibold">{locale.currencySymbol}{booking.totalPrice.toFixed(2)}</span>
                             </div>
                             <div className="flex justify-between text-sm">
                                 <span className="text-gray-600">Refund percentage:</span>
@@ -123,11 +125,11 @@ const CancellationModal: React.FC<CancellationModalProps> = ({ booking, policy, 
                             </div>
                             <div className="flex justify-between text-sm">
                                 <span className="text-gray-600">Cancellation fee:</span>
-                                <span className="font-semibold text-red-600">${refundCalc.cancellationFee.toFixed(2)}</span>
+                                <span className="font-semibold text-red-600">{locale.currencySymbol}{refundCalc.cancellationFee.toFixed(2)}</span>
                             </div>
                             <div className="border-t border-gray-300 pt-2 flex justify-between">
                                 <span className="font-semibold text-gray-900">Refund amount:</span>
-                                <span className="text-lg font-bold text-green-600">${refundCalc.refundAmount.toFixed(2)}</span>
+                                <span className="text-lg font-bold text-green-600">{locale.currencySymbol}{refundCalc.refundAmount.toFixed(2)}</span>
                             </div>
                         </div>
                     </div>
@@ -191,10 +193,10 @@ const CancellationModal: React.FC<CancellationModalProps> = ({ booking, policy, 
                                     />
                                     <span className="text-sm text-gray-700">
                                         I understand that by cancelling this booking, I will receive a refund of{' '}
-                                        <span className="font-semibold">${refundCalc.refundAmount.toFixed(2)}</span>
+                                        <span className="font-semibold">{locale.currencySymbol}{refundCalc.refundAmount.toFixed(2)}</span>
                                         {refundCalc.cancellationFee > 0 && (
                                             <> and will be charged a cancellation fee of{' '}
-                                                <span className="font-semibold">${refundCalc.cancellationFee.toFixed(2)}</span>
+                                                <span className="font-semibold">{locale.currencySymbol}{refundCalc.cancellationFee.toFixed(2)}</span>
                                             </>
                                         )}. This action cannot be undone.
                                     </span>

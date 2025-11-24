@@ -8,6 +8,7 @@ import { getBookings, toggleFavorite, saveBooking, startConversation, getReviews
 import { useNavigate } from 'react-router-dom';
 import { paymentService } from '../../../services/paymentService';
 import { SERVICE_FEE_PERCENTAGE } from '../../../constants';
+import { formatCurrency } from '../../../utils/currency';
 
 interface ListingDetailsProps {
   listing: Listing;
@@ -1094,7 +1095,7 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
           <div className="hidden lg:block sticky top-24 glass-card rounded-2xl p-6 shadow-xl shadow-black/5">
             <div className="flex justify-between items-start mb-6">
               <div>
-                <span className="text-2xl font-bold text-gray-900">${listing.price}</span>
+                <span className="text-2xl font-bold text-gray-900">{formatCurrency(listing.price, { compact: true })}</span>
                 <span className="text-gray-500">/{listing.priceUnit === BookingType.HOURLY ? 'hr' : 'day'}</span>
               </div>
               <div className="flex items-center gap-1 text-sm font-medium text-gray-700 bg-gray-100/50 px-2 py-1 rounded-lg">
@@ -1138,7 +1139,7 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
                 {guestCount > (listing.includedGuests || 1) && (listing.pricePerExtraGuest || 0) > 0 && (
                   <div className="mt-1 text-xs text-gray-500 flex justify-between">
                     <span>Included: {listing.includedGuests} guests</span>
-                    <span className="font-medium text-green-700">+${(guestCount - (listing.includedGuests || 1)) * (listing.pricePerExtraGuest || 0)}/unit extra</span>
+                    <span className="font-medium text-green-700">+{formatCurrency((guestCount - (listing.includedGuests || 1)) * (listing.pricePerExtraGuest || 0))}/unit extra</span>
                   </div>
                 )}
               </div>
@@ -1186,7 +1187,7 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
                           </div>
                         </div>
                         <div className="text-sm font-bold whitespace-nowrap">
-                          +${addon.price}
+                          +{formatCurrency(addon.price)}
                         </div>
                       </div>
                     ))}
@@ -1364,11 +1365,11 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
               <div className="border-t border-gray-100 pt-4 space-y-2">
                 <div className="flex justify-between text-sm text-gray-600">
                   <span>Subtotal {isRecurring && `(${recurrenceCount} bookings)`}</span>
-                  <span>${fees.subtotal.toFixed(2)}</span>
+                  <span>{formatCurrency(fees.subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-sm text-gray-600">
                   <span>Service Fee (10%)</span>
-                  <span>${fees.serviceFee.toFixed(2)}</span>
+                  <span>{formatCurrency(fees.serviceFee)}</span>
                 </div>
                 {fees.cautionFee > 0 && (
                   <div className="flex justify-between text-sm text-gray-600">
@@ -1378,7 +1379,7 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
                         <Info size={12} className="text-gray-400" />
                       </span>
                     </span>
-                    <span>${fees.cautionFee.toFixed(2)}</span>
+                    <span>{formatCurrency(fees.cautionFee)}</span>
                   </div>
                 )}
               </div>
@@ -1386,7 +1387,7 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
               <div className="flex justify-between items-center text-lg font-bold text-gray-900 border-t border-gray-200 pt-4">
                 <span>Total</span>
                 <div className="text-right">
-                  <div>${fees.total.toFixed(2)}</div>
+                  <div>{formatCurrency(fees.total)}</div>
                 </div>
               </div>
 
@@ -1484,7 +1485,7 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
                     {guestCount > (listing.includedGuests || 1) && (listing.pricePerExtraGuest || 0) > 0 && (
                       <div className="mt-1 text-xs text-gray-500 flex justify-between">
                         <span>Included: {listing.includedGuests} guests</span>
-                        <span className="font-medium text-green-700">+${(guestCount - (listing.includedGuests || 1)) * (listing.pricePerExtraGuest || 0)}/unit extra</span>
+                        <span className="font-medium text-green-700">+{formatCurrency((guestCount - (listing.includedGuests || 1)) * (listing.pricePerExtraGuest || 0))}/unit extra</span>
                       </div>
                     )}
                   </div>
@@ -1516,7 +1517,7 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
                                 {addon.description && <div className="text-[10px] text-gray-500 truncate">{addon.description}</div>}
                               </div>
                             </div>
-                            <div className="text-sm font-bold whitespace-nowrap">+${addon.price}</div>
+                            <div className="text-sm font-bold whitespace-nowrap">+{formatCurrency(addon.price)}</div>
                           </div>
                         ))}
                       </div>
@@ -1613,11 +1614,11 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm text-gray-600">
                       <span>Subtotal {isRecurring && `(${recurrenceCount} bookings)`}</span>
-                      <span>${fees.subtotal.toFixed(2)}</span>
+                      <span>{formatCurrency(fees.subtotal)}</span>
                     </div>
                     <div className="flex justify-between text-sm text-gray-600">
                       <span>Service Fee (10%)</span>
-                      <span>${fees.serviceFee.toFixed(2)}</span>
+                      <span>{formatCurrency(fees.serviceFee)}</span>
                     </div>
                     {fees.cautionFee > 0 && (
                       <div className="flex justify-between text-sm text-gray-600">
@@ -1625,12 +1626,12 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
                           Caution Fee
                           <Info size={12} className="text-gray-400" />
                         </span>
-                        <span>${fees.cautionFee.toFixed(2)}</span>
+                        <span>{formatCurrency(fees.cautionFee)}</span>
                       </div>
                     )}
                     <div className="flex justify-between items-center text-lg font-bold text-gray-900 border-t border-gray-200 pt-2">
                       <span>Total</span>
-                      <span>${fees.total.toFixed(2)}</span>
+                      <span>{formatCurrency(fees.total)}</span>
                     </div>
                   </div>
                   {user && !user.kycVerified && listing.requiresIdentityVerification && (
@@ -1774,21 +1775,21 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
                 <div className="space-y-2 text-sm text-gray-600">
                   <div className="flex justify-between">
                     <span>Subtotal</span>
-                    <span>${pendingBooking.fees.subtotal.toFixed(2)}</span>
+                    <span>{formatCurrency(pendingBooking.fees.subtotal)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Service Fee</span>
-                    <span>${pendingBooking.fees.serviceFee.toFixed(2)}</span>
+                    <span>{formatCurrency(pendingBooking.fees.serviceFee)}</span>
                   </div>
                   {pendingBooking.fees.cautionFee > 0 && (
                     <div className="flex justify-between text-green-700">
                       <span>Caution Fee (Refundable)</span>
-                      <span>${pendingBooking.fees.cautionFee.toFixed(2)}</span>
+                      <span>{formatCurrency(pendingBooking.fees.cautionFee)}</span>
                     </div>
                   )}
                   <div className="flex justify-between font-bold text-gray-900 border-t border-gray-200 pt-2 mt-2">
                     <span>Total (USD)</span>
-                    <span>${pendingBooking.fees.total.toFixed(2)}</span>
+                    <span>{formatCurrency(pendingBooking.fees.total)}</span>
                   </div>
                 </div>
               </div>

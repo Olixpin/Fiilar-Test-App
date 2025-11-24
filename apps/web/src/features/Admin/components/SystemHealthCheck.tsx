@@ -3,8 +3,10 @@ import { escrowService } from '../../../services/escrowService';
 import { triggerManualReleaseCheck } from '../../../services/schedulerService';
 import { createBooking, deleteBooking, getBookings, updateBooking, saveListing, deleteListing, getListings, verifyHandshake } from '../../../services/storage';
 import { Booking, Listing, SpaceType, ListingStatus, BookingType, CancellationPolicy } from '@fiilar/types';
+import { useLocale } from '../../../contexts/LocaleContext';
 
 const SystemHealthCheck: React.FC = () => {
+  const { locale } = useLocale();
   const [logs, setLogs] = useState<string[]>([]);
   const [status, setStatus] = useState<'idle' | 'running' | 'success' | 'error'>('idle');
 
@@ -108,7 +110,7 @@ const SystemHealthCheck: React.FC = () => {
       addLog('Triggering Manual Release Check...');
       await triggerManualReleaseCheck((id, amount) => {
           if (id === testBookingId) {
-              addLog(`Callback received: Released $${amount} for booking ${id}`);
+              addLog(`Callback received: Released ${locale.currencySymbol}${amount} for booking ${id}`);
           }
       });
 

@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { Search, MapPin, DollarSign, Calendar, Users, Home, SlidersHorizontal, X } from 'lucide-react';
 import { SpaceType, BookingType } from '@fiilar/types';
+import { useLocale } from '../../../contexts/LocaleContext';
 
 export interface SearchFilters {
     searchTerm: string;
     location: string;
-    priceMin: number;
-    priceMax: number;
+    priceMin?: number;
+    priceMax?: number;
     spaceType: SpaceType | 'all';
     bookingType: BookingType | 'all';
     guestCount: number;
@@ -31,6 +32,7 @@ const SPACE_TYPES = [
 ];
 
 const AdvancedSearch: React.FC<AdvancedSearchProps> = ({ filters, onFilterChange, onClose }) => {
+    const { locale } = useLocale();
     const [localFilters, setLocalFilters] = useState<SearchFilters>(filters);
     // showFilters was redundant with isExpanded, so we'll rely on isExpanded for visibility toggling
     // const [showFilters, setShowFilters] = useState(false); 
@@ -50,8 +52,8 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({ filters, onFilterChange
         const resetFilters: SearchFilters = {
             searchTerm: '',
             location: '',
-            priceMin: 0,
-            priceMax: 1000,
+            priceMin: undefined,
+            priceMax: undefined,
             spaceType: 'all',
             bookingType: 'all',
             guestCount: 1,
@@ -65,8 +67,8 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({ filters, onFilterChange
     const [isExpanded, setIsExpanded] = useState(true);
 
     const activeFilterCount = [
-        localFilters.priceMin > 0,
-        localFilters.priceMax < 1000,
+        localFilters.priceMin !== undefined,
+        localFilters.priceMax !== undefined,
         localFilters.bookingType !== 'all',
         localFilters.guestCount > 1,
         localFilters.dateFrom,
@@ -220,25 +222,55 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({ filters, onFilterChange
                         </label>
                         <div className="flex items-center">
                             <div className="relative flex-1 group">
-                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-brand-600 transition-colors font-medium z-10">$</span>
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-brand-600 transition-colors font-medium z-10">{locale.currencySymbol}</span>
                                 <input
                                     type="number"
-                                    value={localFilters.priceMin}
-                                    onChange={(e) => handleChange('priceMin', Number(e.target.value))}
+                                    value={localFilters.priceMin ?? ''}
+                                    onChange={(e) => handleChange('priceMin', e.target.value ? Number(e.target.value) : undefined)}
                                     className="w-full pl-7 pr-3 py-2.5 bg-white border-2 border-gray-200 rounded-l-xl border-r-0 font-medium text-gray-900 focus:outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100 focus:z-10 hover:border-gray-300 transition-all placeholder-gray-400 text-sm"
-                                    placeholder="0"
+                                    placeholder="Min"
                                 />
                             </div>
                             <div className="relative flex-1 group">
-                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-brand-600 transition-colors font-medium z-10">$</span>
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-brand-600 transition-colors font-medium z-10">{locale.currencySymbol}</span>
                                 <input
                                     type="number"
-                                    value={localFilters.priceMax}
-                                    onChange={(e) => handleChange('priceMax', Number(e.target.value))}
+                                    value={localFilters.priceMax ?? ''}
+                                    onChange={(e) => handleChange('priceMax', e.target.value ? Number(e.target.value) : undefined)}
                                     className="w-full pl-7 pr-3 py-2.5 bg-white border-2 border-gray-200 rounded-r-xl font-medium text-gray-900 focus:outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100 focus:z-10 hover:border-gray-300 transition-all placeholder-gray-400 text-sm"
-                                    placeholder="1000"
+                                    placeholder="Max"
                                 />
                             </div>
+                        </div>
+
+                        {/* Quick Select Price Ranges */}
+                        <div className="flex flex-wrap gap-2">
+                            {[
+                                { label: 'Any', min: undefined, max: undefined },
+                                { label: `${locale.currencySymbol}0-50`, min: 0, max: 50 },
+                                { label: `${locale.currencySymbol}50-100`, min: 50, max: 100 },
+                                { label: `${locale.currencySymbol}100-200`, min: 100, max: 200 },
+                                { label: `${locale.currencySymbol}200+`, min: 200, max: undefined }
+                            ].map((range, idx) => {
+                                const isActive = localFilters.priceMin === range.min && localFilters.priceMax === range.max;
+                                return (
+                                    <button
+                                        key={idx}
+                                        onClick={() => {
+                                            const updated = { ...localFilters, priceMin: range.min, priceMax: range.max };
+                                            setLocalFilters(updated);
+                                            onFilterChange(updated);
+                                        }}
+                                        className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-all ${
+                                            isActive 
+                                                ? 'bg-brand-600 text-white border-brand-600' 
+                                                : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                                        }`}
+                                    >
+                                        {range.label}
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
 

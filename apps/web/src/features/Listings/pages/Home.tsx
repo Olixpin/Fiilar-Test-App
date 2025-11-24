@@ -49,8 +49,8 @@ const Home: React.FC<HomeProps> = ({
     const [filters, setFilters] = React.useState<SearchFilters>({
         searchTerm: searchTerm,
         location: '',
-        priceMin: 0,
-        priceMax: 1000000,
+        priceMin: undefined,
+        priceMax: undefined,
         spaceType: 'all',
         bookingType: 'all',
         guestCount: 1,
@@ -81,8 +81,8 @@ const Home: React.FC<HomeProps> = ({
         const initialFilters: SearchFilters = {
             searchTerm: '',
             location: '',
-            priceMin: 0,
-            priceMax: 1000000,
+            priceMin: undefined,
+            priceMax: undefined,
             spaceType: 'all',
             bookingType: 'all',
             guestCount: 1,

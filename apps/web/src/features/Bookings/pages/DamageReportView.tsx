@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, AlertTriangle, DollarSign, Check } from 'lucide-react';
 import { DamageReport } from '@fiilar/types';
 import { updateDamageReport, addNotification } from '../../../services/storage';
+import { useLocale } from '../../../contexts/LocaleContext';
 
 interface DamageReportViewProps {
     report: DamageReport;
@@ -10,6 +11,7 @@ interface DamageReportViewProps {
 }
 
 const DamageReportView: React.FC<DamageReportViewProps> = ({ report, onClose, onUpdate }) => {
+    const { locale } = useLocale();
     const [response, setResponse] = useState(report.userResponse || '');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -26,7 +28,7 @@ const DamageReportView: React.FC<DamageReportViewProps> = ({ report, onClose, on
             userId: report.reportedBy,
             type: 'damage_report',
             title: 'Damage Claim Accepted',
-            message: `Guest accepted the damage claim of $${report.estimatedCost}`,
+            message: `Guest accepted the damage claim of ${locale.currencySymbol}${report.estimatedCost}`,
             severity: 'info',
             read: false,
             actionRequired: false,
@@ -114,7 +116,7 @@ const DamageReportView: React.FC<DamageReportViewProps> = ({ report, onClose, on
                             <DollarSign size={18} className="text-red-600" />
                             <span className="text-sm font-semibold text-red-900">Estimated Repair Cost</span>
                         </div>
-                        <p className="text-2xl font-bold text-red-600">${report.estimatedCost.toFixed(2)}</p>
+                        <p className="text-2xl font-bold text-red-600">{locale.currencySymbol}{report.estimatedCost.toFixed(2)}</p>
                         <p className="text-xs text-red-700 mt-1">
                             This amount will be deducted from your caution deposit if you accept
                         </p>
@@ -200,7 +202,7 @@ const DamageReportView: React.FC<DamageReportViewProps> = ({ report, onClose, on
                                 className="flex-1 px-6 py-3 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
                             >
                                 <Check size={18} />
-                                Accept & Pay ${report.estimatedCost}
+                                Accept & Pay {locale.currencySymbol}{report.estimatedCost}
                             </button>
                         </div>
                     )}

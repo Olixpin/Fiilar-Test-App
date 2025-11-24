@@ -1,12 +1,15 @@
 import React from 'react';
 import { EscrowTransaction } from '@fiilar/types';
 import { Clock, ArrowUpRight, ArrowDownLeft, DollarSign, FileText } from 'lucide-react';
+import { useLocale } from '../../../contexts/LocaleContext';
 
 interface TransactionHistoryProps {
     transactions: EscrowTransaction[];
 }
 
 const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transactions }) => {
+    const { locale } = useLocale();
+
     if (transactions.length === 0) {
         return (
             <div className="text-center py-8 text-gray-500">
@@ -60,7 +63,7 @@ const TransactionHistory: React.FC<TransactionHistoryProps> = ({ transactions })
                                 {tx.type.replace('_', ' ')}
                             </td>
                             <td className={`px-4 py-3 font-bold ${tx.type === 'REFUND' || tx.type === 'HOST_PAYOUT' ? 'text-red-600' : 'text-green-600'}`}>
-                                {tx.type === 'REFUND' || tx.type === 'HOST_PAYOUT' ? '-' : '+'}${tx.amount.toFixed(2)}
+                                {tx.type === 'REFUND' || tx.type === 'HOST_PAYOUT' ? '-' : '+'}{locale.currencySymbol}{tx.amount.toFixed(2)}
                             </td>
                             <td className="px-4 py-3">
                                 <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold ${getStatusColor(tx.status)}`}>

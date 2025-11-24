@@ -56,6 +56,7 @@ export interface User {
   verificationTokenExpiry?: string;
   kycVerified?: boolean;
   livenessVerified?: boolean; // New: Liveness check status
+  badgeStatus?: 'standard' | 'super_host' | 'premium'; // Admin-assigned host badge
   identityDocument?: string;
   bankDetails?: BankDetails;
   favorites?: string[]; // List of Listing IDs
@@ -120,6 +121,10 @@ export interface Listing {
   cancellationPolicy?: CancellationPolicy;
   houseRules?: string[];
   safetyItems?: string[];
+
+  // Ratings
+  rating?: number;
+  reviewCount?: number;
 }
 
 export interface Booking {

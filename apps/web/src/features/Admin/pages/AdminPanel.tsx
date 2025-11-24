@@ -8,6 +8,7 @@ import FinancialsTab from '../components/FinancialsTab';
 import EscrowManager from '../components/EscrowManager';
 import DisputeCenter from '../components/DisputeCenter';
 import { Button, Card, CardContent, CardHeader, CardTitle, CardDescription } from '@fiilar/ui';
+import { useLocale } from '../../../contexts/LocaleContext';
 
 interface AdminPanelProps {
   users: User[]; // In a real app, fetch via API
@@ -16,7 +17,8 @@ interface AdminPanelProps {
 }
 
 const AdminPanel: React.FC<AdminPanelProps> = ({ users, listings, refreshData }) => {
-  const [activeTab, setActiveTab] = useState<'kyc' | 'listings' | 'financials' | 'escrow' | 'disputes'>('kyc');
+  const { locale } = useLocale();
+  const [activeTab, setActiveTab] = useState<'kyc' | 'hosts' | 'listings' | 'financials' | 'escrow' | 'disputes'>('hosts');
   const [rejectionModal, setRejectionModal] = useState<{ isOpen: boolean, listingId: string | null, reason: string }>({
     isOpen: false, listingId: null, reason: ''
   });
@@ -64,6 +66,19 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ users, listings, refreshData })
       alert(`User ${userId} rejected. Email sent.`);
     }
     refreshData();
+  };
+
+  const handleUpdateBadgeStatus = (userId: string, badgeStatus: 'standard' | 'super_host' | 'premium') => {
+    const users = JSON.parse(localStorage.getItem('fiilar_users_db') || '[]');
+    const user = users.find((u: User) => u.id === userId);
+    if (user) {
+      user.badgeStatus = badgeStatus;
+      // Save the entire users array back to localStorage
+      localStorage.setItem('fiilar_users_db', JSON.stringify(users));
+      alert(`Badge status updated to ${badgeStatus.replace('_', ' ')}. Page will refresh.`);
+      // Reload page to reflect changes across all components
+      setTimeout(() => window.location.reload(), 500);
+    }
   };
 
   const handleApproveListing = (listing: Listing, approve: boolean, reason?: string) => {
@@ -118,6 +133,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ users, listings, refreshData })
               <span className="ml-auto bg-red-100 text-red-700 text-xs font-bold px-2 py-0.5 rounded-full">{unverifiedHosts.length}</span>
             )}
           </button>
+          <button onClick={() => setActiveTab('hosts')} className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === 'hosts' ? 'bg-brand-50 text-brand-700' : 'text-gray-700 hover:bg-gray-50'}`}>
+            <Users size={18} />
+            Host Management
+          </button>
           <button onClick={() => setActiveTab('listings')} className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === 'listings' ? 'bg-brand-50 text-brand-700' : 'text-gray-700 hover:bg-gray-50'}`}>
             <Home size={18} />
             Listings
@@ -150,6 +169,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ users, listings, refreshData })
           <h1 className="text-xl font-bold text-gray-900">Admin Panel</h1>
           <div className="flex gap-2 mt-3 overflow-x-auto no-scrollbar">
             <button onClick={() => setActiveTab('kyc')} className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all duration-200 hover:scale-105 active:scale-95 ${activeTab === 'kyc' ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-700'}`}>KYC</button>
+            <button onClick={() => setActiveTab('hosts')} className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all duration-200 hover:scale-105 active:scale-95 ${activeTab === 'hosts' ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-700'}`}>Hosts</button>
             <button onClick={() => setActiveTab('listings')} className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all duration-200 hover:scale-105 active:scale-95 ${activeTab === 'listings' ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-700'}`}>Listings</button>
             <button onClick={() => setActiveTab('financials')} className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all duration-200 hover:scale-105 active:scale-95 ${activeTab === 'financials' ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-700'}`}>Financials</button>
             <button onClick={() => setActiveTab('escrow')} className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all duration-200 hover:scale-105 active:scale-95 ${activeTab === 'escrow' ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-700'}`}>Escrow</button>
@@ -236,6 +256,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ users, listings, refreshData })
                           <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Email</th>
                           <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Document</th>
                           <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Liveness</th>
+                          <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Badge</th>
                           <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Submitted</th>
                           <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase">Actions</th>
                         </tr>
@@ -285,6 +306,17 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ users, listings, refreshData })
                                   </span>
                                 )}
                               </td>
+                              <td className="px-6 py-4">
+                                <select
+                                  value={u.badgeStatus || 'standard'}
+                                  onChange={(e) => handleUpdateBadgeStatus(u.id, e.target.value as any)}
+                                  className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-brand-500 outline-none"
+                                >
+                                  <option value="standard">⚪ Standard</option>
+                                  <option value="super_host">🟡 Super Host</option>
+                                  <option value="premium">🟣 Premium</option>
+                                </select>
+                              </td>
                               <td className="px-6 py-4 text-sm text-gray-600">Just now</td>
                               <td className="px-6 py-4">
                                 <div className="flex justify-end gap-2">
@@ -310,6 +342,89 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ users, listings, refreshData })
                             </tr>
                           ))
                         )}
+                      </tbody>
+                    </table>
+                  </div>
+                </Card>
+              </div>
+            )}
+
+            {activeTab === 'hosts' && (
+              <div className="space-y-6 animate-in fade-in">
+                <Card>
+                  <CardHeader className="p-4 border-b-0">
+                    <CardTitle className="text-xl">Host Badge Management</CardTitle>
+                    <CardDescription>Assign Super Host and Premium badges to hosts</CardDescription>
+                  </CardHeader>
+                </Card>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <Card>
+                    <CardContent className="p-5">
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Hosts</h3>
+                        <div className="bg-blue-100 p-2 rounded-lg text-blue-700"><Users size={18} /></div>
+                      </div>
+                      <p className="text-2xl font-bold text-gray-900">{users.filter(u => u.isHost).length}</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-5">
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Super Hosts</h3>
+                        <div className="bg-amber-100 p-2 rounded-lg text-amber-700"><Sparkles size={18} /></div>
+                      </div>
+                      <p className="text-2xl font-bold text-gray-900">{users.filter(u => u.badgeStatus === 'super_host').length}</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-5">
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Premium</h3>
+                        <div className="bg-purple-100 p-2 rounded-lg text-purple-700"><ShieldCheck size={18} /></div>
+                      </div>
+                      <p className="text-2xl font-bold text-gray-900">{users.filter(u => u.badgeStatus === 'premium').length}</p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                <Card className="overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-gray-50 border-b border-gray-200">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Host</th>
+                          <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Email</th>
+                          <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Listings</th>
+                          <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Badge Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {users.filter(u => u.isHost).map(u => (
+                          <tr key={u.id} className="hover:bg-gray-50 transition">
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-brand-100 rounded-full flex items-center justify-center text-brand-700 font-bold">
+                                  {u.name.charAt(0)}
+                                </div>
+                                <div className="font-medium text-gray-900">{u.name}</div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 text-sm text-gray-600">{u.email}</td>
+                            <td className="px-6 py-4 text-sm text-gray-600">{listings.filter(l => l.hostId === u.id).length}</td>
+                            <td className="px-6 py-4">
+                              <select
+                                value={u.badgeStatus || 'standard'}
+                                onChange={(e) => handleUpdateBadgeStatus(u.id, e.target.value as any)}
+                                className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-brand-500 outline-none"
+                              >
+                                <option value="standard">⚪ Standard</option>
+                                <option value="super_host">🟡 Super Host</option>
+                                <option value="premium">🟣 Premium</option>
+                              </select>
+                            </td>
+                          </tr>
+                        ))}
                       </tbody>
                     </table>
                   </div>
@@ -396,7 +511,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ users, listings, refreshData })
                           </div>
                         </div>
                         <div className="text-right">
-                          <span className="block text-lg font-bold text-brand-600">${l.price} <span className="text-sm font-normal text-gray-400">/ {l.priceUnit}</span></span>
+                          <span className="block text-lg font-bold text-brand-600">{locale.currencySymbol}{l.price} <span className="text-sm font-normal text-gray-400">/ {l.priceUnit}</span></span>
                           <span className="inline-block mt-1 px-2 py-1 bg-blue-100 text-blue-800 text-xs font-bold rounded">{l.type}</span>
                         </div>
                       </div>

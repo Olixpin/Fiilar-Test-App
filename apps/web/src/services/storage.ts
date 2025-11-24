@@ -167,7 +167,26 @@ export const logoutUser = () => {
 
 export const getListings = (): Listing[] => {
   const l = localStorage.getItem(STORAGE_KEYS.LISTINGS);
-  return l ? JSON.parse(l) : [];
+  const listings: Listing[] = l ? JSON.parse(l) : [];
+
+  const r = localStorage.getItem(STORAGE_KEYS.REVIEWS);
+  const allReviews: Review[] = r ? JSON.parse(r) : [];
+
+  return listings.map(listing => {
+    const listingReviews = allReviews.filter(review => review.listingId === listing.id);
+    const reviewCount = listingReviews.length;
+
+    if (reviewCount > 0) {
+      const rating = Math.round((listingReviews.reduce((acc, r) => acc + r.rating, 0) / reviewCount) * 10) / 10;
+      return {
+        ...listing,
+        rating,
+        reviewCount
+      };
+    }
+
+    return listing;
+  });
 };
 
 export const saveListing = (listing: Listing) => {

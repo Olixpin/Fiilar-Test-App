@@ -3,12 +3,14 @@ import { paymentService } from '../../../services/paymentService';
 import { Transaction } from '@fiilar/types';
 import { Download, Filter, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
+import { useLocale } from '../../../contexts/LocaleContext';
 
 interface TransactionHistoryProps {
     refreshTrigger?: number;
 }
 
 export const TransactionHistory: React.FC<TransactionHistoryProps> = ({ refreshTrigger }) => {
+    const { locale } = useLocale();
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<'ALL' | 'DEPOSIT' | 'PAYMENT' | 'REFUND'>('ALL');
@@ -100,21 +102,21 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({ refreshT
                             <TrendingDown size={16} />
                             <span className="text-xs font-medium">Spent</span>
                         </div>
-                        <p className="text-lg font-bold text-red-900">₦{insights.totalSpent.toLocaleString()}</p>
+                        <p className="text-lg font-bold text-red-900">{locale.currencySymbol}{insights.totalSpent.toLocaleString()}</p>
                     </div>
                     <div className="bg-green-50 p-3 rounded-lg">
                         <div className="flex items-center gap-2 text-green-600 mb-1">
                             <TrendingUp size={16} />
                             <span className="text-xs font-medium">Added</span>
                         </div>
-                        <p className="text-lg font-bold text-green-900">₦{insights.totalDeposited.toLocaleString()}</p>
+                        <p className="text-lg font-bold text-green-900">{locale.currencySymbol}{insights.totalDeposited.toLocaleString()}</p>
                     </div>
                     <div className="bg-blue-50 p-3 rounded-lg">
                         <div className="flex items-center gap-2 text-blue-600 mb-1">
                             <DollarSign size={16} />
                             <span className="text-xs font-medium">Refunded</span>
                         </div>
-                        <p className="text-lg font-bold text-blue-900">₦{insights.totalRefunded.toLocaleString()}</p>
+                        <p className="text-lg font-bold text-blue-900">{locale.currencySymbol}{insights.totalRefunded.toLocaleString()}</p>
                     </div>
                 </div>
                 {chartData.length > 0 && (
@@ -124,7 +126,7 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({ refreshT
                                 <Pie data={chartData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={60} label>
                                     {chartData.map((entry, index) => <Cell key={index} fill={entry.color} />)}
                                 </Pie>
-                                <Tooltip formatter={(value: number) => `₦${value.toLocaleString()}`} />
+                                <Tooltip formatter={(value: number) => `${locale.currencySymbol}${value.toLocaleString()}`} />
                                 <Legend />
                             </PieChart>
                         </ResponsiveContainer>
@@ -222,7 +224,7 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({ refreshT
                         </div>
                         <div className={`text-right font-bold ${tx.type === 'DEPOSIT' || tx.type === 'REFUND' ? 'text-green-600' : 'text-gray-900'
                             }`}>
-                            {tx.type === 'DEPOSIT' || tx.type === 'REFUND' ? '+' : '-'}₦{tx.amount.toLocaleString()}
+                            {tx.type === 'DEPOSIT' || tx.type === 'REFUND' ? '+' : '-'}{locale.currencySymbol}{tx.amount.toLocaleString()}
                         </div>
                     </div>
                 ))}

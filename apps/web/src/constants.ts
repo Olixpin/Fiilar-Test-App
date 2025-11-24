@@ -39,7 +39,7 @@ export const MOCK_LISTINGS: Listing[] = [
     capacity: 5,
     includedGuests: 2,
     pricePerExtraGuest: 10,
-    cautionFee: 100, // $100 Security Deposit
+    cautionFee: 100, // ₦100 Security Deposit
     addOns: [
       { id: 'a1', name: 'Pro Lighting Kit', price: 30, description: '3x Godox Softboxes + Triggers' },
       { id: 'a2', name: 'Backdrop Stand', price: 10 },

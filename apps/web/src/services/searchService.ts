@@ -33,7 +33,10 @@ export const filterListings = (
         }
 
         // Price range filter
-        if (listing.price < filters.priceMin || listing.price > filters.priceMax) {
+        if (filters.priceMin !== undefined && listing.price < filters.priceMin) {
+            return false;
+        }
+        if (filters.priceMax !== undefined && listing.price > filters.priceMax) {
             return false;
         }
 
@@ -198,13 +201,13 @@ export const parseNaturalLanguageQuery = (query: string): Partial<SearchFilters>
     // "under $100", "less than 100", "cheap" (<50), "luxury" (>200), "$100", "100 dollars", "budget 500"
 
     // Check for explicit "under/below/budget" patterns first
-    const maxPriceMatch = lowerQuery.match(/(?:under|less than|below|budget|max)\s*:?\s*\$?(\d+)/);
+    const maxPriceMatch = lowerQuery.match(/(?:under|less than|below|budget|max)\s*:?\s*(?:[\$\₦\£\€]|currency)?\s*(\d+)/);
     if (maxPriceMatch) {
         filters.priceMax = parseInt(maxPriceMatch[1]);
     } else {
         // Fallback: check for just "$100" or "100 dollars" and assume it's a max price preference
         // unless it's clearly a "min" (which we'll handle separately if needed)
-        const simplePriceMatch = lowerQuery.match(/\$(\d+)|(\d+)\s*(?:dollars|usd|naira)/);
+        const simplePriceMatch = lowerQuery.match(/(?:[\$\₦\£\€])(\d+)|(\d+)\s*(?:dollars|usd|naira)/);
         if (simplePriceMatch) {
             filters.priceMax = parseInt(simplePriceMatch[1] || simplePriceMatch[2]);
         }

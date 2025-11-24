@@ -1,21 +1,55 @@
 import React, { useState, useEffect } from 'react';
 import { Listing, BookingType } from '@fiilar/types';
-import { Star, Heart, UserCheck, ImageOff } from 'lucide-react';
+import { Star, Heart, ImageOff, MapPin, Gem } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
-import { getCurrentUser, toggleFavorite } from '../../../services/storage';
+import { getCurrentUser, toggleFavorite, getAllUsers } from '../../../services/storage';
 import { Badge } from '@fiilar/ui';
+import { formatCurrency } from '../../../utils/currency';
+
+// Badge variant types
+type BadgeVariant = 'white' | 'gold' | 'premium';
+
+// Badge variant styles - Thicker crisp glass border with top highlight
+const badgeStyles: Record<BadgeVariant, string> = {
+  white: '!bg-gradient-to-b !from-white/20 !to-white/5 !backdrop-blur-md !text-white !border !border-white/30',
+  gold: '!bg-gradient-to-b !from-white/20 !to-white/5 !backdrop-blur-md !text-white !border !border-white/30',
+  premium: '!bg-gradient-to-b !from-white/20 !to-white/5 !backdrop-blur-md !text-white !border !border-white/30',
+};
 
 interface ListingCardProps {
   listing: Listing;
+  badgeVariant?: BadgeVariant;
 }
 
-const ListingCard: React.FC<ListingCardProps> = ({ listing }) => {
+const ListingCard: React.FC<ListingCardProps> = ({ listing, badgeVariant = 'white' }) => {
   const navigate = useNavigate();
   const [isFavorite, setIsFavorite] = useState(false);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [currentImageIndex] = useState(0);
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [hostBadgeVariant, setHostBadgeVariant] = useState<BadgeVariant>(badgeVariant);
+
+  // Determine badge variant from host's badge status
+  useEffect(() => {
+    // If a specific badge variant is passed as prop (e.g. for demo purposes), use it
+    if (badgeVariant !== 'white') {
+      setHostBadgeVariant(badgeVariant);
+      return;
+    }
+
+    // Otherwise, fetch host and check their badge status
+    const users = getAllUsers();
+    const host = users.find(u => u.id === listing.hostId);
+
+    if (host?.badgeStatus === 'super_host') {
+      setHostBadgeVariant('gold');
+    } else if (host?.badgeStatus === 'premium') {
+      setHostBadgeVariant('premium');
+    } else {
+      setHostBadgeVariant('white');
+    }
+  }, [listing.hostId, badgeVariant]);
 
   useEffect(() => {
     const u = getCurrentUser();
@@ -26,7 +60,7 @@ const ListingCard: React.FC<ListingCardProps> = ({ listing }) => {
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     const user = getCurrentUser();
     if (!user) {
       navigate('/login');
@@ -37,17 +71,37 @@ const ListingCard: React.FC<ListingCardProps> = ({ listing }) => {
     setIsFavorite((prev) => !prev);
   };
 
+  const renderBadgeContent = () => {
+    if (hostBadgeVariant === 'gold') {
+      return (
+        <div className="flex items-center gap-1.5">
+          <img src="/assets/super-host-icon.png" alt="Super Host" className="w-4 h-4 object-contain" />
+          <span>{listing.type}</span>
+        </div>
+      );
+    }
+    if (hostBadgeVariant === 'premium') {
+      return (
+        <div className="flex items-center gap-1.5">
+          <Gem size={14} className="text-purple-300 fill-purple-400/30" />
+          <span>{listing.type}</span>
+        </div>
+      );
+    }
+    return listing.type;
+  };
+
   return (
     <Link
       to={`/listing/${listing.id}`}
-      className="group cursor-pointer flex flex-col gap-2 hover:-translate-y-1 transition-all duration-300"
+      className="group cursor-pointer flex flex-col gap-3 bg-white p-3 rounded-3xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-gray-100"
     >
-      <div className="relative aspect-square overflow-hidden rounded-xl bg-gray-200 shadow-sm hover:shadow-xl transition-shadow duration-300">
+      <div className="relative aspect-square overflow-hidden rounded-2xl bg-gray-200">
         {/* Skeleton Loader for Image */}
         {!isImageLoaded && !hasError && (
           <div className="absolute inset-0 bg-gray-200 animate-pulse z-10" />
         )}
-        
+
         {hasError || !listing.images[currentImageIndex] ? (
           <div className="absolute inset-0 bg-gray-100 flex items-center justify-center z-10">
             <div className="text-gray-400 flex flex-col items-center">
@@ -68,49 +122,70 @@ const ListingCard: React.FC<ListingCardProps> = ({ listing }) => {
             className={`h-full w-full object-cover group-hover:scale-110 transition-all duration-700 ${isImageLoaded ? 'opacity-100' : 'opacity-0'}`}
           />
         )}
+
+        {/* Contrast Overlay for Light Images */}
+        <div className="absolute inset-x-0 top-0 h-24 bg-linear-to-b from-black/40 to-transparent z-0 pointer-events-none" />
+
+        {/* Glassmorphism Badge */}
+        {(listing.type || hostBadgeVariant !== 'white') && (
+          <div className="absolute top-4 left-4 z-10 group/badge">
+            <Badge
+              variant="outline"
+              className={`${badgeStyles[hostBadgeVariant]} rounded-full! px-3 py-1 flex items-center gap-1.5 text-[10px] font-bold tracking-wide uppercase drop-shadow-sm cursor-help`}
+            >
+              {renderBadgeContent()}
+            </Badge>
+            
+            {/* Tooltip */}
+            {(hostBadgeVariant === 'gold' || hostBadgeVariant === 'premium') && (
+              <div className="absolute top-full left-0 mt-2 opacity-0 group-hover/badge:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-20">
+                <div className="bg-gray-900/90 backdrop-blur-sm text-white text-[10px] font-medium px-2 py-1 rounded-md shadow-lg border border-white/10">
+                  {hostBadgeVariant === 'gold' ? 'Super Host' : 'Premium Host'}
+                </div>
+                {/* Arrow */}
+                <div className="absolute -top-1 left-4 w-2 h-2 bg-gray-900/90 rotate-45 border-t border-l border-white/10"></div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Heart Icon */}
         <button
           type="button"
           onClick={handleFavoriteClick}
           aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
           title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
-          className="absolute top-3 right-3 p-2 hover:scale-125 active:scale-95 transition-all duration-200 z-10"
+          className="absolute top-4 right-4 z-10 p-1 rounded-full hover:bg-black/10 transition-colors"
         >
           <Heart
-            className={`w-6 h-6 transition-all duration-200 ${isFavorite ? 'text-red-500 fill-red-500' : 'text-white fill-black/50 hover:fill-red-500'}`}
+            className={`w-6 h-6 transition-all duration-200 ${isFavorite ? 'text-white fill-white' : 'text-white fill-transparent hover:scale-110'}`}
           />
         </button>
-        {listing.type && (
-          <Badge 
-            variant="secondary" 
-            className="absolute top-3 left-3 bg-white/90 backdrop-blur-md text-[10px] font-bold text-gray-900 uppercase tracking-wide shadow-sm border-none"
-          >
-            {listing.type}
-          </Badge>
-        )}
       </div>
 
       <div className="mt-1">
-        <div className="flex justify-between items-start">
-          <h3 className="font-bold text-gray-900 leading-tight truncate">{listing.location}</h3>
-          <div className="flex items-center gap-1 text-sm">
-            <Star size={14} className="fill-black text-black" />
-            <span>4.9</span>
-          </div>
+        <h3 className="font-medium text-base text-gray-900 leading-tight truncate">{listing.title}</h3>
+
+        <div className="flex items-center gap-1 text-gray-500 mt-1">
+          <MapPin size={14} className="text-red-500" />
+          <span className="text-sm">{listing.location}</span>
         </div>
-        <p className="text-gray-500 text-sm line-clamp-1">{listing.title}</p>
 
-        <div className="flex justify-between items-center mt-1">
-          <p className="text-gray-500 text-sm">
-            <span className="font-semibold text-gray-900">${listing.price}</span>
-            <span> / {listing.priceUnit === BookingType.HOURLY ? 'hour' : 'night'}</span>
-          </p>
+        <div className="flex justify-between items-center mt-2">
+          <div className="flex items-center gap-1">
+            <Star size={14} className="fill-gray-500 text-gray-500" />
+            <span className="font-medium text-sm text-gray-500">
+              {(listing.rating !== undefined && listing.rating !== null) ? Number(listing.rating).toFixed(1) : 'New'}
+            </span>
+            {listing.reviewCount ? (
+              <span className="text-gray-400 text-xs">({listing.reviewCount} {listing.reviewCount === 1 ? 'Review' : 'Reviews'})</span>
+            ) : null}
+          </div>
 
-          {listing.requiresIdentityVerification && (
-            <Badge variant="info" className="flex items-center gap-1 text-[10px] font-bold bg-blue-50 text-blue-700 border-blue-100 px-2 py-1">
-              <UserCheck size={12} />
-              <span>ID REQ</span>
-            </Badge>
-          )}
+          <div className="text-right">
+            <span className="font-bold text-lg text-red-500">{formatCurrency(listing.price, { compact: true })}</span>
+            <span className="text-gray-400 text-xs">/{listing.priceUnit === BookingType.HOURLY ? 'Hr' : 'Night'}</span>
+          </div>
         </div>
       </div>
     </Link>
