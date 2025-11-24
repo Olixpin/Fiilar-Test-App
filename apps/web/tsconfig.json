@@ -1,0 +1,32 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "types": [
+      "node"
+    ],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ],
+      "@fiilar/types": [
+        "../../libs/types/src/index.ts"
+      ],
+      "@fiilar/ui": [
+        "../../libs/ui/src/index.ts"
+      ],
+      "@fiilar/utils": [
+        "../../libs/utils/src/index.ts"
+      ]
+    }
+  },
+  "include": [
+    "src"
+  ]
+}

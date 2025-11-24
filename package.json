@@ -1,28 +1,18 @@
 {
-  "name": "fiilar-spaces",
-  "private": true,
-  "version": "0.0.0",
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "@google/genai": "^1.30.0",
-    "lucide-react": "^0.554.0",
-    "puppeteer": "^24.31.0",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
-    "react-router-dom": "^7.9.6",
-    "recharts": "^3.4.1"
-  },
-  "devDependencies": {
-    "@tailwindcss/postcss": "^4.1.17",
-    "@types/node": "^22.14.0",
-    "@vitejs/plugin-react": "^5.0.0",
-    "terser": "^5.44.1",
-    "typescript": "~5.8.2",
-    "vite": "^6.2.0"
-  }
+    "name": "fiilar-monorepo",
+    "private": true,
+    "workspaces": [
+        "apps/*",
+        "libs/*"
+    ],
+    "scripts": {
+        "dev": "npm run dev -w @fiilar/web",
+        "build": "npm run build -w @fiilar/web",
+        "lint": "npm run lint -w @fiilar/web",
+        "test": "npm run test -w @fiilar/web"
+    },
+    "devDependencies": {
+        "@types/react": "^19.2.6",
+        "@types/react-dom": "^19.2.3"
+    }
 }

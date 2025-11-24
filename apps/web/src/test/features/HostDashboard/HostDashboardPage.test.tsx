@@ -1,0 +1,469 @@
+import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import HostDashboardPage from '../../../features/HostDashboard/pages/HostDashboardPage';
+import { User, Role, ListingStatus } from '@fiilar/types';
+import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import * as storageService from '../../../services/storage';
+
+// Mock hooks
+const mockHandleStartNewListing = vi.fn();
+const mockHandleEditListing = vi.fn();
+const mockHandleDeleteListing = vi.fn();
+
+vi.mock('../../../features/HostDashboard/hooks/useHostListings', () => ({
+  useHostListings: () => ({
+    newListing: {},
+    setNewListing: vi.fn(),
+    step: 1,
+    setStep: vi.fn(),
+    aiPrompt: '',
+    setAiPrompt: vi.fn(),
+    isAiGenerating: false,
+    showAiInput: false,
+    setShowAiInput: vi.fn(),
+    tempAddOn: { name: '', price: 0 },
+    setTempAddOn: vi.fn(),
+    tempRule: '',
+    setTempRule: vi.fn(),
+    customSafety: '',
+    setCustomSafety: vi.fn(),
+    availTab: 'weekly',
+    setAvailTab: vi.fn(),
+    weeklySchedule: {},
+    currentMonth: new Date(),
+    setCurrentMonth: vi.fn(),
+    isSubmitting: false,
+    lastSaved: null,
+    isEditingUpload: false,
+    setIsEditingUpload: vi.fn(),
+    selectedCalendarDate: null,
+    setSelectedCalendarDate: vi.fn(),
+    draggedImageIndex: null,
+    handleStartNewListing: mockHandleStartNewListing,
+    handleAiAutoFill: vi.fn(),
+    handleAddAddOn: vi.fn(),
+    handleRemoveAddOn: vi.fn(),
+    handleAddRule: vi.fn(),
+    handleRemoveRule: vi.fn(),
+    handleAddCustomSafety: vi.fn(),
+    toggleSafetyItem: vi.fn(),
+    handleImageUpload: vi.fn(),
+    handleImageDragStart: vi.fn(),
+    handleImageDragOver: vi.fn(),
+    handleImageDragEnd: vi.fn(),
+    removeImage: vi.fn(),
+    handleProofUpload: vi.fn(),
+    toggleDaySchedule: vi.fn(),
+    updateDayTime: vi.fn(),
+    applyWeeklySchedule: vi.fn(),
+    getDaysInMonth: vi.fn().mockReturnValue([]),
+    handleDateClick: vi.fn(),
+    toggleHourOverride: vi.fn(),
+    handleCreateListing: vi.fn(),
+    getPreviousProofs: vi.fn().mockReturnValue([]),
+    formatDate: vi.fn(),
+    handleEditListing: mockHandleEditListing,
+    handleDeleteListing: mockHandleDeleteListing,
+  })
+}));
+
+vi.mock('../../../features/HostDashboard/hooks/useHostBookings', () => ({
+  useHostBookings: () => ({
+    hostBookings: [
+        { id: 'b1', status: 'Pending' } // Mock one pending booking for badge
+    ],
+    bookingFilter: 'all',
+    setBookingFilter: vi.fn(),
+    bookingView: 'table',
+    setBookingView: vi.fn(),
+    handleAcceptBooking: vi.fn(),
+    handleRejectBooking: vi.fn(),
+    handleReleaseFunds: vi.fn(),
+  })
+}));
+
+vi.mock('../../../features/HostDashboard/hooks/useHostFinancials', () => ({
+  useHostFinancials: () => ({
+    bankDetails: null,
+    setBankDetails: vi.fn(),
+    isVerifyingBank: false,
+    hostTransactions: [],
+    handleVerifyBank: vi.fn(),
+    handleSaveBankDetails: vi.fn(),
+  })
+}));
+
+// Mock components to avoid deep rendering and focus on navigation
+vi.mock('../../../features/HostDashboard/components/HostOverview', () => ({
+  default: ({ onNavigateToBooking }: { onNavigateToBooking: (booking: any) => void }) => (
+    <div data-testid="host-overview">
+      <button onClick={() => onNavigateToBooking({ id: 'b1' })}>Go to Booking</button>
+    </div>
+  )
+}));
+vi.mock('../../../features/HostDashboard/components/HostListings', () => ({
+  default: ({ onEdit, onDelete, onCreate }: any) => (
+    <div data-testid="host-listings">
+      <button onClick={() => onEdit({ id: 'l1' })}>Edit Listing</button>
+      <button onClick={() => onDelete('l1')}>Delete Listing</button>
+      <button onClick={onCreate}>Create Listing</button>
+    </div>
+  )
+}));
+vi.mock('../../../features/HostDashboard/components/HostBookings', () => ({
+  default: () => <div data-testid="host-bookings">Host Bookings</div>
+}));
+vi.mock('../../../features/HostDashboard/components/HostEarnings', () => ({
+  default: () => <div data-testid="host-earnings">Host Earnings</div>
+}));
+vi.mock('../../../features/HostDashboard/components/HostFinancials', () => ({
+  default: () => <div data-testid="host-financials">Host Financials</div>
+}));
+vi.mock('../../../features/HostDashboard/components/CreateListingWizard', () => ({
+  default: () => <div data-testid="create-listing-wizard">Create Listing Wizard</div>
+}));
+vi.mock('../../../features/HostDashboard/components/HostSettings', () => ({
+  default: () => <div data-testid="host-settings">Host Settings</div>
+}));
+vi.mock('../../../features/Notifications/pages/NotificationsPage', () => ({
+  default: () => <div data-testid="notifications-page">Notifications Page</div>
+}));
+vi.mock('../../../features/Messaging/components/ChatList', () => ({
+  ChatList: ({ onSelect }: { onSelect: (id: string) => void }) => (
+    <div data-testid="chat-list">
+      <button onClick={() => onSelect('c1')}>Select Conversation</button>
+    </div>
+  )
+}));
+vi.mock('../../../features/Messaging/components/ChatWindow', () => ({
+  ChatWindow: () => <div data-testid="chat-window">Chat Window</div>
+}));
+
+// Mock services
+vi.mock('../../../services/storage', () => ({
+  getConversations: vi.fn().mockReturnValue([
+      { id: 'c1', participants: ['host1', 'user2'], unreadCount: 2 }
+  ]),
+}));
+
+const mockUser: User = {
+  id: 'host1',
+  name: 'Host User',
+  email: 'host@example.com',
+  role: Role.HOST,
+  kycVerified: true,
+  favorites: []
+};
+
+const mockListings = [
+    { id: 'l1', hostId: 'host1', status: ListingStatus.PENDING_APPROVAL }
+] as any[];
+
+describe('HostDashboardPage', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('renders overview by default', () => {
+    render(
+      <MemoryRouter initialEntries={['/host/dashboard']}>
+        <Routes>
+          <Route path="/host/dashboard" element={
+            <HostDashboardPage user={mockUser} listings={[]} refreshData={vi.fn()} />
+          } />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    expect(screen.getByTestId('host-overview')).toBeInTheDocument();
+  });
+
+  it('navigates to listings view when tab is clicked', () => {
+    render(
+      <MemoryRouter initialEntries={['/host/dashboard']}>
+        <Routes>
+          <Route path="/host/dashboard" element={
+            <HostDashboardPage user={mockUser} listings={[]} refreshData={vi.fn()} />
+          } />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    const listingsTab = screen.getByRole('button', { name: /listings/i });
+    fireEvent.click(listingsTab);
+
+    expect(screen.getByTestId('host-listings')).toBeInTheDocument();
+    expect(screen.queryByTestId('host-overview')).not.toBeInTheDocument();
+  });
+
+  it('navigates to bookings view when tab is clicked', () => {
+    render(
+      <MemoryRouter initialEntries={['/host/dashboard']}>
+        <Routes>
+          <Route path="/host/dashboard" element={
+            <HostDashboardPage user={mockUser} listings={[]} refreshData={vi.fn()} />
+          } />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    const bookingsTab = screen.getByRole('button', { name: /bookings/i });
+    fireEvent.click(bookingsTab);
+
+    expect(screen.getByTestId('host-bookings')).toBeInTheDocument();
+  });
+
+  it('renders correct view based on URL query param', () => {
+    render(
+      <MemoryRouter initialEntries={['/host/dashboard?view=earnings']}>
+        <Routes>
+          <Route path="/host/dashboard" element={
+            <HostDashboardPage user={mockUser} listings={[]} refreshData={vi.fn()} />
+          } />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    expect(screen.getByTestId('host-earnings')).toBeInTheDocument();
+  });
+
+  // --- New Tests ---
+
+  it('renders settings view', () => {
+    render(
+      <MemoryRouter initialEntries={['/host/dashboard?view=settings']}>
+        <Routes>
+          <Route path="/host/dashboard" element={
+            <HostDashboardPage user={mockUser} listings={[]} refreshData={vi.fn()} />
+          } />
+        </Routes>
+      </MemoryRouter>
+    );
+    expect(screen.getByTestId('host-settings')).toBeInTheDocument();
+  });
+
+  it('renders notifications view', () => {
+    render(
+      <MemoryRouter initialEntries={['/host/dashboard?view=notifications']}>
+        <Routes>
+          <Route path="/host/dashboard" element={
+            <HostDashboardPage user={mockUser} listings={[]} refreshData={vi.fn()} />
+          } />
+        </Routes>
+      </MemoryRouter>
+    );
+    expect(screen.getByTestId('notifications-page')).toBeInTheDocument();
+  });
+
+  it('renders create listing wizard', () => {
+    render(
+      <MemoryRouter initialEntries={['/host/dashboard?view=create']}>
+        <Routes>
+          <Route path="/host/dashboard" element={
+            <HostDashboardPage user={mockUser} listings={[]} refreshData={vi.fn()} />
+          } />
+        </Routes>
+      </MemoryRouter>
+    );
+    expect(screen.getByTestId('create-listing-wizard')).toBeInTheDocument();
+  });
+
+  it('renders messages view', () => {
+    render(
+      <MemoryRouter initialEntries={['/host/dashboard?view=messages']}>
+        <Routes>
+          <Route path="/host/dashboard" element={
+            <HostDashboardPage user={mockUser} listings={[]} refreshData={vi.fn()} />
+          } />
+        </Routes>
+      </MemoryRouter>
+    );
+    expect(screen.getByTestId('chat-list')).toBeInTheDocument();
+    // Chat window is hidden initially on desktop if no conversation selected?
+    // The code says: {selectedConversationId ? <ChatWindow ... /> : <div ...>No conversation selected</div>}
+    expect(screen.getByText('No conversation selected')).toBeInTheDocument();
+  });
+
+  it('triggers new listing creation', () => {
+    render(
+      <MemoryRouter initialEntries={['/host/dashboard']}>
+        <Routes>
+          <Route path="/host/dashboard" element={
+            <HostDashboardPage user={mockUser} listings={[]} refreshData={vi.fn()} />
+          } />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    const newListingBtns = screen.getAllByRole('button', { name: /new listing/i });
+    // Click the first one (desktop sidebar usually)
+    fireEvent.click(newListingBtns[0]);
+    expect(mockHandleStartNewListing).toHaveBeenCalled();
+  });
+
+  it('shows badges for pending items', () => {
+    render(
+      <MemoryRouter initialEntries={['/host/dashboard']}>
+        <Routes>
+          <Route path="/host/dashboard" element={
+            <HostDashboardPage user={mockUser} listings={mockListings} refreshData={vi.fn()} />
+          } />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    // Pending listings badge (1)
+    // The badge is inside the button. We can check if text "1" exists.
+    // But "1" might be ambiguous.
+    // Let's check if the badge element exists.
+    // The badge has class "bg-orange-100".
+    // Or we can just check text content of the button.
+    const listingsBtn = screen.getByRole('button', { name: /listings/i });
+    expect(listingsBtn).toHaveTextContent('1');
+
+    const bookingsBtn = screen.getByRole('button', { name: /bookings/i });
+    expect(bookingsBtn).toHaveTextContent('1'); // From mock hook
+  });
+
+  it('toggles mobile menu and navigates', () => {
+    render(
+      <MemoryRouter initialEntries={['/host/dashboard']}>
+        <Routes>
+          <Route path="/host/dashboard" element={
+            <HostDashboardPage user={mockUser} listings={[]} refreshData={vi.fn()} />
+          } />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    const menuBtn = screen.getByLabelText('Toggle menu');
+    
+    // Initially mobile menu is closed
+    // Desktop sidebar is visible (in jsdom), so 'Overview' is present once
+    expect(screen.getAllByText('Overview')).toHaveLength(1);
+
+    // Open menu
+    fireEvent.click(menuBtn);
+
+    // Now 'Overview' should be present twice (Desktop + Mobile)
+    const overviewButtons = screen.getAllByText('Overview');
+    expect(overviewButtons).toHaveLength(2);
+
+    // Helper to click mobile item (the second one)
+    const clickMobileItem = (text: string) => {
+      const items = screen.getAllByText(text);
+      expect(items.length).toBeGreaterThan(1); // Ensure mobile item exists
+      fireEvent.click(items[1]); // Click the mobile one
+    };
+
+    // Click Listings (Mobile)
+    clickMobileItem('Listings');
+    expect(screen.getByTestId('host-listings')).toBeInTheDocument();
+    // Menu should close after click?
+    // The code: onClick={() => { setView('listings'); setIsMobileMenuOpen(false); }}
+    // So now 'Overview' should be 1 again?
+    // Wait, 'Overview' is always in sidebar. 'Listings' is in sidebar too.
+    // If menu closed, mobile items are gone.
+    expect(screen.getAllByText('Overview')).toHaveLength(1);
+
+    // Re-open and click Bookings
+    fireEvent.click(menuBtn);
+    clickMobileItem('Bookings');
+    expect(screen.getByTestId('host-bookings')).toBeInTheDocument();
+
+    // Re-open and click Earnings
+    fireEvent.click(menuBtn);
+    clickMobileItem('Earnings');
+    expect(screen.getByTestId('host-earnings')).toBeInTheDocument();
+
+    // Re-open and click Messages
+    fireEvent.click(menuBtn);
+    clickMobileItem('Messages');
+    expect(screen.getByTestId('chat-list')).toBeInTheDocument();
+
+    // Re-open and click Settings
+    fireEvent.click(menuBtn);
+    clickMobileItem('Settings');
+    expect(screen.getByTestId('host-settings')).toBeInTheDocument();
+    
+    // Re-open and click Overview
+    fireEvent.click(menuBtn);
+    clickMobileItem('Overview');
+    expect(screen.getByTestId('host-overview')).toBeInTheDocument();
+  });
+
+  it('renders payouts view', () => {
+    render(
+      <MemoryRouter initialEntries={['/host/dashboard?view=payouts']}>
+        <Routes>
+          <Route path="/host/dashboard" element={
+            <HostDashboardPage user={mockUser} listings={[]} refreshData={vi.fn()} />
+          } />
+        </Routes>
+      </MemoryRouter>
+    );
+    expect(screen.getByTestId('host-financials')).toBeInTheDocument();
+  });
+
+  it('handles conversation selection in messages view', () => {
+    render(
+      <MemoryRouter initialEntries={['/host/dashboard?view=messages']}>
+        <Routes>
+          <Route path="/host/dashboard" element={
+            <HostDashboardPage user={mockUser} listings={[]} refreshData={vi.fn()} />
+          } />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    // Initially no conversation selected
+    expect(screen.getByText('No conversation selected')).toBeInTheDocument();
+    expect(screen.queryByTestId('chat-window')).not.toBeInTheDocument();
+
+    // Simulate selecting a conversation
+    fireEvent.click(screen.getByText('Select Conversation'));
+
+    // Now ChatWindow should be visible
+    expect(screen.getByTestId('chat-window')).toBeInTheDocument();
+    expect(screen.queryByText('No conversation selected')).not.toBeInTheDocument();
+  });
+
+  it('navigates to specific booking from overview', () => {
+    render(
+      <MemoryRouter initialEntries={['/host/dashboard']}>
+        <Routes>
+          <Route path="/host/dashboard" element={
+            <HostDashboardPage user={mockUser} listings={[]} refreshData={vi.fn()} />
+          } />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    fireEvent.click(screen.getByText('Go to Booking'));
+
+    // Should navigate to bookings view
+    expect(screen.getByTestId('host-bookings')).toBeInTheDocument();
+    // URL check is tricky with MemoryRouter inside the component, but we can check if the view changed.
+  });
+
+  it('passes actions to HostListings', () => {
+    render(
+      <MemoryRouter initialEntries={['/host/dashboard?view=listings']}>
+        <Routes>
+          <Route path="/host/dashboard" element={
+            <HostDashboardPage user={mockUser} listings={[]} refreshData={vi.fn()} />
+          } />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    fireEvent.click(screen.getByText('Edit Listing'));
+    expect(mockHandleEditListing).toHaveBeenCalledWith({ id: 'l1' });
+
+    fireEvent.click(screen.getByText('Delete Listing'));
+    expect(mockHandleDeleteListing).toHaveBeenCalledWith('l1');
+
+    fireEvent.click(screen.getByText('Create Listing'));
+    expect(mockHandleStartNewListing).toHaveBeenCalled();
+  });
+});
