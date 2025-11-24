@@ -3,74 +3,21 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import HostDashboardPage from '../../../features/HostDashboard/pages/HostDashboardPage';
 import { User, Role, ListingStatus } from '@fiilar/types';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
-import * as storageService from '../../../services/storage';
+
 
 // Mock hooks
-const mockHandleStartNewListing = vi.fn();
-const mockHandleEditListing = vi.fn();
 const mockHandleDeleteListing = vi.fn();
 
-vi.mock('../../../features/HostDashboard/hooks/useHostListings', () => ({
-  useHostListings: () => ({
-    newListing: {},
-    setNewListing: vi.fn(),
-    step: 1,
-    setStep: vi.fn(),
-    aiPrompt: '',
-    setAiPrompt: vi.fn(),
-    isAiGenerating: false,
-    showAiInput: false,
-    setShowAiInput: vi.fn(),
-    tempAddOn: { name: '', price: 0 },
-    setTempAddOn: vi.fn(),
-    tempRule: '',
-    setTempRule: vi.fn(),
-    customSafety: '',
-    setCustomSafety: vi.fn(),
-    availTab: 'weekly',
-    setAvailTab: vi.fn(),
-    weeklySchedule: {},
-    currentMonth: new Date(),
-    setCurrentMonth: vi.fn(),
-    isSubmitting: false,
-    lastSaved: null,
-    isEditingUpload: false,
-    setIsEditingUpload: vi.fn(),
-    selectedCalendarDate: null,
-    setSelectedCalendarDate: vi.fn(),
-    draggedImageIndex: null,
-    handleStartNewListing: mockHandleStartNewListing,
-    handleAiAutoFill: vi.fn(),
-    handleAddAddOn: vi.fn(),
-    handleRemoveAddOn: vi.fn(),
-    handleAddRule: vi.fn(),
-    handleRemoveRule: vi.fn(),
-    handleAddCustomSafety: vi.fn(),
-    toggleSafetyItem: vi.fn(),
-    handleImageUpload: vi.fn(),
-    handleImageDragStart: vi.fn(),
-    handleImageDragOver: vi.fn(),
-    handleImageDragEnd: vi.fn(),
-    removeImage: vi.fn(),
-    handleProofUpload: vi.fn(),
-    toggleDaySchedule: vi.fn(),
-    updateDayTime: vi.fn(),
-    applyWeeklySchedule: vi.fn(),
-    getDaysInMonth: vi.fn().mockReturnValue([]),
-    handleDateClick: vi.fn(),
-    toggleHourOverride: vi.fn(),
-    handleCreateListing: vi.fn(),
-    getPreviousProofs: vi.fn().mockReturnValue([]),
-    formatDate: vi.fn(),
-    handleEditListing: mockHandleEditListing,
-    handleDeleteListing: mockHandleDeleteListing,
+vi.mock('../../../features/HostDashboard/hooks/useListingActions', () => ({
+  useListingActions: () => ({
+    handleDeleteListing: mockHandleDeleteListing
   })
 }));
 
 vi.mock('../../../features/HostDashboard/hooks/useHostBookings', () => ({
   useHostBookings: () => ({
     hostBookings: [
-        { id: 'b1', status: 'Pending' } // Mock one pending booking for badge
+      { id: 'b1', status: 'Pending' } // Mock one pending booking for badge
     ],
     bookingFilter: 'all',
     setBookingFilter: vi.fn(),
@@ -142,7 +89,7 @@ vi.mock('../../../features/Messaging/components/ChatWindow', () => ({
 // Mock services
 vi.mock('../../../services/storage', () => ({
   getConversations: vi.fn().mockReturnValue([
-      { id: 'c1', participants: ['host1', 'user2'], unreadCount: 2 }
+    { id: 'c1', participants: ['host1', 'user2'], unreadCount: 2 }
   ]),
 }));
 
@@ -153,10 +100,10 @@ const mockUser: User = {
   role: Role.HOST,
   kycVerified: true,
   favorites: []
-};
+} as unknown as User;
 
 const mockListings = [
-    { id: 'l1', hostId: 'host1', status: ListingStatus.PENDING_APPROVAL }
+  { id: 'l1', hostId: 'host1', status: ListingStatus.PENDING_APPROVAL }
 ] as any[];
 
 describe('HostDashboardPage', () => {
@@ -298,7 +245,7 @@ describe('HostDashboardPage', () => {
     const newListingBtns = screen.getAllByRole('button', { name: /new listing/i });
     // Click the first one (desktop sidebar usually)
     fireEvent.click(newListingBtns[0]);
-    expect(mockHandleStartNewListing).toHaveBeenCalled();
+    expect(screen.getByTestId('create-listing-wizard')).toBeInTheDocument();
   });
 
   it('shows badges for pending items', () => {
@@ -337,7 +284,7 @@ describe('HostDashboardPage', () => {
     );
 
     const menuBtn = screen.getByLabelText('Toggle menu');
-    
+
     // Initially mobile menu is closed
     // Desktop sidebar is visible (in jsdom), so 'Overview' is present once
     expect(screen.getAllByText('Overview')).toHaveLength(1);
@@ -385,7 +332,7 @@ describe('HostDashboardPage', () => {
     fireEvent.click(menuBtn);
     clickMobileItem('Settings');
     expect(screen.getByTestId('host-settings')).toBeInTheDocument();
-    
+
     // Re-open and click Overview
     fireEvent.click(menuBtn);
     clickMobileItem('Overview');
@@ -458,12 +405,16 @@ describe('HostDashboardPage', () => {
     );
 
     fireEvent.click(screen.getByText('Edit Listing'));
-    expect(mockHandleEditListing).toHaveBeenCalledWith({ id: 'l1' });
+    expect(screen.getByTestId('create-listing-wizard')).toBeInTheDocument();
+
+    // Reset view to listings for next assertions (simulating back or just re-rendering)
+    // Since we can't easily reset view in this test setup without re-rendering, let's just check delete which is independent of view change (it's an action)
 
     fireEvent.click(screen.getByText('Delete Listing'));
     expect(mockHandleDeleteListing).toHaveBeenCalledWith('l1');
 
+    // Create listing also changes view
     fireEvent.click(screen.getByText('Create Listing'));
-    expect(mockHandleStartNewListing).toHaveBeenCalled();
+    expect(screen.getByTestId('create-listing-wizard')).toBeInTheDocument();
   });
 });

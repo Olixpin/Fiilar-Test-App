@@ -4,6 +4,7 @@ import { X, Calendar, Clock, AlertCircle, CheckCircle, DollarSign, Trash2, Plus 
 import { updateBooking, getBookings, deleteBooking, createBooking, setModificationAllowed, updateUserWalletBalance } from '../../../services/storage';
 import { paymentService } from '../../../services/paymentService';
 import { escrowService } from '../../../services/escrowService';
+import { Button } from '@fiilar/ui';
 
 interface ModifyBookingModalProps {
     booking: Booking;
@@ -408,24 +409,22 @@ const ModifyBookingModal: React.FC<ModifyBookingModalProps> = ({ booking, listin
                 </div>
 
                 <div className="flex gap-3">
-                    <button
+                    <Button
                         onClick={onClose}
-                        className="flex-1 py-3 border border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
+                        variant="outline"
+                        className="flex-1"
                     >
                         Cancel
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                         onClick={handleUpdate}
                         disabled={isSubmitting || (!isRecurring && endTime <= startTime)}
-                        className="flex-1 py-3 bg-brand-600 text-white rounded-xl font-semibold hover:bg-brand-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                        variant="primary"
+                        className="flex-1"
+                        leftIcon={!isSubmitting ? <CheckCircle size={18} /> : undefined}
                     >
-                        {isSubmitting ? 'Updating...' : (
-                            <>
-                                <CheckCircle size={18} />
-                                {priceDifference > 0 ? 'Pay & Update' : 'Update Request'}
-                            </>
-                        )}
-                    </button>
+                        {isSubmitting ? 'Updating...' : (priceDifference > 0 ? 'Pay & Update' : 'Update Request')}
+                    </Button>
                 </div>
             </div>
         </div>

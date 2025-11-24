@@ -47,9 +47,11 @@
 
   /* Premium Glass Effect (Liquid Glass / Apple Style) */
   .glass-premium {
-    background: linear-gradient(180deg,
-        rgba(255, 255, 255, 0.7) 0%,
-        rgba(255, 255, 255, 0.4) 100%);
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.7) 0%,
+      rgba(255, 255, 255, 0.4) 100%
+    );
     -webkit-backdrop-filter: blur(20px) saturate(140%);
     backdrop-filter: blur(20px) saturate(140%);
 
@@ -57,18 +59,18 @@
     border: 1px solid rgba(255, 255, 255, 0.3);
 
     /* Layered shadows for depth + specular highlights */
-    box-shadow:
-      0 1px 8px 0 rgba(0, 30, 63, 0.1),
-      0 0 2px 0 rgba(0, 9, 20, 0.1),
+    box-shadow: 0 1px 8px 0 rgba(0, 30, 63, 0.1), 0 0 2px 0 rgba(0, 9, 20, 0.1),
       inset 1px 1px 0 rgba(255, 255, 255, 0.3),
       inset 1px 3px 0 rgba(255, 255, 255, 0.1),
       inset 0 0 20px rgba(255, 255, 255, 0.4);
   }
 
   .glass-card {
-    background: linear-gradient(135deg,
-        rgba(255, 255, 255, 0.9) 0%,
-        rgba(255, 255, 255, 0.85) 100%);
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.9) 0%,
+      rgba(255, 255, 255, 0.85) 100%
+    );
     -webkit-backdrop-filter: blur(16px) saturate(150%);
     backdrop-filter: blur(16px) saturate(150%);
 
@@ -76,10 +78,8 @@
     border: 1px solid rgba(255, 255, 255, 0.5);
 
     /* Enhanced shadow with specular highlights */
-    box-shadow:
-      0 4px 24px -1px rgba(0, 0, 0, 0.08),
-      0 2px 6px -1px rgba(0, 0, 0, 0.04),
-      inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    box-shadow: 0 4px 24px -1px rgba(0, 0, 0, 0.08),
+      0 2px 6px -1px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.6),
       inset 0 0 15px rgba(255, 255, 255, 0.2);
   }
 
@@ -94,5 +94,25 @@
   .glass-button:hover {
     background: rgba(255, 255, 255, 0.35);
     border-color: rgba(255, 255, 255, 0.5);
+  }
+
+  /* Glass Slider Styles */
+  .glass-slider-progress {
+    width: var(--slider-percent, 0%);
+  }
+
+  .glass-slider-thumb {
+    left: var(--slider-percent, 0%);
+  }
+
+  .glass-slider-backdrop {
+    filter: url(#mini-liquid-lens);
+  }
+
+  .glass-slider-highlight {
+    box-shadow: inset 1px 1px 0 rgba(69, 168, 243, 0.2),
+      inset 1px 3px 0 rgba(28, 63, 90, 0.05),
+      inset 0 0 22px rgb(255 255 255 / 60%),
+      inset -1px -1px 0 rgba(69, 168, 243, 0.12);
   }
 }

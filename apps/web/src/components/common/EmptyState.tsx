@@ -1,5 +1,6 @@
 import React from 'react';
 import { Search, Heart, Calendar, MessageSquare, Package } from 'lucide-react';
+import { Button } from '@fiilar/ui';
 
 interface EmptyStateProps {
     icon?: 'search' | 'heart' | 'calendar' | 'message' | 'package';
@@ -34,12 +35,14 @@ const EmptyState: React.FC<EmptyStateProps> = ({
             <h3 className="text-xl font-bold text-gray-900 mb-2">{title}</h3>
             <p className="text-gray-600 mb-6 max-w-md">{description}</p>
             {actionLabel && onAction && (
-                <button
+                <Button
                     onClick={onAction}
-                    className="bg-brand-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-brand-700 transition-all duration-200 hover:scale-105 active:scale-95"
+                    variant="primary"
+                    size="lg"
+                    className="hover:scale-105 active:scale-95"
                 >
                     {actionLabel}
-                </button>
+                </Button>
             )}
         </div>
     );

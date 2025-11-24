@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Shield, Camera, Check } from 'lucide-react';
+import { Button } from '@fiilar/ui';
 
 interface KYCUploadProps {
     onUpload: () => void;
@@ -45,7 +46,7 @@ const KYCUpload: React.FC<KYCUploadProps> = ({ onUpload, onSkip }) => {
             canvas.getContext('2d')?.drawImage(videoRef.current, 0, 0);
             const dataUrl = canvas.toDataURL('image/jpeg');
             setSelfieImage(dataUrl);
-            
+
             // Stop stream
             const stream = videoRef.current.srcObject as MediaStream;
             stream?.getTracks().forEach(track => track.stop());
@@ -65,7 +66,7 @@ const KYCUpload: React.FC<KYCUploadProps> = ({ onUpload, onSkip }) => {
                 <div className="w-16 h-16 bg-brand-100 text-brand-600 rounded-full flex items-center justify-center mx-auto mb-6">
                     <Shield size={32} />
                 </div>
-                
+
                 {step === 'ID' ? (
                     <>
                         <h2 className="text-2xl font-bold mb-2">Verify Identity</h2>
@@ -97,34 +98,34 @@ const KYCUpload: React.FC<KYCUploadProps> = ({ onUpload, onSkip }) => {
                                         <Camera size={48} className="text-gray-300" />
                                     </div>
                                 )}
-                                
+
                                 {isCameraOpen ? (
-                                    <button onClick={captureSelfie} className="bg-brand-600 text-white px-6 py-2 rounded-full font-medium hover:bg-brand-700 transition">
+                                    <Button onClick={captureSelfie} variant="primary">
                                         Capture Photo
-                                    </button>
+                                    </Button>
                                 ) : (
-                                    <button onClick={startCamera} className="bg-brand-600 text-white px-6 py-2 rounded-full font-medium hover:bg-brand-700 transition">
+                                    <Button onClick={startCamera} variant="primary">
                                         Open Camera
-                                    </button>
+                                    </Button>
                                 )}
                             </div>
                         ) : (
                             <div className="mb-6">
                                 <img src={selfieImage} alt="Selfie" className="w-full rounded-xl mb-4" />
-                                <button onClick={handleComplete} className="w-full bg-green-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-green-700 transition flex items-center justify-center gap-2">
-                                    <Check size={20} /> Complete Verification
-                                </button>
-                                <button onClick={() => setSelfieImage(null)} className="mt-2 text-sm text-gray-500 underline">
+                                <Button onClick={handleComplete} variant="primary" size="lg" className="w-full bg-green-600 hover:bg-green-700" leftIcon={<Check size={20} />}>
+                                    Complete Verification
+                                </Button>
+                                <Button onClick={() => setSelfieImage(null)} variant="ghost" size="sm" className="mt-2">
                                     Retake
-                                </button>
+                                </Button>
                             </div>
                         )}
                     </>
                 )}
 
-                <button onClick={onSkip} className="text-gray-400 hover:text-gray-600 text-sm mt-4">
+                <Button onClick={onSkip} variant="ghost" size="sm" className="mt-4">
                     I'll do this later
-                </button>
+                </Button>
             </div>
         </div>
     );

@@ -5,17 +5,9 @@ import { User, Role, Listing, ListingStatus, SpaceType, BookingType, Cancellatio
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 
 // Mock hooks - we need to mock them because they are called in the component
-vi.mock('../../../features/HostDashboard/hooks/useHostListings', () => ({
-  useHostListings: () => ({
-    newListing: {},
-    step: 1,
-    handleStartNewListing: vi.fn(),
-    // Add minimal returns to prevent crash
-    weeklySchedule: {},
-    currentMonth: new Date(),
-    activeBookings: [],
-    getDaysInMonth: () => [],
-    getPreviousProofs: () => [],
+vi.mock('../../../features/HostDashboard/hooks/useListingActions', () => ({
+  useListingActions: () => ({
+    handleDeleteListing: vi.fn()
   })
 }));
 
@@ -75,7 +67,7 @@ const mockUser: User = {
   emailVerified: true,
   phoneVerified: true,
   createdAt: new Date().toISOString()
-};
+} as unknown as User;
 
 const mockListings: Listing[] = [
   {
@@ -171,7 +163,7 @@ describe('HostDashboardPage Filtering', () => {
     expect(screen.getByText('Count: 2')).toBeInTheDocument();
     expect(screen.getByTestId('listing-l1')).toBeInTheDocument();
     expect(screen.getByTestId('listing-l3')).toBeInTheDocument();
-    
+
     // Ensure l2 (host2) is NOT present
     expect(screen.queryByTestId('listing-l2')).not.toBeInTheDocument();
   });

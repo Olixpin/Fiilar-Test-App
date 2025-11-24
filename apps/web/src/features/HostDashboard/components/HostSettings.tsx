@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { User as UserIcon, Settings as SettingsIcon, HelpCircle, Info, MessageSquare, Phone, Mail, MessageCircle, Star, Check, AlertTriangle, Trash2, FileText, Shield, Upload } from 'lucide-react';
 import { User } from '@fiilar/types';
+import { Button } from '@fiilar/ui';
 
 interface HostSettingsProps {
     user: User | null;
@@ -11,7 +12,7 @@ type SettingsTab = 'account' | 'support' | 'about' | 'feedback';
 
 const HostSettings: React.FC<HostSettingsProps> = ({ user, onUpdateUser }) => {
     const [activeTab, setActiveTab] = useState<SettingsTab>('account');
-    
+
     // Profile Form State
     const [formData, setFormData] = useState({
         name: user?.name || '',
@@ -45,7 +46,7 @@ const HostSettings: React.FC<HostSettingsProps> = ({ user, onUpdateUser }) => {
         const updated = { ...notifications, [key]: value };
         setNotifications(updated);
         localStorage.setItem('host_notification_preferences', JSON.stringify(updated));
-        
+
         // Show success toast
         setShowSavedToast(true);
         setTimeout(() => setShowSavedToast(false), 2000);
@@ -56,11 +57,11 @@ const HostSettings: React.FC<HostSettingsProps> = ({ user, onUpdateUser }) => {
         try {
             // Simulate API call
             await new Promise(resolve => setTimeout(resolve, 1000));
-            
+
             if (onUpdateUser) {
                 onUpdateUser(formData);
             }
-            
+
             setIsEditing(false);
             setShowSavedToast(true);
             setTimeout(() => setShowSavedToast(false), 2000);
@@ -160,28 +161,28 @@ const HostSettings: React.FC<HostSettingsProps> = ({ user, onUpdateUser }) => {
                                     <p className="text-gray-600 text-sm">Manage your host profile and preferences</p>
                                 </div>
                                 {!isEditing ? (
-                                    <button 
+                                    <Button
                                         onClick={() => setIsEditing(true)}
-                                        className="text-brand-600 font-medium text-sm hover:text-brand-700"
+                                        variant="ghost"
                                     >
                                         Edit Profile
-                                    </button>
+                                    </Button>
                                 ) : (
                                     <div className="flex gap-2">
-                                        <button 
+                                        <Button
                                             onClick={() => setIsEditing(false)}
-                                            className="text-gray-600 font-medium text-sm hover:text-gray-800 px-3 py-1.5"
+                                            variant="ghost"
                                             disabled={isSaving}
                                         >
                                             Cancel
-                                        </button>
-                                        <button 
+                                        </Button>
+                                        <Button
                                             onClick={handleSaveProfile}
                                             disabled={isSaving}
-                                            className="bg-brand-600 text-white font-medium text-sm px-4 py-1.5 rounded-lg hover:bg-brand-700 disabled:opacity-50 flex items-center gap-2"
+                                            variant="primary"
                                         >
                                             {isSaving ? 'Saving...' : 'Save Changes'}
-                                        </button>
+                                        </Button>
                                     </div>
                                 )}
                             </div>
@@ -199,7 +200,7 @@ const HostSettings: React.FC<HostSettingsProps> = ({ user, onUpdateUser }) => {
                                         )}
                                     </div>
                                     {isEditing && (
-                                        <button 
+                                        <button
                                             className="absolute inset-0 bg-black/40 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                                             aria-label="Upload profile picture"
                                             title="Upload profile picture"
@@ -222,7 +223,7 @@ const HostSettings: React.FC<HostSettingsProps> = ({ user, onUpdateUser }) => {
                                             id="account-name"
                                             type="text"
                                             value={isEditing ? formData.name : (user?.name || '')}
-                                            onChange={(e) => setFormData({...formData, name: e.target.value})}
+                                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                             className={`w-full border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-500 ${isEditing ? 'border-gray-300 bg-white' : 'border-transparent bg-gray-50'}`}
                                             readOnly={!isEditing}
                                         />
@@ -234,7 +235,7 @@ const HostSettings: React.FC<HostSettingsProps> = ({ user, onUpdateUser }) => {
                                             id="account-email"
                                             type="email"
                                             value={isEditing ? formData.email : (user?.email || '')}
-                                            onChange={(e) => setFormData({...formData, email: e.target.value})}
+                                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                                             className={`w-full border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-500 ${isEditing ? 'border-gray-300 bg-white' : 'border-transparent bg-gray-50'}`}
                                             readOnly={!isEditing}
                                         />
@@ -246,7 +247,7 @@ const HostSettings: React.FC<HostSettingsProps> = ({ user, onUpdateUser }) => {
                                             id="account-phone"
                                             type="tel"
                                             value={isEditing ? formData.phone : (user?.phone || '')}
-                                            onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                                             placeholder={isEditing ? "+1 (555) 000-0000" : "Not set"}
                                             className={`w-full border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-500 ${isEditing ? 'border-gray-300 bg-white' : 'border-transparent bg-gray-50'}`}
                                             readOnly={!isEditing}
@@ -259,7 +260,7 @@ const HostSettings: React.FC<HostSettingsProps> = ({ user, onUpdateUser }) => {
                                     <textarea
                                         id="account-bio"
                                         value={isEditing ? formData.bio : (user?.bio || '')}
-                                        onChange={(e) => setFormData({...formData, bio: e.target.value})}
+                                        onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
                                         placeholder={isEditing ? "Tell guests a bit about yourself..." : "No bio yet"}
                                         rows={3}
                                         className={`w-full border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none ${isEditing ? 'border-gray-300 bg-white' : 'border-transparent bg-gray-50'}`}
@@ -271,45 +272,45 @@ const HostSettings: React.FC<HostSettingsProps> = ({ user, onUpdateUser }) => {
                                     <h3 className="text-sm font-semibold text-gray-900 mb-3">Notification Preferences</h3>
                                     <div className="space-y-3">
                                         <label className="flex items-center gap-3 cursor-pointer">
-                                            <input 
-                                                type="checkbox" 
-                                                className="w-4 h-4 text-brand-600 rounded" 
+                                            <input
+                                                type="checkbox"
+                                                className="w-4 h-4 text-brand-600 rounded"
                                                 checked={notifications.newBookings}
                                                 onChange={(e) => updateNotificationPref('newBookings', e.target.checked)}
                                             />
                                             <span className="text-sm text-gray-700">Email notifications for new booking requests</span>
                                         </label>
                                         <label className="flex items-center gap-3 cursor-pointer">
-                                            <input 
-                                                type="checkbox" 
-                                                className="w-4 h-4 text-brand-600 rounded" 
+                                            <input
+                                                type="checkbox"
+                                                className="w-4 h-4 text-brand-600 rounded"
                                                 checked={notifications.messages}
                                                 onChange={(e) => updateNotificationPref('messages', e.target.checked)}
                                             />
                                             <span className="text-sm text-gray-700">Email notifications for guest messages</span>
                                         </label>
                                         <label className="flex items-center gap-3 cursor-pointer">
-                                            <input 
-                                                type="checkbox" 
-                                                className="w-4 h-4 text-brand-600 rounded" 
+                                            <input
+                                                type="checkbox"
+                                                className="w-4 h-4 text-brand-600 rounded"
                                                 checked={notifications.reviews}
                                                 onChange={(e) => updateNotificationPref('reviews', e.target.checked)}
                                             />
                                             <span className="text-sm text-gray-700">Email notifications for new reviews</span>
                                         </label>
                                         <label className="flex items-center gap-3 cursor-pointer">
-                                            <input 
-                                                type="checkbox" 
-                                                className="w-4 h-4 text-brand-600 rounded" 
+                                            <input
+                                                type="checkbox"
+                                                className="w-4 h-4 text-brand-600 rounded"
                                                 checked={notifications.updates}
                                                 onChange={(e) => updateNotificationPref('updates', e.target.checked)}
                                             />
                                             <span className="text-sm text-gray-700">Platform updates and announcements</span>
                                         </label>
                                         <label className="flex items-center gap-3 cursor-pointer">
-                                            <input 
-                                                type="checkbox" 
-                                                className="w-4 h-4 text-brand-600 rounded" 
+                                            <input
+                                                type="checkbox"
+                                                className="w-4 h-4 text-brand-600 rounded"
                                                 checked={notifications.marketing}
                                                 onChange={(e) => updateNotificationPref('marketing', e.target.checked)}
                                             />
@@ -330,12 +331,12 @@ const HostSettings: React.FC<HostSettingsProps> = ({ user, onUpdateUser }) => {
                                                 </p>
                                             </div>
                                         </div>
-                                        <button
+                                        <Button
                                             onClick={() => setShowDeleteModal(true)}
-                                            className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition text-sm"
+                                            variant="danger"
                                         >
                                             Delete My Account
-                                        </button>
+                                        </Button>
                                     </div>
                                 </div>
                             </div>
@@ -393,20 +394,22 @@ const HostSettings: React.FC<HostSettingsProps> = ({ user, onUpdateUser }) => {
                                         </div>
 
                                         <div className="flex gap-3">
-                                            <button
+                                            <Button
                                                 onClick={() => {
                                                     setShowDeleteModal(false);
                                                     setDeleteConfirmText('');
                                                 }}
-                                                className="flex-1 px-6 py-3 border border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-50 transition"
+                                                variant="outline"
                                                 disabled={isDeleting}
+                                                className="flex-1"
                                             >
                                                 Cancel
-                                            </button>
-                                            <button
+                                            </Button>
+                                            <Button
                                                 onClick={handleDeleteAccount}
                                                 disabled={deleteConfirmText !== 'DELETE' || isDeleting}
-                                                className="flex-1 px-6 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                                variant="danger"
+                                                className="flex-1"
                                             >
                                                 {isDeleting ? (
                                                     <>
@@ -419,7 +422,7 @@ const HostSettings: React.FC<HostSettingsProps> = ({ user, onUpdateUser }) => {
                                                         Delete Forever
                                                     </>
                                                 )}
-                                            </button>
+                                            </Button>
                                         </div>
                                     </div>
                                 </div>
@@ -612,13 +615,14 @@ const HostSettings: React.FC<HostSettingsProps> = ({ user, onUpdateUser }) => {
                                         />
                                     </div>
 
-                                    <button
+                                    <Button
                                         type="submit"
                                         disabled={feedbackRating === 0 || !feedbackMessage.trim()}
-                                        className="w-full px-6 py-3 bg-brand-600 text-white rounded-xl font-semibold hover:bg-brand-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                        variant="primary"
+                                        className="w-full"
                                     >
                                         Submit Feedback
-                                    </button>
+                                    </Button>
                                 </form>
                             )}
                         </div>

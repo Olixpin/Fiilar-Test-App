@@ -3,6 +3,7 @@ import { Bell, X, AlertTriangle, Info, MessageSquare, Calendar, Star, CheckCircl
 import { Notification } from '@fiilar/types';
 import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead } from '../../../services/storage';
 import { useNavigate } from 'react-router-dom';
+import { Button } from '@fiilar/ui';
 
 interface NotificationCenterProps {
     userId: string;
@@ -117,8 +118,8 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ userId, onClose
                     <button
                         onClick={() => setFilter('all')}
                         className={`flex-1 px-3 py-1.5 rounded-lg text-sm font-medium transition ${filter === 'all'
-                                ? 'bg-brand-100 text-brand-700'
-                                : 'text-gray-600 hover:bg-gray-100'
+                            ? 'bg-brand-100 text-brand-700'
+                            : 'text-gray-600 hover:bg-gray-100'
                             }`}
                     >
                         All ({notifications.length})
@@ -126,8 +127,8 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ userId, onClose
                     <button
                         onClick={() => setFilter('unread')}
                         className={`flex-1 px-3 py-1.5 rounded-lg text-sm font-medium transition ${filter === 'unread'
-                                ? 'bg-brand-100 text-brand-700'
-                                : 'text-gray-600 hover:bg-gray-100'
+                            ? 'bg-brand-100 text-brand-700'
+                            : 'text-gray-600 hover:bg-gray-100'
                             }`}
                     >
                         Unread ({unreadCount})
@@ -193,15 +194,16 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ userId, onClose
             {/* Footer */}
             {notifications.length > 0 && (
                 <div className="p-3 border-t border-gray-200">
-                    <button
+                    <Button
                         onClick={() => {
                             navigate('/dashboard?tab=notifications');
                             onClose();
                         }}
-                        className="w-full text-center text-sm font-medium text-brand-600 hover:text-brand-700 transition"
+                        variant="ghost"
+                        className="w-full"
                     >
                         View All Notifications
-                    </button>
+                    </Button>
                 </div>
             )}
         </div>

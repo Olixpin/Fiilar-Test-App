@@ -7,76 +7,35 @@ import ListingAvailability from './CreateListingWizard/ListingAvailability';
 import ListingVerification from './CreateListingWizard/ListingVerification';
 import ListingReview from './CreateListingWizard/ListingReview';
 import ListingLivePreview from './CreateListingWizard/ListingLivePreview';
+import { useListingForm } from '../hooks/useListingForm';
 
 interface CreateListingWizardProps {
     user: User;
     listings: Listing[];
-    newListing: Partial<Listing>;
-    setNewListing: React.Dispatch<React.SetStateAction<Partial<Listing>>>;
-    step: number;
-    setStep: (step: number) => void;
-    aiPrompt: string;
-    setAiPrompt: (prompt: string) => void;
-    isAiGenerating: boolean;
-    handleAiAutoFill: () => void;
-    showAiInput: boolean;
-    setShowAiInput: (show: boolean) => void;
-    tempAddOn: { name: string; price: string; description: string; image?: string };
-    setTempAddOn: React.Dispatch<React.SetStateAction<{ name: string; price: string; description: string; image?: string }>>;
-    handleAddAddOn: () => void;
-    handleRemoveAddOn: (id: string) => void;
-    tempRule: string;
-    setTempRule: (rule: string) => void;
-    handleAddRule: () => void;
-    handleRemoveRule: (index: number) => void;
-    customSafety: string;
-    setCustomSafety: (safety: string) => void;
-    handleAddCustomSafety: () => void;
-    toggleSafetyItem: (item: string) => void;
-    handleImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
-    handleImageDragStart: (index: number) => void;
-    handleImageDragOver: (e: React.DragEvent, index: number) => void;
-    handleImageDragEnd: () => void;
-    removeImage: (index: number) => void;
-    handleProofUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
-    availTab: 'schedule' | 'calendar' | 'rules';
-    setAvailTab: (tab: 'schedule' | 'calendar' | 'rules') => void;
-    weeklySchedule: Record<number, { enabled: boolean; start: number; end: number }>;
-    toggleDaySchedule: (dayIndex: number) => void;
-    updateDayTime: (dayIndex: number, field: 'start' | 'end', value: number) => void;
-    applyWeeklySchedule: () => void;
-    currentMonth: Date;
-    setCurrentMonth: React.Dispatch<React.SetStateAction<Date>>;
-    getDaysInMonth: (date: Date) => (Date | null)[];
-    handleDateClick: (dateStr: string) => void;
-    toggleHourOverride: (dateStr: string, hour: number) => void;
     activeBookings: Booking[];
-    isSubmitting: boolean;
-    handleCreateListing: () => void;
+    editingListing: Listing | null;
     setView: (view: any) => void;
-    lastSaved: Date | null;
-    isEditingUpload: boolean;
-    setIsEditingUpload: (isEditing: boolean) => void;
-    getPreviousProofs: () => { url: string; location: string; title: string }[];
-    formatDate: (date: Date) => string;
-    selectedCalendarDate: string | null;
-    setSelectedCalendarDate: (date: string | null) => void;
-    draggedImageIndex: number | null;
+    refreshData: () => void;
+    onCreateListing?: (l: Listing) => void;
+    onUpdateListing?: (l: Listing) => void;
 }
 
 const CreateListingWizard: React.FC<CreateListingWizardProps> = ({
-    user, listings, newListing, setNewListing, step, setStep,
-    aiPrompt, setAiPrompt, isAiGenerating, handleAiAutoFill, showAiInput, setShowAiInput,
-    tempAddOn, setTempAddOn, handleAddAddOn, handleRemoveAddOn,
-    tempRule, setTempRule, handleAddRule, handleRemoveRule,
-    customSafety, setCustomSafety, handleAddCustomSafety, toggleSafetyItem,
-    handleImageUpload, handleImageDragStart, handleImageDragOver, handleImageDragEnd, removeImage,
-    handleProofUpload, availTab, setAvailTab, weeklySchedule, toggleDaySchedule, updateDayTime, applyWeeklySchedule,
-    currentMonth, setCurrentMonth, getDaysInMonth, handleDateClick, toggleHourOverride,
-    activeBookings, isSubmitting, handleCreateListing, setView, lastSaved,
-    isEditingUpload, setIsEditingUpload, getPreviousProofs, formatDate,
-    selectedCalendarDate, setSelectedCalendarDate, draggedImageIndex
+    user, listings, activeBookings, editingListing, setView, refreshData, onCreateListing, onUpdateListing
 }) => {
+    const {
+        newListing, setNewListing, step, setStep,
+        aiPrompt, setAiPrompt, isAiGenerating, handleAiAutoFill, showAiInput, setShowAiInput,
+        tempAddOn, setTempAddOn, handleAddAddOn, handleRemoveAddOn,
+        tempRule, setTempRule, handleAddRule, handleRemoveRule,
+        customSafety, setCustomSafety, handleAddCustomSafety, toggleSafetyItem,
+        handleImageUpload, handleImageDragStart, handleImageDragOver, handleImageDragEnd, removeImage,
+        handleProofUpload, availTab, setAvailTab, weeklySchedule, toggleDaySchedule, updateDayTime, applyWeeklySchedule,
+        currentMonth, setCurrentMonth, getDaysInMonth, handleDateClick, toggleHourOverride,
+        isSubmitting, handleCreateListing, lastSaved,
+        isEditingUpload, setIsEditingUpload, getPreviousProofs, formatDate,
+        selectedCalendarDate, setSelectedCalendarDate, draggedImageIndex
+    } = useListingForm(user, listings, activeBookings, editingListing, refreshData, setView, onCreateListing, onUpdateListing);
 
     return (
         <div className="flex flex-col lg:flex-row gap-8 h-[calc(100vh-100px)]">

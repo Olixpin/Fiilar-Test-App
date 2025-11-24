@@ -59,7 +59,7 @@ const EscrowManager: React.FC<EscrowManagerProps> = ({ financials, transactions,
 
             {/* Financial Overview Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white border-none">
+                <Card className="bg-linear-to-br from-indigo-500 to-purple-600 text-white border-none">
                     <CardContent className="p-6">
                         <div className="flex justify-between items-start mb-4">
                             <div>
@@ -201,7 +201,7 @@ const EscrowManager: React.FC<EscrowManagerProps> = ({ financials, transactions,
                                             </span>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className={`inline - flex items - center px - 2.5 py - 0.5 rounded - full text - xs font - medium ${tx.status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
+                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${tx.status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
                                                 tx.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
                                                     'bg-red-100 text-red-800'
                                                 } `}>
@@ -243,8 +243,10 @@ const EscrowManager: React.FC<EscrowManagerProps> = ({ financials, transactions,
                                 <p className="text-xs text-gray-500 mt-0.5">Booking ID: <span className="font-mono">{selectedBookingId}</span></p>
                             </div>
                             <button
+                                type="button"
                                 onClick={() => setSelectedBookingId(null)}
                                 className="p-1 hover:bg-gray-200 rounded-full transition-colors"
+                                aria-label="Close"
                             >
                                 <X size={20} className="text-gray-500" />
                             </button>

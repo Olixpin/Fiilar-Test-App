@@ -3,6 +3,7 @@ import { Bell, Check, Trash2, AlertTriangle, Calendar, MessageSquare, Star, Info
 import { Notification } from '@fiilar/types';
 import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead, clearAllNotifications } from '../../../services/storage';
 import { useNavigate } from 'react-router-dom';
+import { Button } from '@fiilar/ui';
 
 interface NotificationsPageProps {
     userId: string;
@@ -107,7 +108,7 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ userId }) => {
         const today = new Date();
         const yesterday = new Date(today);
         yesterday.setDate(yesterday.getDate() - 1);
-        
+
         let label = '';
         if (date.toDateString() === today.toDateString()) {
             label = 'Today';
@@ -118,7 +119,7 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ userId }) => {
         } else {
             label = 'Older';
         }
-        
+
         if (!groups[label]) groups[label] = [];
         groups[label].push(notification);
         return groups;
@@ -132,13 +133,14 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ userId }) => {
                     <h1 className="text-3xl font-bold text-gray-900 mb-2">Notifications</h1>
                     <p className="text-gray-600">Stay updated with your bookings, messages, and platform updates</p>
                 </div>
-                <button
+                <Button
                     onClick={() => navigate('/dashboard?tab=settings')}
-                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+                    variant="outline"
+                    size="sm"
+                    leftIcon={<Settings size={16} />}
                 >
-                    <Settings size={16} />
                     Preferences
-                </button>
+                </Button>
             </div>
 
             {/* Filter Bar */}
@@ -148,8 +150,8 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ userId }) => {
                         <button
                             onClick={() => setFilter('all')}
                             className={`px-4 py-2 rounded-lg text-sm font-medium transition ${filter === 'all'
-                                    ? 'bg-brand-100 text-brand-700'
-                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                ? 'bg-brand-100 text-brand-700'
+                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                 }`}
                         >
                             All ({notifications.length})
@@ -157,8 +159,8 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ userId }) => {
                         <button
                             onClick={() => setFilter('unread')}
                             className={`px-4 py-2 rounded-lg text-sm font-medium transition ${filter === 'unread'
-                                    ? 'bg-brand-100 text-brand-700'
-                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                ? 'bg-brand-100 text-brand-700'
+                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                 }`}
                         >
                             Unread ({unreadCount})
@@ -166,8 +168,8 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ userId }) => {
                         <button
                             onClick={() => setFilter('urgent')}
                             className={`px-4 py-2 rounded-lg text-sm font-medium transition ${filter === 'urgent'
-                                    ? 'bg-brand-100 text-brand-700'
-                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                ? 'bg-brand-100 text-brand-700'
+                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                 }`}
                         >
                             Urgent ({urgentCount})
@@ -175,22 +177,25 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ userId }) => {
                     </div>
 
                     {unreadCount > 0 && (
-                        <button
+                        <Button
                             onClick={handleMarkAllAsRead}
-                            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-brand-600 hover:text-brand-700 transition"
+                            variant="ghost"
+                            size="sm"
+                            leftIcon={<Check size={16} />}
                         >
-                            <Check size={16} />
                             Mark all as read
-                        </button>
+                        </Button>
                     )}
                     {notifications.length > 0 && (
-                        <button
+                        <Button
                             onClick={handleClearAll}
-                            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 hover:text-red-600 transition"
+                            variant="ghost"
+                            size="sm"
+                            leftIcon={<Trash2 size={16} />}
+                            className="hover:text-red-600"
                         >
-                            <Trash2 size={16} />
                             Clear all
-                        </button>
+                        </Button>
                     )}
                 </div>
             </div>
@@ -219,18 +224,18 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ userId }) => {
                                             {getIcon(notification.type, notification.severity)}
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                    <div className="flex items-start justify-between gap-4 mb-2">
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <h3 className="font-semibold text-gray-900">{notification.title}</h3>
-                                                {!notification.read && (
-                                                    <div className="w-2 h-2 bg-brand-600 rounded-full"></div>
-                                                )}
+                                            <div className="flex items-start justify-between gap-4 mb-2">
+                                                <div className="flex-1">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <h3 className="font-semibold text-gray-900">{notification.title}</h3>
+                                                        {!notification.read && (
+                                                            <div className="w-2 h-2 bg-brand-600 rounded-full"></div>
+                                                        )}
+                                                    </div>
+                                                    <p className="text-gray-700 leading-relaxed">{notification.message}</p>
+                                                </div>
+                                                {getSeverityBadge(notification.severity)}
                                             </div>
-                                            <p className="text-gray-700 leading-relaxed">{notification.message}</p>
-                                        </div>
-                                        {getSeverityBadge(notification.severity)}
-                                    </div>
 
                                             <div className="flex items-center justify-between mt-4">
                                                 <span className="text-sm text-gray-500">

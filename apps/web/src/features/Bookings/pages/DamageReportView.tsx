@@ -3,6 +3,7 @@ import { X, AlertTriangle, DollarSign, Check } from 'lucide-react';
 import { DamageReport } from '@fiilar/types';
 import { updateDamageReport, addNotification } from '../../../services/storage';
 import { useLocale } from '../../../contexts/LocaleContext';
+import { Button } from '@fiilar/ui';
 
 interface DamageReportViewProps {
     report: DamageReport;
@@ -102,9 +103,9 @@ const DamageReportView: React.FC<DamageReportViewProps> = ({ report, onClose, on
                     <div className="flex items-center gap-2">
                         <span className="text-sm font-semibold text-gray-700">Status:</span>
                         <span className={`px-3 py-1 rounded-full text-xs font-semibold ${report.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                                report.status === 'resolved' ? 'bg-green-100 text-green-700' :
-                                    report.status === 'disputed' ? 'bg-red-100 text-red-700' :
-                                        'bg-gray-100 text-gray-700'
+                            report.status === 'resolved' ? 'bg-green-100 text-green-700' :
+                                report.status === 'disputed' ? 'bg-red-100 text-red-700' :
+                                    'bg-gray-100 text-gray-700'
                             }`}>
                             {report.status.charAt(0).toUpperCase() + report.status.slice(1)}
                         </span>
@@ -189,31 +190,34 @@ const DamageReportView: React.FC<DamageReportViewProps> = ({ report, onClose, on
                     {/* Actions */}
                     {report.status === 'pending' && (
                         <div className="flex gap-3">
-                            <button
+                            <Button
                                 onClick={handleDispute}
                                 disabled={isSubmitting}
-                                className="flex-1 px-6 py-3 border-2 border-red-600 text-red-600 rounded-xl font-semibold hover:bg-red-50 transition disabled:opacity-50"
+                                variant="outline"
+                                className="flex-1 border-2 border-red-600 text-red-600 hover:bg-red-50"
                             >
                                 Dispute Claim
-                            </button>
-                            <button
+                            </Button>
+                            <Button
                                 onClick={handleAccept}
                                 disabled={isSubmitting}
-                                className="flex-1 px-6 py-3 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
+                                variant="primary"
+                                className="flex-1 bg-green-600 hover:bg-green-700"
+                                leftIcon={<Check size={18} />}
                             >
-                                <Check size={18} />
                                 Accept & Pay {locale.currencySymbol}{report.estimatedCost}
-                            </button>
+                            </Button>
                         </div>
                     )}
 
                     {report.status !== 'pending' && (
-                        <button
+                        <Button
                             onClick={onClose}
-                            className="w-full px-6 py-3 bg-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-300 transition"
+                            variant="secondary"
+                            className="w-full"
                         >
                             Close
-                        </button>
+                        </Button>
                     )}
                 </div>
             </div>

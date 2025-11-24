@@ -1,4 +1,4 @@
-import { User, Listing, Booking, Role, Conversation, Message, Review, Notification } from '@fiilar/types';
+import { User, Listing, Booking, Role, Conversation, Message, Review, Notification, DamageReport } from '@fiilar/types';
 import { MOCK_LISTINGS } from '../constants';
 
 export const STORAGE_KEYS = {
@@ -585,6 +585,36 @@ export const clearAllNotifications = (userId: string) => {
   const remainingNotifications = notifications.filter(notif => notif.userId !== userId);
 
   localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(remainingNotifications));
+};
+
+export const getDamageReports = (bookingId?: string): DamageReport[] => {
+  const r = localStorage.getItem(STORAGE_KEYS.DAMAGE_REPORTS);
+  const reports: DamageReport[] = r ? JSON.parse(r) : [];
+  
+  if (bookingId) {
+    return reports.filter(report => report.bookingId === bookingId);
+  }
+  
+  return reports;
+};
+
+export const createDamageReport = (report: DamageReport): void => {
+  const r = localStorage.getItem(STORAGE_KEYS.DAMAGE_REPORTS);
+  const reports: DamageReport[] = r ? JSON.parse(r) : [];
+  
+  reports.push(report);
+  localStorage.setItem(STORAGE_KEYS.DAMAGE_REPORTS, JSON.stringify(reports));
+};
+
+export const updateDamageReport = (reportId: string, updates: Partial<DamageReport>): void => {
+  const r = localStorage.getItem(STORAGE_KEYS.DAMAGE_REPORTS);
+  const reports: DamageReport[] = r ? JSON.parse(r) : [];
+  
+  const idx = reports.findIndex(rep => rep.id === reportId);
+  if (idx >= 0) {
+    reports[idx] = { ...reports[idx], ...updates };
+    localStorage.setItem(STORAGE_KEYS.DAMAGE_REPORTS, JSON.stringify(reports));
+  }
 };
 
 export const updateUserWalletBalance = (userId: string, amount: number) => {

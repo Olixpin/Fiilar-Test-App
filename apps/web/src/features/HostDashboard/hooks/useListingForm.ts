@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Listing, ListingStatus, SpaceType, BookingType, ListingAddOn, CancellationPolicy, User, Booking } from '@fiilar/types';
-import { saveListing, deleteListing, getBookings } from '../../../services/storage';
+import { saveListing } from '../../../services/storage';
 import { parseListingDescription } from '../../../services/geminiService';
 
-export const useHostListings = (user: User | null, listings: Listing[], refreshData: () => void, setView: (view: any) => void, onCreateListing?: (l: Listing) => void, onUpdateListing?: (l: Listing) => void) => {
+export const useListingForm = (user: User | null, listings: Listing[], activeBookings: Booking[], editingListing: Listing | null, refreshData: () => void, setView: (view: any) => void, onCreateListing?: (l: Listing) => void, onUpdateListing?: (l: Listing) => void) => {
     // Listings Form State
     const [newListing, setNewListing] = useState<Partial<Listing>>({
         type: SpaceType.APARTMENT,
@@ -54,7 +54,7 @@ export const useHostListings = (user: User | null, listings: Listing[], refreshD
     // Calendar State
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [selectedCalendarDate, setSelectedCalendarDate] = useState<string | null>(null);
-    const [activeBookings, setActiveBookings] = useState<Booking[]>([]);
+
 
     const [isEditingUpload, setIsEditingUpload] = useState(false);
     const [step, setStep] = useState(1);
@@ -63,9 +63,57 @@ export const useHostListings = (user: User | null, listings: Listing[], refreshD
     const [draggedImageIndex, setDraggedImageIndex] = useState<number | null>(null);
     const [showSaveToast, setShowSaveToast] = useState(false);
 
-    // Auto-save draft
+    // Initialize form (Edit Mode or Draft)
     useEffect(() => {
         if (!user) return;
+
+        if (editingListing) {
+            // Edit Mode
+            handleEditListing(editingListing);
+        } else {
+            // Create Mode - Check for draft
+            const draftKey = `listing_draft_${user.id}_temp`;
+            const savedDraft = localStorage.getItem(draftKey);
+
+            if (savedDraft) {
+                const shouldRestore = window.confirm("You have an unsaved draft. Would you like to continue where you left off?");
+                if (shouldRestore) {
+                    const draft = JSON.parse(savedDraft);
+                    setNewListing(draft);
+                    setStep(draft.step || 1);
+                    setShowAiInput(false);
+                } else {
+                    localStorage.removeItem(draftKey);
+                    // Reset to default
+                    setNewListing({
+                        type: SpaceType.APARTMENT,
+                        priceUnit: BookingType.DAILY,
+                        tags: [],
+                        images: [],
+                        availability: {},
+                        requiresIdentityVerification: false,
+                        proofOfAddress: '',
+                        settings: { allowRecurring: true, minDuration: 1, instantBook: false },
+                        capacity: 1,
+                        includedGuests: 1,
+                        pricePerExtraGuest: 0,
+                        cautionFee: 0,
+                        addOns: [],
+                        amenities: [],
+                        cancellationPolicy: CancellationPolicy.MODERATE,
+                        houseRules: [],
+                        safetyItems: []
+                    });
+                    setStep(1);
+                    setShowAiInput(true);
+                }
+            }
+        }
+    }, [editingListing, user]); // Run when editingListing changes or user loads
+
+    // Auto-save draft (only if not editing an existing listing, or maybe we want to save drafts of edits too? For now let's keep it simple and only draft new listings to avoid overwriting)
+    useEffect(() => {
+        if (!user || editingListing) return; // Don't auto-save draft if editing existing listing
         // Skip if listing is completely empty
         if (!newListing.title && !newListing.description && !newListing.location) return;
 
@@ -78,62 +126,9 @@ export const useHostListings = (user: User | null, listings: Listing[], refreshD
         }, 30000);
 
         return () => clearInterval(interval);
-    }, [newListing, step, user]);
+    }, [newListing, step, user, editingListing]);
 
-    const handleStartNewListing = () => {
-        if (!user) return;
-        if (!user.emailVerified && !user.phoneVerified) {
-            alert("Please verify your email address or phone number before creating a listing.");
-            return;
-        }
 
-        const draftKey = `listing_draft_${user.id}_temp`;
-        const savedDraft = localStorage.getItem(draftKey);
-
-        if (savedDraft) {
-            const shouldRestore = window.confirm("You have an unsaved draft. Would you like to continue where you left off?");
-            if (shouldRestore) {
-                const draft = JSON.parse(savedDraft);
-                setNewListing(draft);
-                setStep(draft.step || 1);
-                setShowAiInput(false);
-                setShowAiInput(false);
-                setView('create');
-                return true; // Signal to switch view
-            } else {
-                localStorage.removeItem(draftKey);
-            }
-        }
-
-        setNewListing({
-            type: SpaceType.APARTMENT,
-            priceUnit: BookingType.DAILY,
-            tags: [],
-            images: [],
-            availability: {},
-            requiresIdentityVerification: false,
-            proofOfAddress: '',
-            settings: { allowRecurring: true, minDuration: 1, instantBook: false },
-            capacity: 1,
-            includedGuests: 1,
-            pricePerExtraGuest: 0,
-            cautionFee: 0,
-            addOns: [],
-            amenities: [],
-            cancellationPolicy: CancellationPolicy.MODERATE,
-            houseRules: [],
-            safetyItems: []
-        });
-        setAiPrompt('');
-        setShowAiInput(true);
-        setStep(1);
-        setIsEditingUpload(false);
-        setLastSaved(null);
-        setShowSaveToast(false);
-        setShowSaveToast(false);
-        setView('create');
-        return true;
-    };
 
     const handleEditListing = (listing: Listing) => {
         if (!user) return;
@@ -157,7 +152,6 @@ export const useHostListings = (user: User | null, listings: Listing[], refreshD
 
         setShowAiInput(false);
         setIsEditingUpload(false);
-        setStep(1);
         setStep(1);
         setView('create');
         return true;
@@ -187,35 +181,6 @@ export const useHostListings = (user: User | null, listings: Listing[], refreshD
             alert("Could not auto-fill listing. Please fill manually.");
         } finally {
             setIsAiGenerating(false);
-        }
-    };
-
-    const handleDeleteListing = (id: string, status: ListingStatus) => {
-        const allBookings = getBookings();
-        const hasActiveBookings = allBookings.some(b =>
-            b.listingId === id &&
-            (b.status === 'Confirmed' || b.status === 'Pending') &&
-            new Date(b.date) >= new Date(new Date().setHours(0, 0, 0, 0))
-        );
-
-        if (hasActiveBookings) {
-            alert("Unable to delete: This listing has active upcoming bookings. Please cancel all bookings associated with this listing first.");
-            return;
-        }
-
-        let confirmMsg = "Are you sure you want to permanently delete this listing?";
-        if (status === ListingStatus.LIVE) {
-            confirmMsg = "Warning: This listing is LIVE. Deleting it will immediately remove it from the marketplace. This action cannot be undone. Are you sure?";
-        } else if ((status as unknown as string) === ListingStatus.PENDING_APPROVAL) {
-            confirmMsg = "This listing is pending approval. Deleting it will cancel the review process. Continue?";
-        } else if (status === ListingStatus.DRAFT) {
-            confirmMsg = "Discard this draft listing?";
-        }
-
-        if (window.confirm(confirmMsg)) {
-            deleteListing(id);
-            refreshData();
-            alert("Listing deleted successfully.");
         }
     };
 
@@ -573,17 +538,15 @@ export const useHostListings = (user: User | null, listings: Listing[], refreshD
         weeklySchedule, setWeeklySchedule,
         currentMonth, setCurrentMonth,
         selectedCalendarDate, setSelectedCalendarDate,
-        activeBookings, setActiveBookings,
         isEditingUpload, setIsEditingUpload,
         step, setStep,
         isSubmitting,
         lastSaved,
         draggedImageIndex,
         showSaveToast,
-        handleStartNewListing,
+
         handleEditListing,
         handleAiAutoFill,
-        handleDeleteListing,
         handleAddAddOn,
         handleRemoveAddOn,
         handleAddRule,

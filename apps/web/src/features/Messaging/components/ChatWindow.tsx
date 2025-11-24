@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Message, User, Conversation } from '@fiilar/types';
 import { getMessages, sendMessage, markAsRead, getAllUsers, getConversations } from '../../../services/storage';
 import { Send, User as UserIcon, Check, CheckCheck, ShieldAlert, MessageSquare, ArrowLeft } from 'lucide-react';
+import { Button } from '@fiilar/ui';
 
 interface ChatWindowProps {
     conversationId: string;
@@ -204,9 +205,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, currentU
                         <p className="text-xs font-bold text-red-800">Safety Warning</p>
                         <p className="text-xs text-red-700">{safetyWarning}</p>
                     </div>
-                    <button onClick={() => setSafetyWarning(null)} className="text-red-500 hover:text-red-700 text-xs font-bold">
+                    <Button onClick={() => setSafetyWarning(null)} variant="ghost" size="sm">
                         Dismiss
-                    </button>
+                    </Button>
                 </div>
             )}
 

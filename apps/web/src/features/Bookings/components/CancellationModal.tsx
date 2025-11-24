@@ -3,6 +3,7 @@ import { X, AlertTriangle, Clock, Info } from 'lucide-react';
 import { Booking, CancellationPolicy } from '@fiilar/types';
 import { calculateRefund, processCancellation, getCancellationPolicyDescription } from '../../../services/cancellationService';
 import { useLocale } from '../../../contexts/LocaleContext';
+import { Button } from '@fiilar/ui';
 
 interface CancellationModalProps {
     booking: Booking;
@@ -205,19 +206,22 @@ const CancellationModal: React.FC<CancellationModalProps> = ({ booking, policy, 
 
                             {/* Actions */}
                             <div className="flex gap-3">
-                                <button
+                                <Button
                                     onClick={onClose}
-                                    className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition"
+                                    variant="outline"
+                                    className="flex-1"
                                 >
                                     Keep Booking
-                                </button>
-                                <button
+                                </Button>
+                                <Button
                                     onClick={handleCancel}
                                     disabled={isProcessing || !reason || !confirmed}
-                                    className="flex-1 px-6 py-3 bg-red-600 text-white rounded-xl font-semibold hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                    variant="danger"
+                                    className="flex-1"
+                                    isLoading={isProcessing}
                                 >
                                     {isProcessing ? 'Processing...' : 'Confirm Cancellation'}
-                                </button>
+                                </Button>
                             </div>
                         </>
                     )}

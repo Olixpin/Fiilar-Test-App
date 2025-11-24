@@ -4,6 +4,7 @@ import ListingCard from '../components/ListingCard';
 import AdvancedSearch, { SearchFilters } from '../components/AdvancedSearch';
 import { filterListings, parseNaturalLanguageQuery } from '../../../services/searchService';
 import { Home as HomeIcon, Camera, Users, Music, Briefcase, Sun, Search, Plus, X, SlidersHorizontal } from 'lucide-react';
+import { Button } from '@fiilar/ui';
 
 const ListingSkeleton = () => (
     <div className="flex flex-col gap-2 animate-pulse">
@@ -152,9 +153,9 @@ const Home: React.FC<HomeProps> = ({
                     <HomeIcon size={48} className="text-gray-300 mb-4" />
                     <h3 className="text-lg font-semibold text-gray-900">No matches found</h3>
                     <p className="text-gray-500 mb-8">Try selecting a different category.</p>
-                    <button onClick={onBecomeHostClick} className="bg-black text-white px-6 py-3 rounded-lg font-semibold">
+                    <Button onClick={onBecomeHostClick} variant="primary" className="bg-black hover:bg-gray-800">
                         Become a Host
-                    </button>
+                    </Button>
                 </div>
             );
         }
@@ -298,12 +299,14 @@ const Home: React.FC<HomeProps> = ({
 
                         {/* Footer */}
                         <div className="p-4 border-t border-gray-200 bg-white">
-                            <button
+                            <Button
                                 onClick={() => setShowMobileFilters(false)}
-                                className="w-full bg-brand-600 text-white font-bold py-3 rounded-lg hover:bg-brand-700 transition"
+                                variant="primary"
+                                size="lg"
+                                className="w-full"
                             >
                                 Show Results
-                            </button>
+                            </Button>
                         </div>
                     </div>
                 </div>

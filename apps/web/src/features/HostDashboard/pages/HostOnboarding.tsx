@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Role } from '@fiilar/types';
 import { ArrowLeft, X, Mail } from 'lucide-react';
+import { Button } from '@fiilar/ui';
 
 interface HostOnboardingProps {
     onLogin: (role: Role, provider?: 'email' | 'google' | 'phone') => void;
@@ -55,12 +56,14 @@ const HostOnboarding: React.FC<HostOnboardingProps> = ({ onLogin, onBack }) => {
                             We’ll call or text you to confirm your number. Standard message and data rates apply. <a href="#" className="underline font-medium text-gray-800">Privacy Policy</a>
                         </p>
 
-                        <button
+                        <Button
                             onClick={() => setStep(2)}
-                            className="w-full bg-linear-to-r from-brand-600 to-brand-700 text-white font-bold text-lg py-3 rounded-lg hover:shadow-lg transition-all active:scale-[0.98]"
+                            variant="primary"
+                            size="lg"
+                            className="w-full"
                         >
                             Continue
-                        </button>
+                        </Button>
 
                         <div className="flex items-center gap-4 my-6">
                             <div className="h-px bg-gray-200 flex-1"></div>
@@ -69,23 +72,27 @@ const HostOnboarding: React.FC<HostOnboardingProps> = ({ onLogin, onBack }) => {
                         </div>
 
                         <div className="space-y-3">
-                            <button
+                            <Button
                                 onClick={() => onLogin(Role.HOST, 'google')}
-                                className="w-full border border-gray-900 text-gray-900 font-medium py-3 rounded-lg hover:bg-gray-50 transition relative flex items-center justify-between px-4"
+                                variant="outline"
+                                size="lg"
+                                className="w-full justify-between"
+                                leftIcon={<img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" alt="Google" />}
                             >
-                                <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" alt="Google" />
                                 <span className="text-center w-full">Continue with Google</span>
                                 <div className="w-5"></div>
-                            </button>
+                            </Button>
 
-                            <button
+                            <Button
                                 onClick={() => setStep(1)}
-                                className="w-full border border-gray-900 text-gray-900 font-medium py-3 rounded-lg hover:bg-gray-50 transition relative flex items-center justify-between px-4"
+                                variant="outline"
+                                size="lg"
+                                className="w-full justify-between"
+                                leftIcon={<Mail size={20} />}
                             >
-                                <Mail size={20} />
                                 <span className="text-center w-full">Continue with email</span>
                                 <div className="w-5"></div>
-                            </button>
+                            </Button>
                         </div>
 
                     </div>
@@ -110,12 +117,14 @@ const HostOnboarding: React.FC<HostOnboardingProps> = ({ onLogin, onBack }) => {
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                         />
-                        <button
+                        <Button
                             onClick={() => onLogin(Role.HOST, 'email')}
-                            className="w-full bg-brand-600 text-white font-bold text-lg py-3 rounded-lg hover:shadow-lg transition-all"
+                            variant="primary"
+                            size="lg"
+                            className="w-full"
                         >
                             Continue
-                        </button>
+                        </Button>
                     </div>
                 </div>
             )}
@@ -141,12 +150,14 @@ const HostOnboarding: React.FC<HostOnboardingProps> = ({ onLogin, onBack }) => {
                                 />
                             ))}
                         </div>
-                        <button
+                        <Button
                             onClick={() => onLogin(Role.HOST, 'phone')}
-                            className="w-full bg-brand-600 text-white font-bold text-lg py-3 rounded-lg hover:shadow-lg transition-all"
+                            variant="primary"
+                            size="lg"
+                            className="w-full"
                         >
                             Verify
-                        </button>
+                        </Button>
                     </div>
                 </div>
             )}
