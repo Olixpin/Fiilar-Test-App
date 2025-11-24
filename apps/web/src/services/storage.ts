@@ -1,4 +1,4 @@
-import { User, Listing, Booking, Role, ListingStatus, Conversation, Message, Review, Notification, DamageReport } from '@fiilar/types';
+import { User, Listing, Booking, Role, Conversation, Message, Review, Notification } from '@fiilar/types';
 import { MOCK_LISTINGS } from '../constants';
 
 export const STORAGE_KEYS = {
@@ -65,7 +65,6 @@ export const loginUser = (role: Role, provider: 'email' | 'google' | 'phone' = '
   let userId = '';
   let name = '';
   let email = '';
-  let phone = '';
 
   switch (role) {
     case Role.HOST: userId = 'host_123'; name = 'Jane Host'; email = 'jane@example.com'; break;
@@ -73,8 +72,28 @@ export const loginUser = (role: Role, provider: 'email' | 'google' | 'phone' = '
     case Role.ADMIN: userId = 'admin_001'; name = 'Super Admin'; email = 'admin@fiilar.com'; break;
   }
 
-  // Check DB first to load existing state (KYC, etc)
+  // Ensure host2 exists for the mock listing
   const users = getAllUsers();
+  if (!users.find(u => u.id === 'host2')) {
+    const host2: User = {
+      id: 'host2',
+      name: 'Sarah Chen',
+      email: 'sarah@example.com',
+      password: 'password',
+      role: Role.HOST,
+      isHost: true,
+      createdAt: new Date().toISOString(),
+      kycVerified: true,
+      walletBalance: 0,
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah',
+      favorites: [],
+      authProvider: 'email',
+      emailVerified: true,
+      phoneVerified: true
+    };
+    users.push(host2);
+    localStorage.setItem(STORAGE_KEYS.USERS_DB, JSON.stringify(users));
+  }
   let user = users.find(u => u.id === userId);
 
   if (!user) {

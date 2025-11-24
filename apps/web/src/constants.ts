@@ -16,7 +16,13 @@ export const MOCK_LISTINGS: Listing[] = [
     type: SpaceType.STUDIO,
     price: 50,
     priceUnit: BookingType.HOURLY,
-    images: ['https://picsum.photos/800/600?random=1', 'https://picsum.photos/800/600?random=2'],
+    images: [
+      'https://picsum.photos/800/600?random=1',
+      'https://picsum.photos/800/600?random=2',
+      'https://picsum.photos/800/600?random=11',
+      'https://picsum.photos/800/600?random=12',
+      'https://picsum.photos/800/600?random=13'
+    ],
     location: 'Downtown, Metro City',
     status: ListingStatus.LIVE,
     tags: ['photography', 'light', 'quiet'],
@@ -26,9 +32,9 @@ export const MOCK_LISTINGS: Listing[] = [
       [tomorrow]: [9, 10, 11, 12, 13, 14, 15, 16]
     },
     settings: {
-        allowRecurring: true,
-        minDuration: 1,
-        instantBook: true
+      allowRecurring: true,
+      minDuration: 1,
+      instantBook: true
     },
     capacity: 5,
     includedGuests: 2,
@@ -51,7 +57,13 @@ export const MOCK_LISTINGS: Listing[] = [
     type: SpaceType.CONFERENCE,
     price: 120,
     priceUnit: BookingType.HOURLY,
-    images: ['https://picsum.photos/800/600?random=3'],
+    images: [
+      'https://picsum.photos/800/600?random=3',
+      'https://picsum.photos/800/600?random=5',
+      'https://picsum.photos/800/600?random=6',
+      'https://picsum.photos/800/600?random=14',
+      'https://picsum.photos/800/600?random=15'
+    ],
     location: 'Financial District',
     status: ListingStatus.LIVE,
     tags: ['business', 'meeting', 'screen'],
@@ -61,9 +73,9 @@ export const MOCK_LISTINGS: Listing[] = [
       [tomorrow]: [9, 10, 11, 14, 15, 16]
     },
     settings: {
-        allowRecurring: true,
-        minDuration: 1,
-        instantBook: false
+      allowRecurring: true,
+      minDuration: 1,
+      instantBook: false
     },
     capacity: 12,
     includedGuests: 12,
@@ -72,6 +84,12 @@ export const MOCK_LISTINGS: Listing[] = [
     addOns: [
       { id: 'b1', name: 'Premium Coffee Service', price: 40, description: 'Unlimited coffee & pastries for team' },
       { id: 'b2', name: '4K Projector', price: 25 }
+    ],
+    amenities: [
+      { name: 'Wifi', icon: 'Wifi' },
+      { name: 'Coffee', icon: 'Coffee' },
+      { name: 'Video', icon: 'Video' },
+      { name: 'Air Conditioning', icon: 'Wind' }
     ],
     cancellationPolicy: CancellationPolicy.MODERATE,
     houseRules: ['No food in conference room', 'Keep noise levels professional'],
@@ -85,15 +103,21 @@ export const MOCK_LISTINGS: Listing[] = [
     type: SpaceType.EVENT_CENTER,
     price: 1500,
     priceUnit: BookingType.DAILY,
-    images: ['https://picsum.photos/800/600?random=4'],
+    images: [
+      'https://picsum.photos/800/600?random=4',
+      'https://picsum.photos/800/600?random=7',
+      'https://picsum.photos/800/600?random=8',
+      'https://picsum.photos/800/600?random=9',
+      'https://picsum.photos/800/600?random=10'
+    ],
     location: 'Uptown',
     status: ListingStatus.LIVE,
     requiresIdentityVerification: true,
     tags: ['party', 'view', 'luxury'],
     settings: {
-        allowRecurring: true,
-        minDuration: 1,
-        instantBook: false
+      allowRecurring: true,
+      minDuration: 1,
+      instantBook: false
     },
     capacity: 50,
     includedGuests: 20,
