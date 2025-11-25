@@ -1,18 +1,17 @@
 import React from 'react';
 import { ArrowLeft } from 'lucide-react';
-import { Input, Button } from '@fiilar/ui';
+import { Input, Button, FormField, FormItem, FormControl, FormMessage } from '@fiilar/ui';
+import { UseFormReturn } from 'react-hook-form';
 
 interface EmailLoginProps {
-    email: string;
-    setEmail: (value: string) => void;
+    form: UseFormReturn<{ email: string }>;
     onBack: () => void;
     onContinue: () => void;
     variant?: 'default' | 'glass' | 'glass-dark';
 }
 
 const EmailLogin: React.FC<EmailLoginProps> = ({
-    email,
-    setEmail,
+    form,
     onBack,
     onContinue,
     variant = 'default'
@@ -35,14 +34,24 @@ const EmailLogin: React.FC<EmailLoginProps> = ({
             </div>
 
             <div className="mb-8">
-                <Input
-                    type="email"
-                    label="Email address"
-                    variant={variant}
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    autoFocus
-                    className={variant === 'default' ? "bg-gray-50/50 border-gray-200 focus:bg-white focus:border-brand-500" : ""}
+                <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormControl>
+                                <Input
+                                    type="email"
+                                    label="Email address"
+                                    variant={variant === 'default' ? undefined : variant}
+                                    autoFocus
+                                    className={variant === 'default' ? "bg-gray-50/50 border-gray-200 focus:bg-white focus:border-brand-500" : ""}
+                                    {...field}
+                                />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
                 />
             </div>
 

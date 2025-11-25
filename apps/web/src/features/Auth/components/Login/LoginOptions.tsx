@@ -1,13 +1,13 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Mail } from 'lucide-react';
-import { Button, Input, Select } from '@fiilar/ui';
+import { Button, Input, Select, FormField, FormItem, FormControl, FormMessage } from '@fiilar/ui';
+import { UseFormReturn } from 'react-hook-form';
 
 interface LoginOptionsProps {
     country: string;
     setCountry: (value: string) => void;
-    phone: string;
-    setPhone: (value: string) => void;
+    phoneForm: UseFormReturn<{ phone: string }>;
     onContinue: () => void;
     onEmailLogin: () => void;
     onGoogleLogin: () => void;
@@ -21,8 +21,7 @@ interface LoginOptionsProps {
 const LoginOptions: React.FC<LoginOptionsProps> = ({
     country,
     setCountry,
-    phone,
-    setPhone,
+    phoneForm,
     onContinue,
     onEmailLogin,
     onGoogleLogin,
@@ -45,7 +44,7 @@ const LoginOptions: React.FC<LoginOptionsProps> = ({
                 <div className="w-[140px] shrink-0">
                     <Select
                         label="Country"
-                        variant={variant}
+                        variant={variant === 'default' ? undefined : variant}
                         value={country}
                         onChange={(e) => setCountry(e.target.value)}
                         options={[
@@ -57,14 +56,36 @@ const LoginOptions: React.FC<LoginOptionsProps> = ({
                     />
                 </div>
                 <div className="grow">
-                    <Input
-                        label="Phone number"
-                        type="tel"
-                        variant={variant}
-                        placeholder="(555) 000-0000"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        className={variant === 'default' ? "bg-gray-50/50 border-gray-200 focus:bg-white focus:border-brand-500 transition-all" : ""}
+                    <FormField
+                        control={phoneForm.control}
+                        name="phone"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormControl>
+                                    <Input
+                                        label="Phone number"
+                                        type="tel"
+                                        variant={variant === 'default' ? undefined : variant}
+                                        placeholder="(555) 000-0000"
+                                        className={variant === 'default' ? "bg-gray-50/50 border-gray-200 focus:bg-white focus:border-brand-500 transition-all" : ""}
+                                        {...field}
+                                        onChange={(e) => {
+                                            let value = e.target.value.replace(/\D/g, '');
+                                            if (country === 'ng') {
+                                                if (value.startsWith('0')) {
+                                                    value = value.substring(1);
+                                                }
+                                                if (value.length > 10) {
+                                                    value = value.substring(0, 10);
+                                                }
+                                            }
+                                            field.onChange(value);
+                                        }}
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
                     />
                 </div>
             </div>

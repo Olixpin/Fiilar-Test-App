@@ -1,5 +1,5 @@
 import { db } from './mockDb';
-import { User, Role } from '@fiilar/types';
+import { Role } from '@fiilar/types';
 
 export interface VerificationResult {
     success: boolean;
@@ -56,7 +56,7 @@ export const sendVerificationEmail = (email: string, _token: string, userName: s
 
     // Update user with OTP
     let user = db.users.find(u => u.email === email);
-    
+
     if (!user) {
         // Create a new user for verification purposes
         user = {

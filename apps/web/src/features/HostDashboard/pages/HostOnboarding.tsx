@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { Role } from '@fiilar/types';
 import { X } from 'lucide-react';
-import { useToast } from '@fiilar/ui';
+import { useToast, Form } from '@fiilar/ui';
 import LoginOptions from '../../Auth/components/Login/LoginOptions';
 import EmailLogin from '../../Auth/components/Login/EmailLogin';
 import OtpVerification from '../../Auth/components/Login/OtpVerification';
 import { sendVerificationEmail, verifyEmailOtp, sendVerificationSms, verifyPhoneOtp } from '@fiilar/storage';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 
 interface HostOnboardingProps {
     onLogin: (role: Role, provider: 'email' | 'google' | 'phone') => void;
@@ -14,13 +17,51 @@ interface HostOnboardingProps {
 
 const HostOnboarding: React.FC<HostOnboardingProps> = ({ onLogin, onBack }) => {
     const [step, setStep] = useState(0);
-    const [email, setEmail] = useState('');
     const [country, setCountry] = useState('ng');
-    const [phone, setPhone] = useState('');
     const [otp, setOtp] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const { showToast } = useToast();
+
+    // Form Schemas
+    const emailSchema = z.object({
+        email: z.string().email({ message: "Please enter a valid email address" }),
+    });
+
+    const phoneSchema = z.object({
+        phone: z.string().superRefine((val, ctx) => {
+            if (country === 'ng') {
+                if (val.length !== 10) {
+                    ctx.addIssue({
+                        code: z.ZodIssueCode.custom,
+                        message: "Phone number must be exactly 10 digits",
+                    });
+                }
+            } else {
+                if (val.length < 10) {
+                    ctx.addIssue({
+                        code: z.ZodIssueCode.custom,
+                        message: "Phone number must be at least 10 digits",
+                    });
+                }
+            }
+        }),
+    });
+
+    // Forms
+    const emailForm = useForm<z.infer<typeof emailSchema>>({
+        resolver: zodResolver(emailSchema),
+        defaultValues: {
+            email: "",
+        },
+    });
+
+    const phoneForm = useForm<z.infer<typeof phoneSchema>>({
+        resolver: zodResolver(phoneSchema),
+        defaultValues: {
+            phone: "",
+        },
+    });
 
     const countryCodes: Record<string, string> = {
         ng: '+234',
@@ -42,9 +83,9 @@ const HostOnboarding: React.FC<HostOnboardingProps> = ({ onLogin, onBack }) => {
         // Simulate network request
         setTimeout(() => {
             const code = codeOverride || otp;
-            
+
             if (provider === 'email') {
-                const result = verifyEmailOtp(email, code);
+                const result = verifyEmailOtp(emailForm.getValues().email, code);
                 if (result.success) {
                     onLogin(Role.HOST, 'email');
                 } else {
@@ -52,7 +93,7 @@ const HostOnboarding: React.FC<HostOnboardingProps> = ({ onLogin, onBack }) => {
                     setIsLoading(false);
                 }
             } else {
-                const fullPhone = `${countryCodes[country] || ''}${phone}`;
+                const fullPhone = `${countryCodes[country] || ''}${phoneForm.getValues().phone}`;
                 const result = verifyPhoneOtp(fullPhone, code);
                 if (result.success) {
                     onLogin(Role.HOST, 'phone');
@@ -67,10 +108,10 @@ const HostOnboarding: React.FC<HostOnboardingProps> = ({ onLogin, onBack }) => {
     const handleResend = (provider: 'email' | 'phone') => {
         // Simulate resending code
         if (provider === 'email') {
-            const code = sendVerificationEmail(email, 'mock-token', 'Host');
+            const code = sendVerificationEmail(emailForm.getValues().email, 'mock-token', 'Host');
             showToast({ message: `Demo Code: ${code}`, type: 'info', duration: 5000 });
         } else {
-            const fullPhone = `${countryCodes[country] || ''}${phone}`;
+            const fullPhone = `${countryCodes[country] || ''}${phoneForm.getValues().phone}`;
             const code = sendVerificationSms(fullPhone);
             showToast({ message: `Demo Code: ${code}`, type: 'info', duration: 5000 });
         }
@@ -124,7 +165,7 @@ const HostOnboarding: React.FC<HostOnboardingProps> = ({ onLogin, onBack }) => {
             <div className="flex-1 flex flex-col justify-center px-6 sm:px-12 lg:px-24 relative z-10 bg-white/20 backdrop-blur-xl shadow-[0_4px_30px_rgba(0,0,0,0.1)] overflow-hidden">
                 {/* Moving Gradient Left Border */}
                 <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-gradient-to-b from-transparent via-brand-500 to-transparent opacity-80 animate-pulse"></div>
-                
+
                 {/* Animated Gradient Line */}
                 <div className="absolute left-0 top-0 w-[2px] h-full overflow-hidden">
                     <div className="absolute top-0 left-0 w-full h-[50%] bg-gradient-to-b from-transparent via-white to-transparent animate-[slideDown_3s_linear_infinite]"></div>
@@ -144,43 +185,45 @@ const HostOnboarding: React.FC<HostOnboardingProps> = ({ onLogin, onBack }) => {
                 <div className="max-w-[420px] w-full mx-auto relative">
                     <div className="mt-2">
                         {step === 0 && (
-                            <LoginOptions
-                                country={country}
-                                setCountry={setCountry}
-                                phone={phone}
-                                setPhone={setPhone}
-                                onContinue={() => {
-                                    const fullPhone = `${countryCodes[country] || ''}${phone}`;
-                                    const code = sendVerificationSms(fullPhone);
-                                    showToast({ message: `Demo Code: ${code}`, type: 'info', duration: 5000 });
-                                    handleStepChange(2);
-                                }}
-                                onEmailLogin={() => handleStepChange(1)}
-                                onGoogleLogin={() => onLogin(Role.HOST, 'google')}
-                                title="Become a Host"
-                                subtitle="Enter your details to start hosting."
-                                showAdminLink={false}
-                                variant="glass-dark"
-                            />
+                            <Form {...phoneForm}>
+                                <LoginOptions
+                                    country={country}
+                                    setCountry={setCountry}
+                                    phoneForm={phoneForm}
+                                    onContinue={phoneForm.handleSubmit((data) => {
+                                        const fullPhone = `${countryCodes[country] || ''}${data.phone}`;
+                                        const code = sendVerificationSms(fullPhone);
+                                        showToast({ message: `Demo Code: ${code}`, type: 'info', duration: 5000 });
+                                        handleStepChange(2);
+                                    })}
+                                    onEmailLogin={() => handleStepChange(1)}
+                                    onGoogleLogin={() => onLogin(Role.HOST, 'google')}
+                                    title="Become a Host"
+                                    subtitle="Enter your details to start hosting."
+                                    showAdminLink={false}
+                                    variant="glass-dark"
+                                />
+                            </Form>
                         )}
 
                         {step === 1 && (
-                            <EmailLogin
-                                email={email}
-                                setEmail={setEmail}
-                                onBack={() => handleStepChange(0)}
-                                onContinue={() => {
-                                    const code = sendVerificationEmail(email, 'mock-token', 'Host');
-                                    showToast({ message: `Demo Code: ${code}`, type: 'info', duration: 5000 });
-                                    handleStepChange(3);
-                                }}
-                                variant="glass-dark"
-                            />
+                            <Form {...emailForm}>
+                                <EmailLogin
+                                    form={emailForm}
+                                    onBack={() => handleStepChange(0)}
+                                    onContinue={emailForm.handleSubmit((data) => {
+                                        const code = sendVerificationEmail(data.email, 'mock-token', 'Host');
+                                        showToast({ message: `Demo Code: ${code}`, type: 'info', duration: 5000 });
+                                        handleStepChange(3);
+                                    })}
+                                    variant="glass-dark"
+                                />
+                            </Form>
                         )}
 
                         {step === 2 && (
                             <OtpVerification
-                                target={`${countryCodes[country] || ''} ${phone}`}
+                                target={`${countryCodes[country] || ''} ${phoneForm.getValues().phone}`}
                                 type="phone"
                                 otp={otp}
                                 setOtp={setOtp}
@@ -195,7 +238,7 @@ const HostOnboarding: React.FC<HostOnboardingProps> = ({ onLogin, onBack }) => {
 
                         {step === 3 && (
                             <OtpVerification
-                                target={email}
+                                target={emailForm.getValues().email}
                                 type="email"
                                 otp={otp}
                                 setOtp={setOtp}

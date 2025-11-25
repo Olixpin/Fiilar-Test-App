@@ -5,8 +5,14 @@
     "types": "./src/index.ts",
     "private": true,
     "peerDependencies": {
+        "lucide-react": "^0.292.0",
         "react": "^19.2.0",
-        "react-dom": "^19.2.0",
-        "lucide-react": "^0.292.0"
+        "react-dom": "^19.2.0"
+    },
+    "dependencies": {
+        "clsx": "^2.1.1",
+        "react-hook-form": "^7.66.1",
+        "tailwind-merge": "^3.4.0",
+        "zod": "^4.1.13"
     }
 }

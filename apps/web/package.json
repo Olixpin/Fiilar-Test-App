@@ -24,12 +24,15 @@
     "@fiilar/ui": "workspace:*",
     "@fiilar/utils": "workspace:*",
     "@google/genai": "^1.30.0",
+    "@hookform/resolvers": "^5.2.2",
     "lucide-react": "^0.554.0",
     "puppeteer": "^24.31.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-hook-form": "^7.66.1",
     "react-router-dom": "^7.9.6",
-    "recharts": "^3.4.1"
+    "recharts": "^3.4.1",
+    "zod": "^4.1.13"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.17",

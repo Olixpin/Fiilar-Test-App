@@ -10,4 +10,5 @@ export { default as GlassSlider } from './GlassSlider';
 export * from './LocaleContext';
 export * from './Toast';
 export * from './ToastContext';
+export * from './Form';
 
