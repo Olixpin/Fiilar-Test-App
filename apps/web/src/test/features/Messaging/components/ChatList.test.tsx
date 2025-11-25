@@ -1,12 +1,16 @@
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ChatList } from '../../../../features/Messaging/components/ChatList';
-import * as storageService from '../../../../services/storage';
-import { User, Conversation, Message } from '@fiilar/types';
+import * as storageService from '@fiilar/storage';
+import * as messagingService from '@fiilar/messaging';
+import { User, Conversation, Role } from '@fiilar/types';
 
-// Mock the storage service
-vi.mock('../../../../services/storage', () => ({
-    getAllUsers: vi.fn(),
+// Mock the services
+vi.mock('@fiilar/storage', () => ({
+    getAllUsers: vi.fn()
+}));
+
+vi.mock('@fiilar/messaging', () => ({
     getConversations: vi.fn()
 }));
 
@@ -15,19 +19,25 @@ describe('ChatList', () => {
         id: 'user1',
         name: 'Test User',
         email: 'test@example.com',
-        role: 'guest',
-        createdAt: new Date(),
-        updatedAt: new Date()
+        password: 'password',
+        role: Role.GUEST,
+        isHost: false,
+        walletBalance: 0,
+        emailVerified: true,
+        createdAt: new Date().toISOString(),
     };
 
     const mockOtherUser: User = {
         id: 'user2',
         name: 'Other User',
         email: 'other@example.com',
-        role: 'host',
+        password: 'password',
+        role: Role.HOST,
+        isHost: true,
+        walletBalance: 0,
+        emailVerified: true,
         avatar: 'avatar.jpg',
-        createdAt: new Date(),
-        updatedAt: new Date()
+        createdAt: new Date().toISOString(),
     };
 
     const mockConversation: Conversation = {
@@ -38,11 +48,11 @@ describe('ChatList', () => {
             conversationId: 'conv1',
             senderId: 'user2',
             content: 'Hello there',
-            timestamp: new Date(),
+            timestamp: new Date().toISOString(),
             read: false
         },
-        createdAt: new Date(),
-        updatedAt: new Date()
+        lastMessageTime: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
     };
 
     const defaultProps = {
@@ -55,7 +65,7 @@ describe('ChatList', () => {
         vi.clearAllMocks();
         vi.useFakeTimers();
         (storageService.getAllUsers as any).mockReturnValue([mockUser, mockOtherUser]);
-        (storageService.getConversations as any).mockReturnValue([]);
+        (messagingService.getConversations as any).mockReturnValue([]);
     });
 
     afterEach(() => {
@@ -68,7 +78,7 @@ describe('ChatList', () => {
     });
 
     it('renders conversations list correctly', () => {
-        (storageService.getConversations as any).mockReturnValue([mockConversation]);
+        (messagingService.getConversations as any).mockReturnValue([mockConversation]);
         
         render(<ChatList {...defaultProps} />);
         
@@ -78,7 +88,7 @@ describe('ChatList', () => {
     });
 
     it('handles conversation selection', () => {
-        (storageService.getConversations as any).mockReturnValue([mockConversation]);
+        (messagingService.getConversations as any).mockReturnValue([mockConversation]);
         
         render(<ChatList {...defaultProps} />);
         
@@ -89,7 +99,7 @@ describe('ChatList', () => {
     });
 
     it('shows unread indicator for unread messages from others', () => {
-        (storageService.getConversations as any).mockReturnValue([mockConversation]);
+        (messagingService.getConversations as any).mockReturnValue([mockConversation]);
         
         render(<ChatList {...defaultProps} />);
         
@@ -109,7 +119,7 @@ describe('ChatList', () => {
                 read: false
             }
         };
-        (storageService.getConversations as any).mockReturnValue([ownMsgConversation]);
+        (messagingService.getConversations as any).mockReturnValue([ownMsgConversation]);
         
         render(<ChatList {...defaultProps} />);
         
@@ -119,13 +129,13 @@ describe('ChatList', () => {
     });
 
     it('polls for updates', () => {
-        (storageService.getConversations as any).mockReturnValue([]);
+        (messagingService.getConversations as any).mockReturnValue([]);
         
         render(<ChatList {...defaultProps} />);
         expect(screen.getByText('No messages yet.')).toBeInTheDocument();
 
         // Update mock to return conversation on next call
-        (storageService.getConversations as any).mockReturnValue([mockConversation]);
+        (messagingService.getConversations as any).mockReturnValue([mockConversation]);
         
         // Fast forward time
         act(() => {
@@ -136,7 +146,7 @@ describe('ChatList', () => {
     });
 
     it('highlights selected conversation', () => {
-        (storageService.getConversations as any).mockReturnValue([mockConversation]);
+        (messagingService.getConversations as any).mockReturnValue([mockConversation]);
         
         render(<ChatList {...defaultProps} selectedId="conv1" />);
         

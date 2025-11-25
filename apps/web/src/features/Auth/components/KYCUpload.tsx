@@ -9,7 +9,6 @@ interface KYCUploadProps {
 
 const KYCUpload: React.FC<KYCUploadProps> = ({ onUpload, onSkip }) => {
     const [step, setStep] = useState<'ID' | 'SELFIE'>('ID');
-    const [idImage, setIdImage] = useState<string | null>(null);
     const [selfieImage, setSelfieImage] = useState<string | null>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
     const [isCameraOpen, setIsCameraOpen] = useState(false);
@@ -17,8 +16,7 @@ const KYCUpload: React.FC<KYCUploadProps> = ({ onUpload, onSkip }) => {
     const handleIdUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             const reader = new FileReader();
-            reader.onload = (ev) => {
-                setIdImage(ev.target?.result as string);
+            reader.onload = () => {
                 setStep('SELFIE');
             };
             reader.readAsDataURL(e.target.files[0]);

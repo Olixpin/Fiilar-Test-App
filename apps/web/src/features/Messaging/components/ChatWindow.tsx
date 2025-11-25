@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Message, User, Conversation } from '@fiilar/types';
-import { getMessages, sendMessage, markAsRead, getAllUsers, getConversations } from '../../../services/storage';
+import { getAllUsers } from '@fiilar/storage';
+import { getMessages, sendMessage, markAsRead, getConversations } from '@fiilar/messaging';
 import { Send, User as UserIcon, Check, CheckCheck, ShieldAlert, MessageSquare, ArrowLeft } from 'lucide-react';
 import { Button } from '@fiilar/ui';
 

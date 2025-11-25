@@ -3,7 +3,7 @@ import { Listing, BookingType } from '@fiilar/types';
 import { Star, Heart, ImageOff, MapPin, Gem } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
-import { getCurrentUser, toggleFavorite, getAllUsers } from '../../../services/storage';
+import { getCurrentUser, toggleFavorite, getAllUsers } from '@fiilar/storage';
 import { Badge } from '@fiilar/ui';
 import { formatCurrency } from '../../../utils/currency';
 
@@ -135,7 +135,7 @@ const ListingCard: React.FC<ListingCardProps> = ({ listing, badgeVariant = 'whit
             >
               {renderBadgeContent()}
             </Badge>
-            
+
             {/* Tooltip */}
             {(hostBadgeVariant === 'gold' || hostBadgeVariant === 'premium') && (
               <div className="absolute top-full left-0 mt-2 opacity-0 group-hover/badge:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-20">

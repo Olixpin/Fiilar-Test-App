@@ -37,6 +37,8 @@ export enum CancellationPolicy {
 
 export type View = 'home' | 'browse' | 'login' | 'login-host' | 'dashboard-host' | 'dashboard-user' | 'dashboard-admin' | 'kyc-upload' | 'listing-details';
 
+export type KYCStatus = 'pending' | 'verified' | 'rejected' | 'none';
+
 export interface User {
   id: string;
   name: string;
@@ -54,7 +56,11 @@ export interface User {
   authProvider?: 'email' | 'google' | 'phone';
   verificationToken?: string;
   verificationTokenExpiry?: string;
+  verificationOtp?: string; // 6-digit code
+  verificationOtpExpiry?: string;
   kycVerified?: boolean;
+  kycStatus?: KYCStatus;
+  kycDocument?: string;
   livenessVerified?: boolean; // New: Liveness check status
   badgeStatus?: 'standard' | 'super_host' | 'premium'; // Admin-assigned host badge
   identityDocument?: string;

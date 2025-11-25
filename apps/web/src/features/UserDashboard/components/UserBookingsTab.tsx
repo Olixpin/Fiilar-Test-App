@@ -1,7 +1,9 @@
 import React from 'react';
 import { User, Listing, Booking, CancellationPolicy } from '@fiilar/types';
-import { getBookings, getReviews } from '../../../services/storage';
-import { Calendar, MessageSquare, XCircle, Star, Key, CheckCircle, ShieldCheck, Clock, Edit } from 'lucide-react';
+import { getBookings } from '@fiilar/storage';
+
+import { getReviews } from '@fiilar/reviews';
+import { Calendar, MessageSquare, XCircle, Star, Key, CheckCircle, Clock, Edit, ShieldCheck } from 'lucide-react';
 
 interface UserBookingsTabProps {
   user: User;
@@ -17,7 +19,7 @@ const formatTimeRange = (hours?: number[]) => {
   const sorted = [...hours].sort((a, b) => a - b);
   const start = sorted[0];
   const end = sorted[sorted.length - 1] + 1; // End of the last hour
-  
+
   const formatHour = (h: number) => {
     const ampm = h >= 12 ? 'PM' : 'AM';
     const hour12 = h % 12 || 12;
@@ -190,12 +192,12 @@ export const UserBookingsTab: React.FC<UserBookingsTabProps> = ({
                             <button
                               type="button"
                               onClick={() => {
-                                  console.log('Modify Request clicked for booking:', b.id);
-                                  if (onModifyBooking) {
-                                      onModifyBooking(b);
-                                  } else {
-                                      console.error('onModifyBooking prop is undefined');
-                                  }
+                                console.log('Modify Request clicked for booking:', b.id);
+                                if (onModifyBooking) {
+                                  onModifyBooking(b);
+                                } else {
+                                  console.error('onModifyBooking prop is undefined');
+                                }
                               }}
                               className="text-sm font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1 cursor-pointer z-10 relative"
                             >

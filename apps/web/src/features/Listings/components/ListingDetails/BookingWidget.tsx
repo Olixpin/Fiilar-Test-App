@@ -2,8 +2,8 @@ import React from 'react';
 import { Listing, User, BookingType } from '@fiilar/types';
 import { Star, Minus, Plus, Calendar as CalendarIcon, PackagePlus, CheckCircle, Repeat, X, Ban, Info, AlertCircle, Heart } from 'lucide-react';
 import { formatCurrency } from '../../../../utils/currency';
-import { getAverageRating, getReviews } from '../../../../services/storage';
-import { ListingCalendar } from './ListingCalendar';
+import { getAverageRating, getReviews } from '@fiilar/reviews';
+import { ListingCalendar } from '@fiilar/calendar';
 import { Button } from '@fiilar/ui';
 
 interface BookingWidgetProps {

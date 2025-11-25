@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Upload, AlertTriangle, DollarSign } from 'lucide-react';
-import { createDamageReport } from '../../../services/storage';
+import { createDamageReport } from '@fiilar/storage';
+import { DamageReport } from '@fiilar/types';
 
 interface DamageReportModalProps {
     bookingId: string;
@@ -64,15 +65,18 @@ const DamageReportModal: React.FC<DamageReportModalProps> = ({
         try {
             const currentUser = JSON.parse(localStorage.getItem('fiilar_user') || '{}');
 
-            createDamageReport({
+            const report: DamageReport = {
+                id: `dmg_${Date.now()}`,
                 bookingId,
                 reportedBy: currentUser.id,
-                reportedTo: guestId,
+                reportedTo: guestId, // In a real app, this would be the host ID
                 description: description.trim(),
                 images,
-                estimatedCost: parseFloat(estimatedCost),
-                status: 'pending'
-            });
+                estimatedCost: Number(estimatedCost),
+                status: 'pending',
+                createdAt: new Date().toISOString()
+            };
+            createDamageReport(report);
 
             onSuccess();
             onClose();

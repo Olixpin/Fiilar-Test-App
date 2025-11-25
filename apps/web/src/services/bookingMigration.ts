@@ -1,4 +1,4 @@
-import { getBookings } from './storage';
+import { getBookings } from '@fiilar/storage';
 
 /**
  * One-time migration to add createdAt timestamps to existing bookings

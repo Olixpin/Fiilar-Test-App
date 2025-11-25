@@ -1,5 +1,5 @@
 import { ListingStatus } from '@fiilar/types';
-import { deleteListing, getBookings } from '../../../services/storage';
+import { deleteListing, getBookings } from '@fiilar/storage';
 
 export const useListingActions = (refreshData: () => void) => {
     const handleDeleteListing = (id: string, status: ListingStatus) => {

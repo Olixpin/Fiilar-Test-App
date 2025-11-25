@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { getCurrentUser, getBookings, startConversation, getConversations } from '../../../services/storage';
+import { getCurrentUser, getBookings } from '@fiilar/storage';
+import { startConversation, getConversations } from '@fiilar/messaging';
 import { User, Listing, Booking, CancellationPolicy } from '@fiilar/types';
 import { WalletCard } from '../components/WalletCard';
 import { TransactionHistory } from '../components/TransactionHistory';
@@ -182,8 +183,8 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings }) => {
                       </div>
                       <h2 className="text-2xl font-bold text-gray-900">My Wallet</h2>
                     </div>
-                    <WalletCard 
-                      onTransactionComplete={() => setRefreshKey(prev => prev + 1)} 
+                    <WalletCard
+                      onTransactionComplete={() => setRefreshKey(prev => prev + 1)}
                       refreshTrigger={refreshKey}
                     />
                   </section>
@@ -207,7 +208,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings }) => {
                 </div>
               </div>
             )}
-            
+
             {activeTab === 'explore' && (
               <UserExploreTab listings={listings} />
             )}
@@ -217,30 +218,30 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings }) => {
             )}
 
             {activeTab === 'bookings' && (
-              <UserBookingsTab 
-                user={user} 
-                listings={listings} 
+              <UserBookingsTab
+                user={user}
+                listings={listings}
                 onMessageHost={handleMessageHost}
                 onCancelBooking={(booking, policy) => setCancellationModalBooking({ booking, policy })}
                 onReviewBooking={(bookingId, listingId, listingTitle) => setReviewModalBooking({ bookingId, listingId, listingTitle })}
                 onModifyBooking={(booking) => {
-                    console.log('onModifyBooking called in UserDashboard', booking);
-                    const listing = listings.find(l => l.id === booking.listingId);
-                    if (listing) {
-                        console.log('Listing found, opening modal', listing);
-                        setModifyModalBooking({ booking, listing });
-                    } else {
-                        console.error('Listing not found for booking', booking);
-                        alert('Error: Could not find listing details for this booking.');
-                    }
+                  console.log('onModifyBooking called in UserDashboard', booking);
+                  const listing = listings.find(l => l.id === booking.listingId);
+                  if (listing) {
+                    console.log('Listing found, opening modal', listing);
+                    setModifyModalBooking({ booking, listing });
+                  } else {
+                    console.error('Listing not found for booking', booking);
+                    alert('Error: Could not find listing details for this booking.');
+                  }
                 }}
               />
             )}
 
             {activeTab === 'reserve-list' && (
-              <UserReserveListTab 
-                user={user} 
-                listings={listings} 
+              <UserReserveListTab
+                user={user}
+                listings={listings}
                 onUpdate={() => setRefreshKey(prev => prev + 1)}
               />
             )}
@@ -389,13 +390,13 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings }) => {
       )}
       {modifyModalBooking && (
         <ModifyBookingModal
-            booking={modifyModalBooking.booking}
-            listing={modifyModalBooking.listing}
-            onClose={() => setModifyModalBooking(null)}
-            onSuccess={() => {
-                setRefreshKey(prev => prev + 1);
-                setModifyModalBooking(null);
-            }}
+          booking={modifyModalBooking.booking}
+          listing={modifyModalBooking.listing}
+          onClose={() => setModifyModalBooking(null)}
+          onSuccess={() => {
+            setRefreshKey(prev => prev + 1);
+            setModifyModalBooking(null);
+          }}
         />
       )}
     </div>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, X, AlertTriangle, Info, MessageSquare, Calendar, Star, CheckCircle } from 'lucide-react';
 import { Notification } from '@fiilar/types';
-import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead } from '../../../services/storage';
+import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead } from '@fiilar/notifications';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@fiilar/ui';
 

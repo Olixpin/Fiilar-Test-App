@@ -1,6 +1,7 @@
 import React from 'react';
 import { Mail, X, RefreshCw } from 'lucide-react';
-import { resendVerificationEmail } from '../../../services/emailService';
+import { useToast } from '@fiilar/ui';
+import { resendVerificationEmail } from '@fiilar/storage';
 
 interface EmailVerificationBannerProps {
     userId: string;
@@ -11,13 +12,15 @@ interface EmailVerificationBannerProps {
 const EmailVerificationBanner: React.FC<EmailVerificationBannerProps> = ({ userId, userEmail, onDismiss }) => {
     const [isResending, setIsResending] = React.useState(false);
     const [resendSuccess, setResendSuccess] = React.useState(false);
+    const { showToast } = useToast();
 
     const handleResend = () => {
         setIsResending(true);
-        const success = resendVerificationEmail(userId);
+        const code = resendVerificationEmail(userId);
 
-        if (success) {
+        if (code) {
             setResendSuccess(true);
+            showToast({ message: `Demo Code: ${code}`, type: 'info', duration: 5000 });
             setTimeout(() => {
                 setResendSuccess(false);
                 setIsResending(false);

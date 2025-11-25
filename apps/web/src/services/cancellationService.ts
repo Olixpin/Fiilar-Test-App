@@ -2,9 +2,9 @@
 // Handles cancellation logic, refund calculations, and policy enforcement
 
 import { Booking, CancellationPolicy } from '@fiilar/types';
-import { escrowService } from './escrowService';
-import { updateBooking } from './storage';
-import { addNotification } from './storage';
+import { escrowService } from '@fiilar/escrow';
+import { updateBooking } from '@fiilar/storage';
+import { addNotification } from '@fiilar/notifications';
 
 export interface CancellationResult {
     refundPercentage: number;

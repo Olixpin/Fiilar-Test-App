@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { PlatformFinancials, EscrowTransaction } from '@fiilar/types';
 import { DollarSign, ArrowUpRight, ArrowDownLeft, Clock, CheckCircle, Search, Download, RefreshCw, FileText, X } from 'lucide-react';
 import { Button, Card, CardContent, CardHeader, CardTitle } from '@fiilar/ui';
-import TransactionHistory from './TransactionHistory';
+import { TransactionHistory } from '@fiilar/admin';
 
 interface EscrowManagerProps {
     financials: PlatformFinancials | null;
@@ -132,19 +132,19 @@ const EscrowManager: React.FC<EscrowManagerProps> = ({ financials, transactions,
                             <div className="flex bg-gray-100 p-1 rounded-lg">
                                 <button
                                     onClick={() => setFilter('ALL')}
-                                    className={`px - 3 py - 1.5 text - xs font - medium rounded - md transition - all ${filter === 'ALL' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'} `}
+                                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${filter === 'ALL' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
                                 >
                                     All
                                 </button>
                                 <button
                                     onClick={() => setFilter('PAYMENT')}
-                                    className={`px - 3 py - 1.5 text - xs font - medium rounded - md transition - all ${filter === 'PAYMENT' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'} `}
+                                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${filter === 'PAYMENT' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
                                 >
                                     In
                                 </button>
                                 <button
                                     onClick={() => setFilter('PAYOUT')}
-                                    className={`px - 3 py - 1.5 text - xs font - medium rounded - md transition - all ${filter === 'PAYOUT' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'} `}
+                                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${filter === 'PAYOUT' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
                                 >
                                     Out
                                 </button>
@@ -186,7 +186,7 @@ const EscrowManager: React.FC<EscrowManagerProps> = ({ financials, transactions,
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
-                                                <div className={`p - 2 rounded - lg bg - gray - 100 group - hover: bg - white transition - colors`}>
+                                                <div className={`p-2 rounded-lg bg-gray-100 group-hover:bg-white transition-colors`}>
                                                     {getIcon(tx.type)}
                                                 </div>
                                                 <div>
@@ -196,7 +196,7 @@ const EscrowManager: React.FC<EscrowManagerProps> = ({ financials, transactions,
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className={`font - bold ${tx.type === 'HOST_PAYOUT' || tx.type === 'REFUND' ? 'text-red-600' : 'text-green-600'} `}>
+                                            <span className={`font-bold ${tx.type === 'HOST_PAYOUT' || tx.type === 'REFUND' ? 'text-red-600' : 'text-green-600'}`}>
                                                 {tx.type === 'HOST_PAYOUT' || tx.type === 'REFUND' ? '-' : '+'}${tx.amount.toLocaleString()}
                                             </span>
                                         </td>
@@ -204,7 +204,7 @@ const EscrowManager: React.FC<EscrowManagerProps> = ({ financials, transactions,
                                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${tx.status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
                                                 tx.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
                                                     'bg-red-100 text-red-800'
-                                                } `}>
+                                                }`}>
                                                 {tx.status}
                                             </span>
                                         </td>

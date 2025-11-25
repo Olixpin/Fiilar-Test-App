@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Booking, Listing } from '@fiilar/types';
-import { Briefcase, FileText, MapPin, Calendar as CalendarIcon, CheckCircle, X, DollarSign, ShieldCheck, Lock, MessageCircle, Edit } from 'lucide-react';
+import { Briefcase, FileText, MapPin, Calendar as CalendarIcon, CheckCircle, X, DollarSign, ShieldCheck, MessageCircle, Edit } from 'lucide-react';
 import { Button, Input } from '@fiilar/ui';
 
 interface HostBookingsProps {

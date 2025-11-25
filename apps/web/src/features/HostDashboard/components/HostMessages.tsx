@@ -4,7 +4,7 @@ import { MessageSquare } from 'lucide-react';
 import { User, Booking } from '@fiilar/types';
 import { ChatList } from '../../Messaging/components/ChatList';
 import { ChatWindow } from '../../Messaging/components/ChatWindow';
-import { getConversations, startConversation } from '../../../services/storage';
+import { getConversations, startConversation } from '@fiilar/messaging';
 
 interface HostMessagesProps {
     user: User;

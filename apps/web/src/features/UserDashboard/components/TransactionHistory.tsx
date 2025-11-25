@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { paymentService } from '../../../services/paymentService';
+import { paymentService } from '@fiilar/escrow';
 import { Transaction } from '@fiilar/types';
 import { Download, Filter, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
-import { useLocale } from '../../../contexts/LocaleContext';
+import { useLocale } from '@fiilar/ui';
 
 interface TransactionHistoryProps {
     refreshTrigger?: number;
@@ -49,8 +49,8 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({ refreshT
         a.click();
     };
 
-    const filteredTransactions = filter === 'ALL' 
-        ? transactions 
+    const filteredTransactions = filter === 'ALL'
+        ? transactions
         : transactions.filter(tx => tx.type === filter);
 
     const insights = {
@@ -143,8 +143,8 @@ export const TransactionHistory: React.FC<TransactionHistoryProps> = ({ refreshT
             <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold text-gray-900">Transaction History</h2>
                 {filteredTransactions.length > 5 && (
-                    <button 
-                        onClick={() => setShowAll(!showAll)} 
+                    <button
+                        onClick={() => setShowAll(!showAll)}
                         className="text-sm text-brand-600 font-medium hover:text-brand-700"
                     >
                         {showAll ? 'Show Less' : `View All (${filteredTransactions.length})`}

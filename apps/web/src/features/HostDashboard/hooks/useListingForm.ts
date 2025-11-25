@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Listing, ListingStatus, SpaceType, BookingType, ListingAddOn, CancellationPolicy, User, Booking } from '@fiilar/types';
-import { saveListing } from '../../../services/storage';
+import { saveListing } from '@fiilar/storage';
 import { parseListingDescription } from '../../../services/geminiService';
 
 export const useListingForm = (user: User | null, listings: Listing[], activeBookings: Booking[], editingListing: Listing | null, refreshData: () => void, setView: (view: any) => void, onCreateListing?: (l: Listing) => void, onUpdateListing?: (l: Listing) => void) => {

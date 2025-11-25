@@ -1,7 +1,8 @@
+
 import React from 'react';
-import { Listing, User } from '@fiilar/types';
-import { User as UserIcon, CheckCircle, MessageSquare, Star, Users } from 'lucide-react';
-import { getAverageRating, getReviews } from '../../../../services/storage';
+import { User, Listing } from '@fiilar/types';
+import { Star, CheckCircle, MessageSquare, User as UserIcon, Users } from 'lucide-react';
+import { getReviews, getAverageRating } from '@fiilar/reviews';
 
 interface HostInfoProps {
   listing: Listing;

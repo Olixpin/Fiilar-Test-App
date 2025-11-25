@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { X, AlertTriangle, DollarSign, Check } from 'lucide-react';
 import { DamageReport } from '@fiilar/types';
-import { updateDamageReport, addNotification } from '../../../services/storage';
-import { useLocale } from '../../../contexts/LocaleContext';
+import { updateDamageReport } from '@fiilar/storage';
+import { addNotification } from '@fiilar/notifications';
+import { useLocale } from '@fiilar/ui';
 import { Button } from '@fiilar/ui';
 
 interface DamageReportViewProps {

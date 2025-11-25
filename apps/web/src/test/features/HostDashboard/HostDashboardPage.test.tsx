@@ -87,7 +87,7 @@ vi.mock('../../../features/Messaging/components/ChatWindow', () => ({
 }));
 
 // Mock services
-vi.mock('../../../services/storage', () => ({
+vi.mock('@fiilar/messaging', () => ({
   getConversations: vi.fn().mockReturnValue([
     { id: 'c1', participants: ['host1', 'user2'], unreadCount: 2 }
   ]),

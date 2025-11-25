@@ -1,4 +1,4 @@
-import { getBookings } from './storage';
+import { getBookings } from '@fiilar/storage';
 
 /**
  * Remove duplicate bookings from localStorage.

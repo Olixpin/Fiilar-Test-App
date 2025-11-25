@@ -1,4 +1,4 @@
-import { getLocaleConfig } from '../config/locale';
+import { getLocaleConfig } from '@fiilar/utils';
 
 /**
  * Format a number as currency based on current locale

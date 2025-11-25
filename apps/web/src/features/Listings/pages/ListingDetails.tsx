@@ -6,6 +6,7 @@ import ImmersiveGallery from '../components/ImmersiveGallery';
 
 // New Component Imports
 import { ListingHeader } from '../components/ListingDetails/ListingHeader';
+
 import { ListingImages } from '../components/ListingDetails/ListingImages';
 import { HostInfo } from '../components/ListingDetails/HostInfo';
 import { ListingDescription } from '../components/ListingDetails/ListingDescription';

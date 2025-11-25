@@ -1,15 +1,19 @@
-import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ChatWindow } from '../../../../features/Messaging/components/ChatWindow';
-import * as storageService from '../../../../services/storage';
-import { User, Conversation, Message } from '@fiilar/types';
+import * as storageService from '@fiilar/storage';
+import * as messagingService from '@fiilar/messaging';
+import { User, Conversation, Message, Role } from '@fiilar/types';
 
-// Mock the storage service
-vi.mock('../../../../services/storage', () => ({
+// Mock the services
+vi.mock('@fiilar/storage', () => ({
+    getAllUsers: vi.fn()
+}));
+
+vi.mock('@fiilar/messaging', () => ({
     getMessages: vi.fn(),
     sendMessage: vi.fn(),
     markAsRead: vi.fn(),
-    getAllUsers: vi.fn(),
     getConversations: vi.fn()
 }));
 
@@ -21,26 +25,32 @@ describe('ChatWindow', () => {
         id: 'user1',
         name: 'Test User',
         email: 'test@example.com',
-        role: 'guest',
-        createdAt: new Date(),
-        updatedAt: new Date()
+        password: 'password',
+        role: Role.GUEST,
+        isHost: false,
+        walletBalance: 0,
+        emailVerified: true,
+        createdAt: new Date().toISOString(),
     };
 
     const mockOtherUser: User = {
         id: 'user2',
         name: 'Other User',
         email: 'other@example.com',
-        role: 'host',
+        password: 'password',
+        role: Role.HOST,
+        isHost: true,
+        walletBalance: 0,
+        emailVerified: true,
         avatar: 'avatar.jpg',
-        createdAt: new Date(),
-        updatedAt: new Date()
+        createdAt: new Date().toISOString(),
     };
 
     const mockConversation: Conversation = {
         id: 'conv1',
         participants: ['user1', 'user2'],
-        createdAt: new Date(),
-        updatedAt: new Date()
+        lastMessageTime: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
     };
 
     const mockMessages: Message[] = [
@@ -49,7 +59,7 @@ describe('ChatWindow', () => {
             conversationId: 'conv1',
             senderId: 'user2',
             content: 'Hello',
-            timestamp: new Date(Date.now() - 10000),
+            timestamp: new Date(Date.now() - 10000).toISOString(),
             read: true
         },
         {
@@ -57,7 +67,7 @@ describe('ChatWindow', () => {
             conversationId: 'conv1',
             senderId: 'user1',
             content: 'Hi there',
-            timestamp: new Date(),
+            timestamp: new Date().toISOString(),
             read: false
         }
     ];
@@ -72,8 +82,8 @@ describe('ChatWindow', () => {
         vi.clearAllMocks();
         vi.useFakeTimers();
         (storageService.getAllUsers as any).mockReturnValue([mockUser, mockOtherUser]);
-        (storageService.getConversations as any).mockReturnValue([mockConversation]);
-        (storageService.getMessages as any).mockReturnValue(mockMessages);
+        (messagingService.getConversations as any).mockReturnValue([mockConversation]);
+        (messagingService.getMessages as any).mockReturnValue(mockMessages);
     });
 
     afterEach(() => {
@@ -97,7 +107,7 @@ describe('ChatWindow', () => {
         const sendButton = screen.getByTitle('Send message');
         fireEvent.click(sendButton);
         
-        expect(storageService.sendMessage).toHaveBeenCalledWith('conv1', 'How are you?', 'user1');
+        expect(messagingService.sendMessage).toHaveBeenCalledWith('conv1', 'How are you?', 'user1');
         expect(input).toHaveValue('');
     });
 
@@ -109,7 +119,7 @@ describe('ChatWindow', () => {
         
         fireEvent.keyDown(input, { key: 'Enter', code: 'Enter', charCode: 13 });
         
-        expect(storageService.sendMessage).toHaveBeenCalledWith('conv1', 'Message via Enter', 'user1');
+        expect(messagingService.sendMessage).toHaveBeenCalledWith('conv1', 'Message via Enter', 'user1');
         expect(input).toHaveValue('');
     });
 
@@ -122,7 +132,7 @@ describe('ChatWindow', () => {
         const sendButton = screen.getByTitle('Send message');
         fireEvent.click(sendButton);
         
-        expect(storageService.sendMessage).not.toHaveBeenCalled();
+        expect(messagingService.sendMessage).not.toHaveBeenCalled();
         expect(screen.getByText(/Safety Warning/i)).toBeInTheDocument();
         expect(screen.getByText(/Sharing contact details/i)).toBeInTheDocument();
     });
@@ -136,7 +146,7 @@ describe('ChatWindow', () => {
         const sendButton = screen.getByTitle('Send message');
         fireEvent.click(sendButton);
         
-        expect(storageService.sendMessage).not.toHaveBeenCalled();
+        expect(messagingService.sendMessage).not.toHaveBeenCalled();
         expect(screen.getByText(/Vulgar or inappropriate language/i)).toBeInTheDocument();
     });
 
@@ -162,16 +172,16 @@ describe('ChatWindow', () => {
                 conversationId: 'conv1',
                 senderId: 'user2', // From other user
                 content: 'New message',
-                timestamp: new Date(),
+                timestamp: new Date().toISOString(),
                 read: false
             }
         ];
-        (storageService.getMessages as any).mockReturnValue(unreadMessages);
+        (messagingService.getMessages as any).mockReturnValue(unreadMessages);
         
         render(<ChatWindow {...defaultProps} />);
         
         // Initial render calls fetchMessages
-        expect(storageService.markAsRead).toHaveBeenCalledWith('conv1', 'user1');
+        expect(messagingService.markAsRead).toHaveBeenCalledWith('conv1', 'user1');
     });
 
     it('shows typing indicator', () => {

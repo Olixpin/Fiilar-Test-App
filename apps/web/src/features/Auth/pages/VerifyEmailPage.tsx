@@ -1,36 +1,63 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { CheckCircle, XCircle, Loader2, Mail } from 'lucide-react';
-import { verifyEmailToken, VerificationResult } from '../../../services/emailService';
+import { CheckCircle, XCircle, Loader2, Mail, KeyRound } from 'lucide-react';
+import { verifyEmailToken, verifyEmailOtp, VerificationResult } from '@fiilar/storage';
+import { Input } from '@fiilar/ui';
+import { OTPInput } from '../../../components/OTPInput';
 
 const VerifyEmailPage: React.FC = () => {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const [result, setResult] = useState<VerificationResult | null>(null);
-    const [isVerifying, setIsVerifying] = useState(true);
+    const [isVerifying, setIsVerifying] = useState(false);
+
+    // Form state
+    const [email, setEmail] = useState('');
+    const [otp, setOtp] = useState('');
 
     useEffect(() => {
         const token = searchParams.get('token');
 
-        if (!token) {
-            setResult({
-                success: false,
-                message: 'No verification token provided'
-            });
-            setIsVerifying(false);
-            return;
+        // Pre-fill email if logged in
+        const storedUser = localStorage.getItem('fiilar_user');
+        if (storedUser) {
+            try {
+                const user = JSON.parse(storedUser);
+                if (user.email) setEmail(user.email);
+            } catch (e) { }
         }
 
-        // Verify the token
-        setTimeout(() => {
-            const verificationResult = verifyEmailToken(token);
-            setResult(verificationResult);
-            setIsVerifying(false);
-        }, 1500); // Small delay for better UX
+        if (token) {
+            setIsVerifying(true);
+            // Verify the token
+            setTimeout(() => {
+                const verificationResult = verifyEmailToken(token);
+                setResult(verificationResult);
+                setIsVerifying(false);
+            }, 1500); // Small delay for better UX
+        }
     }, [searchParams]);
 
     const handleContinue = () => {
         navigate('/dashboard');
+    };
+
+    const handleOtpSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!email || otp.length !== 6) return;
+
+        setIsVerifying(true);
+
+        setTimeout(() => {
+            const verificationResult = verifyEmailOtp(email, otp);
+            setResult(verificationResult);
+            setIsVerifying(false);
+        }, 1000);
+    };
+
+    const resetForm = () => {
+        setResult(null);
+        setOtp('');
     };
 
     return (
@@ -43,7 +70,7 @@ const VerifyEmailPage: React.FC = () => {
                                 <Loader2 size={32} className="text-brand-600 animate-spin" />
                             </div>
                             <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                                Verifying your email...
+                                Verifying...
                             </h2>
                             <p className="text-gray-600">
                                 Please wait while we verify your email address
@@ -67,7 +94,7 @@ const VerifyEmailPage: React.FC = () => {
                                 Continue to Dashboard
                             </button>
                         </>
-                    ) : (
+                    ) : result && !result.success ? (
                         <>
                             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
                                 <XCircle size={32} className="text-red-600" />
@@ -76,23 +103,79 @@ const VerifyEmailPage: React.FC = () => {
                                 Verification Failed
                             </h2>
                             <p className="text-gray-600 mb-6">
-                                {result?.message || 'Something went wrong'}
+                                {result.message}
                             </p>
                             <div className="space-y-3">
                                 <button
-                                    onClick={() => navigate('/dashboard')}
+                                    onClick={resetForm}
                                     className="w-full bg-brand-600 text-white py-3 rounded-xl font-semibold hover:bg-brand-700 transition"
+                                >
+                                    Try Again
+                                </button>
+                                <button
+                                    onClick={() => navigate('/dashboard')}
+                                    className="w-full border border-gray-300 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-50 transition"
                                 >
                                     Go to Dashboard
                                 </button>
-                                <button
-                                    onClick={() => navigate('/')}
-                                    className="w-full border border-gray-300 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-50 transition"
-                                >
-                                    Back to Home
-                                </button>
                             </div>
                         </>
+                    ) : (
+                        // Default State: Enter OTP Form
+                        <form onSubmit={handleOtpSubmit} className="text-left">
+                            <div className="w-16 h-16 bg-brand-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <KeyRound size={32} className="text-brand-600" />
+                            </div>
+                            <h2 className="text-2xl font-bold text-gray-900 mb-2 text-center">
+                                Verify Email
+                            </h2>
+                            <p className="text-gray-600 mb-6 text-center">
+                                Enter the 6-digit code sent to your email address.
+                            </p>
+
+                            <div className="space-y-4">
+                                <div>
+                                    <Input
+                                        label="Email Address"
+                                        type="email"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        placeholder="Enter your email"
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-3 text-center">
+                                        Verification Code
+                                    </label>
+                                    <OTPInput
+                                        length={6}
+                                        value={otp}
+                                        onChange={setOtp}
+                                        onComplete={(code: string) => {
+                                            // Auto-submit when complete
+                                            if (email) {
+                                                setIsVerifying(true);
+                                                setTimeout(() => {
+                                                    const verificationResult = verifyEmailOtp(email, code);
+                                                    setResult(verificationResult);
+                                                    setIsVerifying(false);
+                                                }, 1000);
+                                            }
+                                        }}
+                                    />
+                                    <p className="text-xs text-gray-500 mt-3 text-center">
+                                        Enter or paste your 6-digit code
+                                    </p>
+                                </div>
+                                <button
+                                    type="submit"
+                                    className="w-full bg-brand-600 text-white py-3 rounded-xl font-semibold hover:bg-brand-700 transition mt-2"
+                                >
+                                    Verify Code
+                                </button>
+                            </div>
+                        </form>
                     )}
                 </div>
 

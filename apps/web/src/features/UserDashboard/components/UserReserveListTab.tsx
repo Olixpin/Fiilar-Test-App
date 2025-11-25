@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Listing } from '@fiilar/types';
-import { getBookings, deleteBooking } from '../../../services/storage';
+import { getBookings, deleteBooking } from '@fiilar/storage';
 import { migrateBookingTimestamps } from '../../../services/bookingMigration';
 import { removeDuplicateBookings } from '../../../services/bookingCleanup';
 import { Sparkles, Clock, Calendar, Info } from 'lucide-react';
@@ -28,11 +28,11 @@ export const UserReserveListTab: React.FC<UserReserveListTabProps> = ({ user, li
   const formatSavedTime = (createdAt?: string) => {
     if (!createdAt) return 'Just now';
     return new Date(createdAt).toLocaleString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: 'numeric',
-        hour12: true
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: 'numeric',
+      hour12: true
     });
   };
 

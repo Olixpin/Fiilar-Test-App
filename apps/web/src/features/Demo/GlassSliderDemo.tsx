@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import GlassSlider from '../../components/GlassSlider';
+import { GlassSlider } from '@fiilar/ui';
 
 const GlassSliderDemo: React.FC = () => {
     const [priceValue, setPriceValue] = useState(40);
@@ -7,7 +7,7 @@ const GlassSliderDemo: React.FC = () => {
     const [durationValue, setDurationValue] = useState(7);
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-6">
+        <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100 flex items-center justify-center p-6">
             <div className="w-full max-w-2xl space-y-12">
                 {/* Header */}
                 <div className="text-center space-y-2">

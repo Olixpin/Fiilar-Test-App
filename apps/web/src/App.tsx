@@ -1,20 +1,21 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import Navbar from './components/common/Navbar';
 import { User, Role, Listing, Booking } from '@fiilar/types';
-import { getCurrentUser, loginUser, logoutUser, getListings, initStorage, updateKYC, updateLiveness, createBooking, getAllUsers, STORAGE_KEYS } from './services/storage';
-import { escrowService } from './services/escrowService';
-import { startAutoReleaseScheduler, stopAutoReleaseScheduler } from './services/schedulerService';
-import { Check, AlertCircle, Clock } from 'lucide-react';
+import { initStorage, loginUser, getCurrentUser, logoutUser, getListings, getAllUsers, createBooking, STORAGE_KEYS } from '@fiilar/storage';
+import { updateKYC, updateLiveness } from '@fiilar/kyc';
+import { escrowService } from '@fiilar/escrow';
+import { startAutoReleaseScheduler, stopAutoReleaseScheduler } from '@fiilar/escrow';
+import { AlertCircle, Clock } from 'lucide-react';
 import { Routes, Route, useNavigate, useLocation, useParams, Navigate } from 'react-router-dom';
 import Home from './features/Listings/pages/Home';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import { analytics } from './services/analytics';
-import { LocaleProvider } from './contexts/LocaleContext';
+import { LocaleProvider, useToast } from '@fiilar/ui';
 import { formatCurrency } from './utils/currency';
 
 const HostDashboard = lazy(() => import('./features/HostDashboard/pages/HostDashboardPage'));
 const UserDashboard = lazy(() => import('./features/UserDashboard/pages/UserDashboard'));
-const AdminPanel = lazy(() => import('./features/Admin/pages/AdminPanel'));
+const AdminPanel = lazy(() => import('@fiilar/admin').then(module => ({ default: module.AdminPanel })));
 const ListingDetails = lazy(() => import('./features/Listings/pages/ListingDetails'));
 const Login = lazy(() => import('./features/Auth/pages/Login'));
 const HostOnboarding = lazy(() => import('./features/HostDashboard/pages/HostOnboarding'));
@@ -24,7 +25,7 @@ const PrivacyPolicy = lazy(() => import('./components/common/PrivacyPolicy'));
 const EmailVerificationBanner = lazy(() => import('./features/Auth/components/EmailVerificationBanner'));
 const VerifyEmailPage = lazy(() => import('./features/Auth/pages/VerifyEmailPage'));
 const NotFound = lazy(() => import('./components/common/NotFound'));
-const SystemHealthCheck = lazy(() => import('./features/Admin/components/SystemHealthCheck'));
+const SystemHealthCheck = lazy(() => import('@fiilar/admin').then(module => ({ default: module.SystemHealthCheck })));
 const FixWallet = lazy(() => import('./features/Admin/pages/FixWallet'));
 const GlassSliderDemo = lazy(() => import('./features/Demo/GlassSliderDemo'));
 
@@ -63,7 +64,7 @@ const App: React.FC = () => {
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [activeCategory, setActiveCategory] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
-  const [notification, setNotification] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   const [loading, setLoading] = useState(true);
 
@@ -140,6 +141,7 @@ const App: React.FC = () => {
   const handleLogin = (role: Role, provider: 'email' | 'google' | 'phone' = 'email') => {
     const u = loginUser(role, provider);
     setUser(u);
+    showToast({ message: 'Welcome back!', type: 'success' });
     analytics.trackLogin(provider);
     if (role === Role.HOST) {
       // If host is not verified, guide them
@@ -152,15 +154,15 @@ const App: React.FC = () => {
       navigate('/admin');
     } else {
       // Role.USER
-      // If we were on a listing page, we might want to go back there?
-      // For now, just go home or dashboard
-      navigate('/');
+      const from = (location.state as any)?.from?.pathname || '/';
+      navigate(from);
     }
   };
 
   const handleLogout = () => {
     logoutUser();
     setUser(null);
+    showToast({ message: 'Logged out successfully', type: 'info' });
     navigate('/');
   };
 
@@ -183,14 +185,14 @@ const App: React.FC = () => {
 
     if (!currentUser) {
       console.error('No user found for KYC upload');
-      navigate('/login');
+      navigate('/login', { state: { from: location } });
       return;
     }
 
     // 1. Update Storage (Mock URL for ID)
     // TODO: Integrate Dojah here for real verification.
     // For now, we auto-approve (set true) to simulate a successful Dojah check.
-    updateKYC(currentUser.id, true, 'https://example.com/id_card_simulated.jpg');
+    updateKYC(currentUser.id, 'verified', 'https://example.com/id_card_simulated.jpg');
     updateLiveness(currentUser.id, true);
 
     // 2. CRITICAL: Update Local State immediately so UI reflects the change
@@ -198,15 +200,14 @@ const App: React.FC = () => {
     setUser(updatedUser);
     refreshData(); // Sync persistent DB state
 
-    setNotification('Identity & Liveness Verified! (Dojah Simulation)');
+    showToast({ message: 'Identity & Liveness Verified! (Dojah Simulation)', type: 'success' });
     navigate('/host/dashboard');
-    setTimeout(() => setNotification(null), 4000);
   };
 
   const handleUserVerification = async () => {
     if (!user) return;
     // Update persistent storage (mock DB)
-    updateKYC(user.id, true, 'https://example.com/id_card.jpg');
+    updateKYC(user.id, 'verified', 'https://example.com/id_card.jpg');
 
     // Update session state immediately so UI reflects verification
     const updatedUser = { ...user, kycVerified: true };
@@ -214,8 +215,7 @@ const App: React.FC = () => {
     refreshData();
 
     // Show a short notification and return once the store/state is updated.
-    setNotification('Identity Verified! Proceeding with booking...');
-    setTimeout(() => setNotification(null), 3000);
+    showToast({ message: 'Identity Verified! Proceeding with booking...', type: 'success' });
 
     // Wait a tick to ensure callers that await this function observe updated storage/state
     await new Promise((res) => setTimeout(res, 50));
@@ -276,17 +276,12 @@ const App: React.FC = () => {
       ? `Recurring Booking Request Sent! (${dates.length} dates)`
       : `Booking Request Sent! Total: ${formatCurrency(breakdown.total)}`;
 
-    setNotification(message);
-
-    setTimeout(() => {
-      setNotification(null);
-      // Navigation is now handled by the caller (ListingDetails) to show the success modal first
-    }, 2000);
+    showToast({ message, type: 'success' });
 
     return createdBookings;
   };
 
-  const validRoutes = ['/', '/login', '/login-host', '/kyc', '/dashboard', '/host/dashboard', '/admin', '/verify-email', '/terms', '/privacy', '/demo/glass-slider'];
+  const validRoutes = ['/', '/kyc', '/dashboard', '/host/dashboard', '/admin', '/verify-email', '/terms', '/privacy', '/demo/glass-slider'];
   const isValidRoute = validRoutes.includes(location.pathname) || location.pathname.startsWith('/listing/');
 
   return (
@@ -302,7 +297,7 @@ const App: React.FC = () => {
             {isValidRoute && (
               <Navbar
                 user={user}
-                onLogin={() => navigate('/login')}
+                onLogin={() => navigate('/login', { state: { from: location } })}
                 onLogout={handleLogout}
                 onBecomeHost={() => navigate('/login-host')}
                 onNavigate={handleNavigate}
@@ -352,13 +347,6 @@ const App: React.FC = () => {
               </div>
             )}
 
-            {notification && (
-              <div className="fixed top-24 right-4 z-50 bg-black text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 animate-in slide-in-from-right">
-                <Check size={18} className="text-green-400" />
-                {notification}
-              </div>
-            )}
-
             <main className="grow">
               <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600"></div></div>}>
                 <Routes>
@@ -372,7 +360,10 @@ const App: React.FC = () => {
                       onBecomeHostClick={() => navigate('/login-host')}
                     />
                   } />
-                  <Route path="/login" element={<Login onLogin={handleLogin} onBack={() => navigate('/')} />} />
+                  <Route path="/login" element={<Login onLogin={handleLogin} onBack={() => {
+                    const from = (location.state as any)?.from?.pathname || '/';
+                    navigate(from);
+                  }} />} />
                   <Route path="/login-host" element={
                     user?.role === Role.ADMIN ? <Navigate to="/admin" replace /> :
                       <HostOnboarding onLogin={handleLogin} onBack={() => navigate('/')} />
@@ -416,7 +407,7 @@ const App: React.FC = () => {
                       user={user}
                       onBook={handleBookSpace}
                       onVerify={handleUserVerification}
-                      onLogin={() => navigate('/login')}
+                      onLogin={() => navigate('/login', { state: { from: location } })}
                       onRefreshUser={refreshData}
                     />
                   } />

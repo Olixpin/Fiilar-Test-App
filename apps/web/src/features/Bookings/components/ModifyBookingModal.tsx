@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Booking, Listing } from '@fiilar/types';
 import { X, Calendar, Clock, AlertCircle, CheckCircle, DollarSign, Trash2, Plus } from 'lucide-react';
-import { updateBooking, getBookings, deleteBooking, createBooking, setModificationAllowed, updateUserWalletBalance } from '../../../services/storage';
-import { paymentService } from '../../../services/paymentService';
-import { escrowService } from '../../../services/escrowService';
+import { updateBooking, getBookings, deleteBooking, createBooking, setModificationAllowed, updateUserWalletBalance } from '@fiilar/storage';
+import { paymentService, escrowService } from '@fiilar/escrow';
 import { Button } from '@fiilar/ui';
 
 interface ModifyBookingModalProps {

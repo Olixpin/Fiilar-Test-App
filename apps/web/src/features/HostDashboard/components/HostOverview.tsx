@@ -3,7 +3,7 @@ import { User, Listing, Booking, ListingStatus } from '@fiilar/types';
 import { DollarSign, TrendingUp, Home, Calendar as CalendarIcon, Clock, Sparkles, Plus, FileText, MessageSquare } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
-import { getConversations } from '../../../services/storage';
+import { getConversations } from '@fiilar/messaging';
 
 interface HostOverviewProps {
     user: User;

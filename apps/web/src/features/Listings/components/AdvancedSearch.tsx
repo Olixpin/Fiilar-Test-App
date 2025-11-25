@@ -1,19 +1,10 @@
 import React, { useState } from 'react';
 import { Search, MapPin, DollarSign, Calendar, Users, Home, SlidersHorizontal, X } from 'lucide-react';
 import { SpaceType, BookingType } from '@fiilar/types';
-import { useLocale } from '../../../contexts/LocaleContext';
+import { SearchFilters } from '@fiilar/search';
+import { useLocale } from '@fiilar/ui';
 
-export interface SearchFilters {
-    searchTerm: string;
-    location: string;
-    priceMin?: number;
-    priceMax?: number;
-    spaceType: SpaceType | 'all';
-    bookingType: BookingType | 'all';
-    guestCount: number;
-    dateFrom: string;
-    dateTo: string;
-}
+
 
 interface AdvancedSearchProps {
     filters: SearchFilters;
@@ -89,7 +80,7 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({ filters, onFilterChange
 
     return (
         <div
-            className={`bg-white border border-gray-100 overflow-hidden transition-all duration-300 flex flex-col lg:sticky lg:top-20 self-start w-full hover:shadow-lg ${isExpanded ? 'lg:w-80 rounded-2xl' : 'lg:w-16 rounded-full'}`}
+            className={`bg-white border border-gray-100 overflow-hidden transition-all duration-300 flex flex-col lg:sticky lg:top-20 self-start w-full shadow-faint hover:shadow-lg ${isExpanded ? 'lg:w-80 rounded-2xl' : 'lg:w-16 rounded-full'}`}
         >
 
             {/* Toggle Button - Hidden on mobile when in modal */}
@@ -261,11 +252,10 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({ filters, onFilterChange
                                             setLocalFilters(updated);
                                             onFilterChange(updated);
                                         }}
-                                        className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-all ${
-                                            isActive 
-                                                ? 'bg-brand-600 text-white border-brand-600' 
+                                        className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-all ${isActive
+                                                ? 'bg-brand-600 text-white border-brand-600'
                                                 : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                                        }`}
+                                            }`}
                                     >
                                         {range.label}
                                     </button>

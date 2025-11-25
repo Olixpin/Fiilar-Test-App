@@ -1,6 +1,7 @@
+
 import React, { useState } from 'react';
 import { X, Star } from 'lucide-react';
-import { addReview } from '../../../services/storage';
+import { addReview } from '@fiilar/reviews';
 
 interface ReviewModalProps {
     bookingId: string;
@@ -99,7 +100,7 @@ const ReviewModal: React.FC<ReviewModalProps> = ({
                                         className={`${star <= (hoverRating || rating)
                                                 ? 'fill-yellow-400 text-yellow-400'
                                                 : 'text-gray-300'
-                                            } transition-colors`}
+                                            } transition - colors`}
                                     />
                                 </button>
                             ))}

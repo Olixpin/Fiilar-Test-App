@@ -1,16 +1,21 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import Navbar from '../../components/common/Navbar';
 import { BrowserRouter } from 'react-router-dom';
 import { User, Role } from '@fiilar/types';
-import * as storageService from '../../services/storage';
+import * as storageService from '@fiilar/storage';
+import * as notificationService from '@fiilar/notifications';
 
 // Mock storage service
-vi.mock('../../services/storage', () => ({
+vi.mock('@fiilar/storage', () => ({
   getAllUsers: vi.fn(),
   getCurrentUser: vi.fn(),
-  getUnreadCount: vi.fn().mockReturnValue(0),
   STORAGE_KEYS: { USERS_DB: 'users', USER: 'user' },
+}));
+
+// Mock notifications service
+vi.mock('@fiilar/notifications', () => ({
+  getUnreadCount: vi.fn().mockReturnValue(0),
 }));
 
 // Mock NotificationCenter
@@ -22,7 +27,12 @@ const mockUser: User = {
   id: 'user1',
   name: 'Test User',
   email: 'test@example.com',
+  password: 'password',
   role: Role.USER,
+  isHost: false,
+  walletBalance: 0,
+  emailVerified: true,
+  createdAt: new Date().toISOString(),
   avatar: 'avatar.jpg',
   favorites: []
 };
@@ -104,7 +114,7 @@ describe('Navbar', () => {
   });
 
   it('shows notification badge when there are unread notifications', () => {
-    (storageService.getUnreadCount as any).mockReturnValue(5);
+    (notificationService.getUnreadCount as any).mockReturnValue(5);
     
     render(
       <BrowserRouter>

@@ -1,7 +1,8 @@
 import React from 'react';
 import { Listing } from '@fiilar/types';
 import { X, Star, Wifi, Wind, Utensils, Car, Dumbbell, Waves, Briefcase, Tv, Shirt, Scissors, Zap, Coffee, Music, Video, Shield, Sun, CheckCircle } from 'lucide-react';
-import { getAverageRating, getReviews, getAllUsers } from '../../../../services/storage';
+import { getReviews, getAverageRating } from '@fiilar/reviews';
+import { getAllUsers } from '@fiilar/storage'; // Re-import getAllUsers if still needed
 
 interface ReviewsModalProps {
   isOpen: boolean;

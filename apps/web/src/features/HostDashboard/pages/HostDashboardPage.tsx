@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { User, Listing, ListingStatus, Booking } from '@fiilar/types';
 import { Menu, Plus } from 'lucide-react';
-import { getConversations } from '../../../services/storage';
+import { getConversations } from '@fiilar/messaging';
 
 // Hooks
 import { useHostBookings } from '../hooks/useHostBookings';

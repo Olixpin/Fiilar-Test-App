@@ -1,8 +1,9 @@
+
 import React from 'react';
 import { Listing, CancellationPolicy } from '@fiilar/types';
-import { X, Star, Wallet, CreditCard, AlertCircle } from 'lucide-react';
+import { X, Star, CreditCard, Wallet, AlertCircle } from 'lucide-react';
 import { formatCurrency } from '../../../../utils/currency';
-import { getAverageRating, getReviews } from '../../../../services/storage';
+import { getAverageRating, getReviews } from '@fiilar/reviews';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@fiilar/ui';
 
@@ -117,10 +118,10 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
                 {/* Wallet Option */}
                 <div
                   onClick={() => setPaymentMethod('WALLET')}
-                  className={`flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-all ${paymentMethod === 'WALLET' ? 'border-brand-600 bg-brand-50 ring-1 ring-brand-600' : 'border-gray-200 hover:border-gray-300'}`}
+                  className={`flex items - center justify - between p - 4 rounded - xl border cursor - pointer transition - all ${paymentMethod === 'WALLET' ? 'border-brand-600 bg-brand-50 ring-1 ring-brand-600' : 'border-gray-200 hover:border-gray-300'} `}
                 >
                   <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-full ${paymentMethod === 'WALLET' ? 'bg-brand-200 text-brand-700' : 'bg-gray-100 text-gray-500'}`}>
+                    <div className={`p - 2 rounded - full ${paymentMethod === 'WALLET' ? 'bg-brand-200 text-brand-700' : 'bg-gray-100 text-gray-500'} `}>
                       <Wallet size={20} />
                     </div>
                     <div>
@@ -128,7 +129,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
                       <div className="text-sm text-gray-500">Balance: ₦{walletBalance.toLocaleString()}</div>
                     </div>
                   </div>
-                  <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${paymentMethod === 'WALLET' ? 'border-brand-600 bg-brand-600' : 'border-gray-300'}`}>
+                  <div className={`w - 5 h - 5 rounded - full border flex items - center justify - center ${paymentMethod === 'WALLET' ? 'border-brand-600 bg-brand-600' : 'border-gray-300'} `}>
                     {paymentMethod === 'WALLET' && <div className="w-2 h-2 bg-white rounded-full" />}
                   </div>
                 </div>
@@ -136,10 +137,10 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
                 {/* Card Option */}
                 <div
                   onClick={() => setPaymentMethod('CARD')}
-                  className={`flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-all ${paymentMethod === 'CARD' ? 'border-brand-600 bg-brand-50 ring-1 ring-brand-600' : 'border-gray-200 hover:border-gray-300'}`}
+                  className={`flex items - center justify - between p - 4 rounded - xl border cursor - pointer transition - all ${paymentMethod === 'CARD' ? 'border-brand-600 bg-brand-50 ring-1 ring-brand-600' : 'border-gray-200 hover:border-gray-300'} `}
                 >
                   <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-full ${paymentMethod === 'CARD' ? 'bg-brand-200 text-brand-700' : 'bg-gray-100 text-gray-500'}`}>
+                    <div className={`p - 2 rounded - full ${paymentMethod === 'CARD' ? 'bg-brand-200 text-brand-700' : 'bg-gray-100 text-gray-500'} `}>
                       <CreditCard size={20} />
                     </div>
                     <div>
@@ -147,7 +148,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
                       <div className="text-sm text-gray-500">Pay securely with card</div>
                     </div>
                   </div>
-                  <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${paymentMethod === 'CARD' ? 'border-brand-600 bg-brand-600' : 'border-gray-300'}`}>
+                  <div className={`w - 5 h - 5 rounded - full border flex items - center justify - center ${paymentMethod === 'CARD' ? 'border-brand-600 bg-brand-600' : 'border-gray-300'} `}>
                     {paymentMethod === 'CARD' && <div className="w-2 h-2 bg-white rounded-full" />}
                   </div>
                 </div>
@@ -192,7 +193,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
                 className="w-full shadow-lg"
                 isLoading={isBookingLoading}
               >
-                {!isBookingLoading && `Pay $${pendingBooking.fees.total.toFixed(2)}`}
+                {!isBookingLoading && `Pay $${pendingBooking.fees.total.toFixed(2)} `}
               </Button>
             </div>
           </div>

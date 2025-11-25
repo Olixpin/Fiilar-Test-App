@@ -52,7 +52,7 @@ const ListingAvailability: React.FC<ListingAvailabilityProps> = ({
     return (
         <div className="space-y-8 max-w-4xl mx-auto animate-in slide-in-from-right duration-300">
             {/* Modern Pill Tabs */}
-            <div className="flex gap-2 bg-gradient-to-r from-gray-100 to-gray-50 p-1.5 rounded-2xl mb-6 border border-gray-200">
+            <div className="flex gap-2 bg-linear-to-r from-gray-100 to-gray-50 p-1.5 rounded-2xl mb-6 border border-gray-200">
                 <button
                     onClick={() => setAvailTab('schedule')}
                     className={`flex-1 py-3 px-4 text-sm font-semibold rounded-xl transition-all duration-200 ${availTab === 'schedule'
@@ -213,8 +213,8 @@ py-2 rounded text-xs font-medium transition-colors
                     <div className="space-y-8 animate-in fade-in">
                         {/* Booking Settings Card */}
                         <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-sm overflow-hidden">
-                            <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-5 py-4 border-b border-gray-200">
-                                <label className="block text-sm font-bold text-gray-900 flex items-center gap-2">
+                            <div className="bg-linear-to-r from-gray-50 to-gray-100 px-5 py-4 border-b border-gray-200">
+                                <label className="text-sm font-bold text-gray-900 flex items-center gap-2">
                                     <Settings size={16} className="text-brand-600" />
                                     Booking Settings
                                 </label>

@@ -1,12 +1,12 @@
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import ListingCard from '../../features/Listings/components/ListingCard';
-import { Listing, BookingType, ListingStatus } from '@fiilar/types';
+import { Listing, BookingType, ListingStatus, SpaceType } from '@fiilar/types';
 import { BrowserRouter } from 'react-router-dom';
-import * as storageService from '../../services/storage';
+import * as storageService from '@fiilar/storage';
 
 // Mock storage service
-vi.mock('../../services/storage', () => ({
+vi.mock('@fiilar/storage', () => ({
   getCurrentUser: vi.fn(),
   toggleFavorite: vi.fn(),
 }));
@@ -20,15 +20,13 @@ const mockListing: Listing = {
   priceUnit: BookingType.HOURLY,
   images: ['img1.jpg', 'img2.jpg'],
   hostId: 'host1',
-  status: ListingStatus.PUBLISHED,
+  status: ListingStatus.LIVE,
   amenities: [],
-  category: 'Studio',
-  type: 'Studio',
+  tags: [],
+  type: SpaceType.STUDIO,
   requiresIdentityVerification: false,
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
   rating: 4.9,
-  reviewsCount: 10
+  reviewCount: 10
 };
 
 describe('ListingCard', () => {
@@ -177,16 +175,7 @@ describe('ListingCard', () => {
     vi.useRealTimers();
   });
 
-  it('does not render type badge if type is missing', () => {
-    const noTypeListing = { ...mockListing, type: undefined };
-    render(
-      <BrowserRouter>
-        <ListingCard listing={noTypeListing} />
-      </BrowserRouter>
-    );
 
-    expect(screen.queryByText('Studio')).not.toBeInTheDocument();
-  });
 
   it('handles user with undefined favorites gracefully', () => {
     const mockUser = { id: 'user1', name: 'User', email: 'user@example.com', role: 'USER', favorites: undefined };

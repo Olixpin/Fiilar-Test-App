@@ -48,7 +48,7 @@ const ListingPhotos: React.FC<ListingPhotosProps> = ({
                         </div>
                     </label>
 
-                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-5 flex gap-4">
+                    <div className="bg-linear-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-5 flex gap-4">
                         <div className="p-3 bg-white rounded-xl text-blue-600 h-fit shadow-sm">
                             <Sparkles size={20} />
                         </div>
@@ -91,7 +91,7 @@ const ListingPhotos: React.FC<ListingPhotosProps> = ({
                                 <img src={img} alt={`Listing photo ${index + 1}`} className="w-full h-full object-cover" />
 
                                 {/* Overlay Actions */}
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                                <div className="absolute inset-0 bg-linear-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
 
                                 <Button
                                     onClick={() => removeImage(index)}
@@ -104,7 +104,7 @@ const ListingPhotos: React.FC<ListingPhotosProps> = ({
                                 </Button>
 
                                 {index === 0 && (
-                                    <div className="absolute top-3 left-3 bg-gradient-to-r from-brand-600 to-purple-600 text-white text-xs px-3 py-2 rounded-xl font-bold shadow-lg flex items-center gap-1.5 z-10">
+                                    <div className="absolute top-3 left-3 bg-linear-to-r from-brand-600 to-purple-600 text-white text-xs px-3 py-2 rounded-xl font-bold shadow-lg flex items-center gap-1.5 z-10">
                                         <Sparkles size={14} /> Cover Photo
                                     </div>
                                 )}
@@ -122,7 +122,7 @@ const ListingPhotos: React.FC<ListingPhotosProps> = ({
                         {/* Add More Button */}
                         <label className={`
                         aspect-square border-3 border-dashed border-gray-300 rounded-2xl flex flex-col items-center justify-center cursor-pointer 
-                        hover:border-brand-500 hover:bg-gradient-to-br hover:from-brand-50 hover:to-purple-50 transition-all duration-300 group bg-white
+                        hover:border-brand-500 hover:bg-linear-to-br hover:from-brand-50 hover:to-purple-50 transition-all duration-300 group bg-white
                         ${newListing.images.length === 0 ? 'hidden' : ''}
                     `}>
                             <input type="file" multiple accept="image/*" className="hidden" onChange={handleImageUpload} />

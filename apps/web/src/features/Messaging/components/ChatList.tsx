@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Conversation, User } from '@fiilar/types';
-import { getAllUsers, getConversations } from '../../../services/storage';
+import { getAllUsers } from '@fiilar/storage';
+import { getConversations } from '@fiilar/messaging';
 import { User as UserIcon, MessageSquare } from 'lucide-react';
 
 interface ChatListProps {

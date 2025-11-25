@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import { Bell, Check, Trash2, AlertTriangle, Calendar, MessageSquare, Star, Info, Settings } from 'lucide-react';
 import { Notification } from '@fiilar/types';
-import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead, clearAllNotifications } from '../../../services/storage';
+import { getNotifications, markAllNotificationsAsRead, markNotificationAsRead, clearAllNotifications } from '@fiilar/notifications';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@fiilar/ui';
 
@@ -150,8 +151,8 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ userId }) => {
                         <button
                             onClick={() => setFilter('all')}
                             className={`px-4 py-2 rounded-lg text-sm font-medium transition ${filter === 'all'
-                                ? 'bg-brand-100 text-brand-700'
-                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                    ? 'bg-brand-100 text-brand-700'
+                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                 }`}
                         >
                             All ({notifications.length})
@@ -159,8 +160,8 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ userId }) => {
                         <button
                             onClick={() => setFilter('unread')}
                             className={`px-4 py-2 rounded-lg text-sm font-medium transition ${filter === 'unread'
-                                ? 'bg-brand-100 text-brand-700'
-                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                    ? 'bg-brand-100 text-brand-700'
+                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                 }`}
                         >
                             Unread ({unreadCount})
@@ -168,8 +169,8 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ userId }) => {
                         <button
                             onClick={() => setFilter('urgent')}
                             className={`px-4 py-2 rounded-lg text-sm font-medium transition ${filter === 'urgent'
-                                ? 'bg-brand-100 text-brand-700'
-                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                    ? 'bg-brand-100 text-brand-700'
+                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                 }`}
                         >
                             Urgent ({urgentCount})

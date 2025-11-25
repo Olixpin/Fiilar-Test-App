@@ -2,7 +2,7 @@ import React from 'react';
 import { Listing, User } from '@fiilar/types';
 import { X, Minus, Plus, Calendar as CalendarIcon, PackagePlus, CheckCircle, Repeat, Ban, Info, AlertCircle, Loader2 } from 'lucide-react';
 import { formatCurrency } from '../../../../utils/currency';
-import { ListingCalendar } from './ListingCalendar';
+import { ListingCalendar } from '@fiilar/calendar';
 
 interface MobileBookingModalProps {
   isOpen: boolean;

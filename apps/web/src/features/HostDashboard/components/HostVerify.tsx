@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { User, Booking, Listing } from '@fiilar/types';
 import { ShieldCheck, CheckCircle, AlertCircle, Loader2, ArrowRight } from 'lucide-react';
-import { findBookingByGuestCode, verifyHandshake } from '../../../services/storage';
+import { findBookingByGuestCode, verifyHandshake } from '@fiilar/storage';
 
 interface HostVerifyProps {
     user: User;

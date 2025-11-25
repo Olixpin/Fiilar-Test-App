@@ -1,20 +1,23 @@
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import HostSettings from '../../../../features/HostDashboard/components/HostSettings';
-import { User } from '@fiilar/types';
+import { User, Role } from '@fiilar/types';
 
 describe('HostSettings', () => {
     const mockUser: User = {
         id: '1',
         name: 'Test Host',
         email: 'host@test.com',
-        role: 'host',
+        password: 'password',
+        role: Role.HOST,
+        isHost: true,
         avatar: 'https://example.com/avatar.jpg',
         bio: 'Test bio',
         phone: '1234567890',
-        kycStatus: 'approved',
-        createdAt: new Date(),
-        updatedAt: new Date()
+        kycStatus: 'verified',
+        walletBalance: 0,
+        emailVerified: true,
+        createdAt: new Date().toISOString()
     };
 
     const mockOnUpdateUser = vi.fn();

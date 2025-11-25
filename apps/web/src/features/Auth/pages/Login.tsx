@@ -1,6 +1,12 @@
+
 import React, { useState } from 'react';
 import { Role } from '@fiilar/types';
-import { ArrowLeft, X, Mail } from 'lucide-react';
+import { X } from 'lucide-react';
+import { useToast } from '@fiilar/ui';
+import LoginOptions from '../components/Login/LoginOptions';
+import EmailLogin from '../components/Login/EmailLogin';
+import OtpVerification from '../components/Login/OtpVerification';
+import { sendVerificationEmail, verifyEmailOtp, sendVerificationSms, verifyPhoneOtp } from '@fiilar/storage';
 
 interface LoginProps {
     onLogin: (role: Role, provider?: 'email' | 'google' | 'phone') => void;
@@ -10,149 +16,165 @@ interface LoginProps {
 const Login: React.FC<LoginProps> = ({ onLogin, onBack }) => {
     const [step, setStep] = useState(0);
     const [email, setEmail] = useState('');
+    const [country, setCountry] = useState('ng');
+    const [phone, setPhone] = useState('');
+    const [otp, setOtp] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const { showToast } = useToast();
+
+    const countryCodes: Record<string, string> = {
+        ng: '+234',
+        us: '+1',
+        uk: '+44',
+    };
+
+    const handleStepChange = (newStep: number) => {
+        setStep(newStep);
+        setOtp(''); // Clear OTP when changing steps
+        setError(null);
+        setIsLoading(false);
+    };
+
+    const handleVerify = async (provider: 'email' | 'phone', codeOverride?: string) => {
+        setIsLoading(true);
+        setError(null);
+
+        // Simulate network request
+        setTimeout(() => {
+            const code = codeOverride || otp;
+            
+            if (provider === 'email') {
+                const result = verifyEmailOtp(email, code);
+                if (result.success) {
+                    onLogin(Role.USER, provider);
+                } else {
+                    setError(result.message || 'Invalid verification code');
+                    setIsLoading(false);
+                }
+            } else {
+                const fullPhone = `${countryCodes[country] || ''}${phone}`;
+                const result = verifyPhoneOtp(fullPhone, code);
+                if (result.success) {
+                    onLogin(Role.USER, provider);
+                } else {
+                    setError(result.message || 'Invalid verification code');
+                    setIsLoading(false);
+                }
+            }
+        }, 1500);
+    };
+
+    const handleResend = (provider: 'email' | 'phone') => {
+        // Simulate resending code
+        if (provider === 'email') {
+            const code = sendVerificationEmail(email, 'mock-token', 'User');
+            showToast({ message: `Demo Code: ${code}`, type: 'info', duration: 5000 });
+        } else {
+            const fullPhone = `${countryCodes[country] || ''}${phone}`;
+            const code = sendVerificationSms(fullPhone);
+            showToast({ message: `Demo Code: ${code}`, type: 'info', duration: 5000 });
+        }
+    };
 
     return (
-        <div className="min-h-screen bg-white flex flex-col items-center pt-20 px-4 animate-in slide-in-from-bottom-8 duration-500">
-            {step === 0 && (
-                <div className="max-w-[480px] w-full bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
-                    <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-                        <button onClick={onBack} className="p-2 -ml-2 hover:bg-gray-100 rounded-full transition" title="Close">
-                            <X size={18} />
-                        </button>
-                        <span className="font-bold text-base">Log in or sign up</span>
-                        <div className="w-8"></div>
+        <div className="min-h-screen flex bg-white">
+            {/* Left Side - Visual (Desktop Only) */}
+            <div className="hidden lg:flex lg:w-1/2 relative bg-gray-900 overflow-hidden">
+                <img
+                    src="https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?q=80&w=2000&auto=format&fit=crop"
+                    alt="Modern Interior"
+                    className="absolute inset-0 w-full h-full object-cover opacity-80 scale-105 hover:scale-100 transition-transform duration-[20s]"
+                />
+                <div className="absolute inset-0 bg-linear-to-t from-black/90 via-black/40 to-transparent" />
+
+                <div className="relative z-10 flex flex-col justify-end p-16 text-white h-full max-w-2xl">
+                    <div className="mb-8">
+                        <div className="w-16 h-16 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center mb-6 border border-white/20">
+                            <img src="https://drive.google.com/thumbnail?id=11AM3I7DLtyDpwgduNdtbUaZXJUYpvruC&sz=w400" className="w-10 h-10 object-contain" alt="Logo" />
+                        </div>
+                        <h1 className="text-5xl font-bold mb-6 leading-tight tracking-tight">Unlock spaces that<br />inspire creativity.</h1>
+                        <p className="text-lg text-gray-300 leading-relaxed">Join a community of creators, professionals, and hosts connecting through unique spaces every day.</p>
                     </div>
-
-                    <div className="p-6">
-                        <h2 className="text-2xl font-bold text-gray-900 mb-6">Welcome to Fiilar</h2>
-
-                        {/* Phone Input */}
-                        <div className="mb-3">
-                            <div className="border border-gray-300 rounded-t-lg px-3 py-2 relative hover:border-black focus-within:border-black focus-within:border-2 group">
-                                <label htmlFor="login-country-select" className="text-xs text-gray-500 block">Country/Region</label>
-                                <select id="login-country-select" className="w-full bg-transparent outline-none appearance-none text-gray-900 text-base pt-0.5">
-                                    <option>Nigeria (+234)</option>
-                                    <option>United States (+1)</option>
-                                    <option>United Kingdom (+44)</option>
-                                </select>
-                                <div className="absolute right-3 top-4 pointer-events-none">
-                                    {/* caret */}
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6" /></svg>
-                                </div>
-                            </div>
-                            <div className="border border-gray-300 border-t-0 rounded-b-lg px-3 py-2 hover:border-black focus-within:border-black focus-within:border-2">
-                                <label htmlFor="login-phone-input" className="text-xs text-gray-500 block">Phone number</label>
-                                <input
-                                    id="login-phone-input"
-                                    type="tel"
-                                    className="w-full bg-transparent outline-none text-gray-900 text-base pt-0.5"
-                                    placeholder="(555) 555-5555"
-                                />
-                            </div>
-                        </div>
-
-                        <p className="text-[11px] text-gray-500 leading-relaxed mb-5">
-                            We'll call or text you to confirm your number. Standard message and data rates apply. <a href="#" className="underline font-medium text-gray-800">Privacy Policy</a>
-                        </p>
-
-                        <button
-                            onClick={() => setStep(2)}
-                            className="w-full bg-linear-to-r from-brand-600 to-brand-700 text-white font-bold text-lg py-3 rounded-lg hover:shadow-lg transition-all active:scale-[0.98]"
-                        >
-                            Continue
-                        </button>
-
-                        <div className="flex items-center gap-4 my-6">
-                            <div className="h-px bg-gray-200 flex-1"></div>
-                            <span className="text-xs text-gray-500 font-medium">or</span>
-                            <div className="h-px bg-gray-200 flex-1"></div>
-                        </div>
-
-                        <div className="space-y-3">
-                            <button
-                                onClick={() => onLogin(Role.USER, 'google')}
-                                className="w-full border border-gray-900 text-gray-900 font-medium py-3 rounded-lg hover:bg-gray-50 transition relative flex items-center justify-between px-4"
-                            >
-                                <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" alt="Google" />
-                                <span className="text-center w-full">Continue with Google</span>
-                                <div className="w-5"></div>
-                            </button>
-
-                            <button
-                                onClick={() => setStep(1)}
-                                className="w-full border border-gray-900 text-gray-900 font-medium py-3 rounded-lg hover:bg-gray-50 transition relative flex items-center justify-between px-4"
-                            >
-                                <Mail size={20} />
-                                <span className="text-center w-full">Continue with email</span>
-                                <div className="w-5"></div>
-                            </button>
-                        </div>
-
-                        <div className="mt-6 text-center">
-                            <button onClick={() => onLogin(Role.ADMIN)} className="text-xs text-gray-300 hover:text-gray-500 underline">Admin Login (Demo)</button>
-                        </div>
+                    <div className="flex gap-2">
+                        <div className="h-1 w-12 bg-white rounded-full"></div>
+                        <div className="h-1 w-2 bg-white/30 rounded-full"></div>
+                        <div className="h-1 w-2 bg-white/30 rounded-full"></div>
                     </div>
                 </div>
-            )}
+            </div>
 
-            {step === 1 && (
-                <div className="max-w-[480px] w-full bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
-                    <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-                        <button onClick={() => setStep(0)} className="p-2 -ml-2 hover:bg-gray-100 rounded-full transition" title="Back">
-                            <ArrowLeft size={18} />
-                        </button>
-                        <span className="font-bold text-base">Log in or sign up</span>
-                        <div className="w-8"></div>
-                    </div>
-                    <div className="p-6">
-                        <input
-                            type="email"
-                            autoFocus
-                            className="w-full border border-gray-400 rounded-lg p-4 text-lg mb-6 outline-none focus:border-black focus:ring-1 focus:ring-black"
-                            placeholder="Email address"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
+            {/* Right Side - Form */}
+            <div className="flex-1 flex flex-col justify-center px-6 sm:px-12 lg:px-24 relative bg-white">
+                <button
+                    onClick={onBack}
+                    className="absolute top-8 right-8 p-2 hover:bg-gray-50 rounded-full transition-colors text-gray-400 hover:text-gray-900"
+                    title="Close"
+                >
+                    <X size={24} />
+                </button>
+
+                <div className="max-w-[420px] w-full mx-auto">
+                    {step === 0 && (
+                        <LoginOptions
+                            country={country}
+                            setCountry={setCountry}
+                            phone={phone}
+                            setPhone={setPhone}
+                            onContinue={() => {
+                                const fullPhone = `${countryCodes[country] || ''}${phone}`;
+                                const code = sendVerificationSms(fullPhone);
+                                showToast({ message: `Demo Code: ${code}`, type: 'info', duration: 5000 });
+                                handleStepChange(2);
+                            }}
+                            onEmailLogin={() => handleStepChange(1)}
+                            onGoogleLogin={() => onLogin(Role.USER, 'google')}
+                            onAdminLogin={() => onLogin(Role.ADMIN)}
                         />
-                        <button
-                            onClick={() => onLogin(Role.USER, 'email')}
-                            className="w-full bg-brand-600 text-white font-bold text-lg py-3 rounded-lg hover:shadow-lg transition-all"
-                        >
-                            Continue
-                        </button>
-                    </div>
-                </div>
-            )}
+                    )}
 
-            {step === 2 && (
-                <div className="max-w-[480px] w-full bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
-                    <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-                        <button onClick={() => setStep(0)} className="p-2 -ml-2 hover:bg-gray-100 rounded-full transition" title="Back">
-                            <ArrowLeft size={18} />
-                        </button>
-                        <span className="font-bold text-base">Confirm your number</span>
-                        <div className="w-8"></div>
-                    </div>
-                    <div className="p-6">
-                        <p className="text-gray-500 mb-6">Enter the code we sent to your phone.</p>
-                        <div className="flex gap-3 mb-8">
-                            {[1, 2, 3, 4, 5, 6].map(i => (
-                                <input
-                                    key={i}
-                                    type="text"
-                                    className="w-12 h-14 border border-gray-300 rounded-lg text-center text-xl focus:border-black outline-none"
-                                    aria-label={`Digit ${i}`}
-                                />
-                            ))}
-                        </div>
-                        <button
-                            onClick={() => onLogin(Role.USER, 'phone')}
-                            className="w-full bg-brand-600 text-white font-bold text-lg py-3 rounded-lg hover:shadow-lg transition-all"
-                        >
-                            Verify
-                        </button>
-                    </div>
+                    {step === 1 && (
+                        <EmailLogin
+                            email={email}
+                            setEmail={setEmail}
+                            onBack={() => handleStepChange(0)}
+                            onContinue={() => {
+                                const code = sendVerificationEmail(email, 'mock-token', 'User');
+                                showToast({ message: `Demo Code: ${code}`, type: 'info', duration: 5000 });
+                                handleStepChange(3);
+                            }}
+                        />
+                    )}
+
+                    {step === 2 && (
+                        <OtpVerification
+                            target={`${countryCodes[country] || ''} ${phone}`}
+                            type="phone"
+                            otp={otp}
+                            setOtp={setOtp}
+                            onBack={() => handleStepChange(0)}
+                            onVerify={(code) => handleVerify('phone', code)}
+                            onResend={() => handleResend('phone')}
+                            isLoading={isLoading}
+                            error={error}
+                        />
+                    )}
+
+                    {step === 3 && (
+                        <OtpVerification
+                            target={email}
+                            type="email"
+                            otp={otp}
+                            setOtp={setOtp}
+                            onBack={() => handleStepChange(1)}
+                            onVerify={(code) => handleVerify('email', code)}
+                            onResend={() => handleResend('email')}
+                            isLoading={isLoading}
+                            error={error}
+                        />
+                    )}
                 </div>
-            )}
+            </div>
         </div>
     );
 };

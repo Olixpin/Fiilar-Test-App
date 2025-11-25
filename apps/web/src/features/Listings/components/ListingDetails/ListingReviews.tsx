@@ -1,7 +1,8 @@
 import React from 'react';
-import { Listing } from '@fiilar/types';
+import { Listing, User } from '@fiilar/types';
 import { Star } from 'lucide-react';
-import { getAverageRating, getReviews, getAllUsers } from '../../../../services/storage';
+import { getReviews, getAverageRating } from '@fiilar/reviews';
+import { getAllUsers } from '@fiilar/storage';
 
 interface ListingReviewsProps {
   listing: Listing;
@@ -44,17 +45,18 @@ export const ListingReviews: React.FC<ListingReviewsProps> = ({ listing, onShowA
       ) : (
         <div className="space-y-6">
           {reviews.slice(0, 5).map(review => {
-            const reviewer = getAllUsers().find(u => u.id === review.userId);
+            const users = getAllUsers();
+            const user = users.find((u: User) => u.id === review.userId);
             return (
               <div key={review.id} className="border-b border-gray-100 pb-6 last:border-0">
                 <div className="flex items-start gap-4">
                   <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-semibold shrink-0">
-                    {reviewer?.name?.charAt(0).toUpperCase() || 'U'}
+                    {user?.name?.charAt(0).toUpperCase() || 'U'}
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center justify-between mb-2">
                       <div>
-                        <p className="font-semibold text-gray-900">{reviewer?.name || 'Anonymous'}</p>
+                        <p className="font-semibold text-gray-900">{user?.name || 'Anonymous'}</p>
                         <p className="text-xs text-gray-500">
                           {new Date(review.createdAt).toLocaleDateString('en-US', {
                             month: 'long',

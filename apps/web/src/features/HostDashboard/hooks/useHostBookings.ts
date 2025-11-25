@@ -1,6 +1,8 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { User, Listing, Booking } from '@fiilar/types';
-import { getBookings, updateBooking, addNotification, verifyHandshake, setModificationAllowed } from '../../../services/storage';
+import { getBookings, updateBooking, verifyHandshake, setModificationAllowed } from '@fiilar/storage';
+import { addNotification } from '@fiilar/notifications';
 
 export const useHostBookings = (user: User | null, listings: Listing[], refreshData: () => void) => {
     const [hostBookings, setHostBookings] = useState<Booking[]>([]);
@@ -24,7 +26,7 @@ export const useHostBookings = (user: User | null, listings: Listing[], refreshD
 
     const handleAcceptBooking = (booking: Booking) => {
         // If part of a group, accept all
-        const bookingsToUpdate = booking.groupId 
+        const bookingsToUpdate = booking.groupId
             ? hostBookings.filter(b => b.groupId === booking.groupId && b.status === 'Pending')
             : [booking];
 
@@ -36,7 +38,7 @@ export const useHostBookings = (user: User | null, listings: Listing[], refreshD
         // Send ONE notification for the group
         const listing = listings.find(l => l.id === booking.listingId);
         const message = bookingsToUpdate.length > 1
-            ? `Your recurring booking (${bookingsToUpdate.length} sessions) for "${listing?.title || 'the property'}" has been confirmed.`
+            ? `Your recurring booking(${bookingsToUpdate.length} sessions) for "${listing?.title || 'the property'}" has been confirmed.`
             : `Your booking for "${listing?.title || 'the property'}" on ${booking.date} has been confirmed.`;
 
         addNotification({
@@ -55,9 +57,9 @@ export const useHostBookings = (user: User | null, listings: Listing[], refreshD
 
         refreshData();
         fetchBookings(); // Refresh local state
-        
+
         if (bookingsToUpdate.length > 1) {
-            alert(`Recurring booking series confirmed (${bookingsToUpdate.length} sessions)!`);
+            alert(`Recurring booking series confirmed(${bookingsToUpdate.length} sessions)!`);
         } else {
             alert(`Booking ${booking.id} confirmed!`);
         }
@@ -65,7 +67,7 @@ export const useHostBookings = (user: User | null, listings: Listing[], refreshD
 
     const handleRejectBooking = (booking: Booking) => {
         // If part of a group, reject all
-        const bookingsToUpdate = booking.groupId 
+        const bookingsToUpdate = booking.groupId
             ? hostBookings.filter(b => b.groupId === booking.groupId && b.status === 'Pending')
             : [booking];
 
@@ -77,7 +79,7 @@ export const useHostBookings = (user: User | null, listings: Listing[], refreshD
         // Send ONE notification for the group
         const listing = listings.find(l => l.id === booking.listingId);
         const message = bookingsToUpdate.length > 1
-            ? `Unfortunately, your recurring booking request (${bookingsToUpdate.length} sessions) for "${listing?.title || 'the property'}" was not accepted.`
+            ? `Unfortunately, your recurring booking request(${bookingsToUpdate.length} sessions) for "${listing?.title || 'the property'}" was not accepted.`
             : `Unfortunately, your booking request for "${listing?.title || 'the property'}" on ${booking.date} was not accepted.`;
 
         addNotification({
@@ -96,7 +98,7 @@ export const useHostBookings = (user: User | null, listings: Listing[], refreshD
 
         refreshData();
         fetchBookings(); // Refresh local state
-        
+
         if (bookingsToUpdate.length > 1) {
             alert(`Recurring booking series rejected.`);
         } else {
@@ -121,7 +123,7 @@ export const useHostBookings = (user: User | null, listings: Listing[], refreshD
 
     const handleAllowModification = (booking: Booking) => {
         // If part of a group, allow for all
-        const bookingsToUpdate = booking.groupId 
+        const bookingsToUpdate = booking.groupId
             ? hostBookings.filter(b => b.groupId === booking.groupId && b.status === 'Pending')
             : [booking];
 
@@ -131,8 +133,8 @@ export const useHostBookings = (user: User | null, listings: Listing[], refreshD
 
         // Send ONE notification for the group (outside the loop)
         const listing = listings.find(l => l.id === booking.listingId);
-        const message = bookingsToUpdate.length > 1 
-            ? `The host has invited you to modify your recurring booking (${bookingsToUpdate.length} sessions) for "${listing?.title || 'the property'}".`
+        const message = bookingsToUpdate.length > 1
+            ? `The host has invited you to modify your recurring booking(${bookingsToUpdate.length} sessions) for "${listing?.title || 'the property'}".`
             : `The host has invited you to modify your booking for "${listing?.title || 'the property'}".`;
 
         addNotification({
@@ -151,7 +153,7 @@ export const useHostBookings = (user: User | null, listings: Listing[], refreshD
 
         refreshData();
         fetchBookings();
-        
+
         if (bookingsToUpdate.length > 1) {
             alert(`Modification enabled for recurring booking series.`);
         } else {

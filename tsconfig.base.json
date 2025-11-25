@@ -1,6 +1,7 @@
 {
     "compilerOptions": {
         "target": "ES2020",
+        "forceConsistentCasingInFileNames": true,
         "useDefineForClassFields": true,
         "lib": [
             "ES2020",
@@ -29,6 +30,33 @@
             ],
             "@fiilar/utils": [
                 "libs/utils/src/index.ts"
+            ],
+            "@fiilar/storage": [
+                "libs/storage/src/index.ts"
+            ],
+            "@fiilar/admin": [
+                "libs/admin/src/index.ts"
+            ],
+            "@fiilar/booking": [
+                "libs/booking/src/index.ts"
+            ],
+            "@fiilar/escrow": [
+                "libs/escrow/src/index.ts"
+            ],
+            "@fiilar/kyc": [
+                "libs/kyc/src/index.ts"
+            ],
+            "@fiilar/messaging": [
+                "libs/messaging/src/index.ts"
+            ],
+            "@fiilar/notifications": [
+                "libs/notifications/src/index.ts"
+            ],
+            "@fiilar/reviews": [
+                "libs/reviews/src/index.ts"
+            ],
+            "@fiilar/search": [
+                "libs/search/src/index.ts"
             ]
         }
     }

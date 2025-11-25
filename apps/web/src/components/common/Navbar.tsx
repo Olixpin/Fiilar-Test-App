@@ -3,7 +3,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { User, Role } from '@fiilar/types';
 import { X, Bell, Menu, LogOut, Sparkles, ArrowRight, Home as HomeIcon, Briefcase, User as UserIcon, LayoutDashboard, Shield } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { getAllUsers, STORAGE_KEYS, getCurrentUser, getUnreadCount } from '../../services/storage';
+import { getAllUsers, STORAGE_KEYS, getCurrentUser } from '@fiilar/storage';
+import { getUnreadCount } from '@fiilar/notifications';
 import NotificationCenter from '../../features/Notifications/components/NotificationCenter';
 import { Avatar } from '@fiilar/ui';
 
@@ -130,17 +131,19 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onSearch, searchTerm, o
         <div className="flex justify-between items-center gap-4">
 
           {/* Logo */}
-          <Link to="/" className="flex items-center cursor-pointer shrink-0">
-            <img
-              src="https://drive.google.com/thumbnail?id=11AM3I7DLtyDpwgduNdtbUaZXJUYpvruC&sz=w400"
-              alt="Fiilar"
-              className="h-5 md:h-6 object-contain"
-              referrerPolicy="no-referrer"
-            />
-          </Link>
+          <div className="flex items-center min-w-[150px] lg:min-w-[200px] xl:min-w-[250px]">
+            <Link to="/" className="flex items-center cursor-pointer">
+              <img
+                src="https://drive.google.com/thumbnail?id=11AM3I7DLtyDpwgduNdtbUaZXJUYpvruC&sz=w400"
+                alt="Fiilar"
+                className="h-5 md:h-6 object-contain"
+                referrerPolicy="no-referrer"
+              />
+            </Link>
+          </div>
 
           {/* Search Pill (Desktop) */}
-          <div className="hidden md:flex items-center bg-white border border-gray-300 rounded-full shadow-sm hover:shadow-md transition-shadow py-2.5 px-4 divide-x divide-gray-300 w-full max-w-md cursor-pointer group focus-within:ring-2 focus-within:ring-brand-500/20 focus-within:border-brand-500">
+          <div className="hidden md:flex items-center bg-white border border-gray-100 rounded-full shadow-faint hover:shadow-lg transition-all duration-300 py-2.5 px-4 divide-x divide-gray-200 w-full max-w-md cursor-pointer group focus-within:border-gray-300">
             <input
               type="text"
               placeholder="Try 'Studio in Lagos for 20 people...'"
@@ -149,14 +152,14 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onSearch, searchTerm, o
               onChange={(e) => onSearch && onSearch(e.target.value)}
             />
             <div className="pl-2">
-              <div className="bg-brand-600 text-white p-1.5 rounded-full group-hover:scale-110 group-hover:rotate-12 transition-all duration-300">
+              <div className="bg-brand-600 text-white p-1.5 rounded-full group-hover:scale-110 group-hover:rotate-12 transition-all duration-300 shadow-sm">
                 <Sparkles size={14} strokeWidth={2} />
               </div>
             </div>
           </div>
 
           {/* Right Side */}
-          <div className="hidden md:flex items-center gap-2 shrink-0">
+          <div className="hidden md:flex items-center gap-2 justify-end min-w-[150px] lg:min-w-[200px] xl:min-w-[250px]">
             {!user && (
               <button
                 onClick={onBecomeHost}

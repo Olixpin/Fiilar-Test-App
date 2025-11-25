@@ -26,7 +26,7 @@ vi.mock('../../../features/HostDashboard/hooks/useHostFinancials', () => ({
 }));
 
 // Mock services
-vi.mock('../../../services/storage', () => ({
+vi.mock('@fiilar/messaging', () => ({
   getConversations: vi.fn().mockReturnValue([]),
 }));
 

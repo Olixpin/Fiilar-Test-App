@@ -1,18 +1,22 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import AdminPanel from '../../../features/Admin/pages/AdminPanel';
-import { User, Listing, ListingStatus, Role, BookingType } from '@fiilar/types';
-import * as storageService from '../../../services/storage';
-import { escrowService } from '../../../services/escrowService';
+import { AdminPanel } from '@fiilar/admin';
+import { User, Listing, ListingStatus, Role, BookingType, SpaceType } from '@fiilar/types';
+import * as storageService from '@fiilar/storage';
+import { escrowService } from '@fiilar/escrow';
+import * as kycService from '@fiilar/kyc';
 
 // Mock dependencies
-vi.mock('../../../services/storage', () => ({
-  updateKYC: vi.fn(),
+vi.mock('@fiilar/storage', () => ({
   saveListing: vi.fn(),
   getBookings: vi.fn().mockReturnValue([]),
 }));
 
-vi.mock('../../../services/escrowService', () => ({
+vi.mock('@fiilar/kyc', () => ({
+  updateKYC: vi.fn(),
+}));
+
+vi.mock('@fiilar/escrow', () => ({
   escrowService: {
     getPlatformFinancials: vi.fn().mockResolvedValue({}),
     getEscrowTransactions: vi.fn().mockResolvedValue([]),
@@ -24,8 +28,8 @@ vi.mock('../../../features/Admin/components/FinancialsTab', () => ({
 }));
 
 const mockUsers: User[] = [
-  { id: '1', name: 'Host 1', email: 'host1@example.com', role: Role.HOST, kycVerified: false, identityDocument: 'doc.pdf', favorites: [] },
-  { id: '2', name: 'User 1', email: 'user1@example.com', role: Role.USER, kycVerified: true, favorites: [] },
+  { id: '1', name: 'Host 1', email: 'host1@example.com', role: Role.HOST, kycStatus: 'pending', kycDocument: 'doc.pdf', favorites: [], walletBalance: 0, createdAt: new Date().toISOString(), isHost: true, emailVerified: true, password: 'pass' },
+  { id: '2', name: 'User 1', email: 'user1@example.com', role: Role.USER, kycStatus: 'verified', favorites: [], walletBalance: 0, createdAt: new Date().toISOString(), isHost: false, emailVerified: true, password: 'pass' },
 ];
 
 const mockListings: Listing[] = [
@@ -40,13 +44,11 @@ const mockListings: Listing[] = [
     hostId: '1',
     status: ListingStatus.PENDING_APPROVAL,
     amenities: [],
-    category: 'Studio',
-    type: 'Studio',
+    tags: [],
+    type: SpaceType.STUDIO,
     requiresIdentityVerification: false,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
     rating: 0,
-    reviewsCount: 0
+    reviewCount: 0
   },
   {
     id: '2',
@@ -59,13 +61,11 @@ const mockListings: Listing[] = [
     hostId: '1',
     status: ListingStatus.LIVE,
     amenities: [],
-    category: 'Studio',
-    type: 'Studio',
+    tags: [],
+    type: SpaceType.STUDIO,
     requiresIdentityVerification: false,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
     rating: 5,
-    reviewsCount: 1
+    reviewCount: 1
   }
 ];
 
@@ -86,7 +86,7 @@ describe('AdminPanel', () => {
 
   it('switches to Listings tab', () => {
     render(<AdminPanel users={mockUsers} listings={mockListings} refreshData={refreshData} />);
-    
+
     // Find the button that contains "Listings" text. 
     // Since there are multiple elements with "Listings" (sidebar, mobile header), we can use getAllByText and pick one, or be more specific.
     // The sidebar button has text "Listings" and an icon.
@@ -99,7 +99,7 @@ describe('AdminPanel', () => {
 
   it('switches to Financials tab', async () => {
     render(<AdminPanel users={mockUsers} listings={mockListings} refreshData={refreshData} />);
-    
+
     const financialsTabs = screen.getAllByText('Financials');
     fireEvent.click(financialsTabs[0]);
 
@@ -107,33 +107,37 @@ describe('AdminPanel', () => {
     await waitFor(() => expect(escrowService.getPlatformFinancials).toHaveBeenCalled());
   });
 
+
+
+  // ... (inside describe block)
+
   it('approves user KYC', () => {
     render(<AdminPanel users={mockUsers} listings={mockListings} refreshData={refreshData} />);
-    
+
     const approveButton = screen.getByRole('button', { name: /approve/i });
     fireEvent.click(approveButton);
 
-    expect(storageService.updateKYC).toHaveBeenCalledWith('1', true);
+    expect(kycService.updateKYC).toHaveBeenCalledWith('1', 'verified');
     expect(refreshData).toHaveBeenCalled();
   });
 
   it('rejects user KYC', () => {
     render(<AdminPanel users={mockUsers} listings={mockListings} refreshData={refreshData} />);
-    
+
     const rejectButton = screen.getByRole('button', { name: /reject/i });
     fireEvent.click(rejectButton);
 
     // Based on current implementation, updateKYC is not called on rejection
-    expect(storageService.updateKYC).not.toHaveBeenCalled();
+    expect(kycService.updateKYC).not.toHaveBeenCalled();
     expect(refreshData).toHaveBeenCalled();
   });
 
   it('approves listing', () => {
     render(<AdminPanel users={mockUsers} listings={mockListings} refreshData={refreshData} />);
-    
+
     const listingsTabs = screen.getAllByText('Listings');
     fireEvent.click(listingsTabs[0]);
-    
+
     const approveButton = screen.getByRole('button', { name: /approve/i });
     fireEvent.click(approveButton);
 
@@ -146,10 +150,10 @@ describe('AdminPanel', () => {
 
   it('opens rejection modal and declines listing', () => {
     render(<AdminPanel users={mockUsers} listings={mockListings} refreshData={refreshData} />);
-    
+
     const listingsTabs = screen.getAllByText('Listings');
     fireEvent.click(listingsTabs[0]);
-    
+
     const declineButton = screen.getByRole('button', { name: /decline/i });
     fireEvent.click(declineButton);
 
@@ -171,10 +175,10 @@ describe('AdminPanel', () => {
 
   it('uses preset photography offer in rejection modal', () => {
     render(<AdminPanel users={mockUsers} listings={mockListings} refreshData={refreshData} />);
-    
+
     const listingsTabs = screen.getAllByText('Listings');
     fireEvent.click(listingsTabs[0]);
-    
+
     const declineButton = screen.getByRole('button', { name: /decline/i });
     fireEvent.click(declineButton);
 
@@ -187,10 +191,10 @@ describe('AdminPanel', () => {
 
   it('closes rejection modal without confirming', () => {
     render(<AdminPanel users={mockUsers} listings={mockListings} refreshData={refreshData} />);
-    
+
     const listingsTabs = screen.getAllByText('Listings');
     fireEvent.click(listingsTabs[0]);
-    
+
     const declineButton = screen.getByRole('button', { name: /decline/i });
     fireEvent.click(declineButton);
 
@@ -202,11 +206,11 @@ describe('AdminPanel', () => {
   });
 
   it('handles error when loading financial data', async () => {
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
     (escrowService.getPlatformFinancials as any).mockRejectedValue(new Error('Fetch failed'));
 
     render(<AdminPanel users={mockUsers} listings={mockListings} refreshData={refreshData} />);
-    
+
     const financialsTabs = screen.getAllByText('Financials');
     fireEvent.click(financialsTabs[0]);
 
@@ -217,14 +221,14 @@ describe('AdminPanel', () => {
   it('renders empty state for KYC requests', () => {
     const verifiedUsers = mockUsers.map(u => ({ ...u, kycVerified: true }));
     render(<AdminPanel users={verifiedUsers} listings={mockListings} refreshData={refreshData} />);
-    
+
     expect(screen.getByText('No pending KYC requests')).toBeInTheDocument();
   });
 
   it('renders empty state for pending listings', () => {
     const liveListings = mockListings.filter(l => l.status === ListingStatus.LIVE);
     render(<AdminPanel users={mockUsers} listings={liveListings} refreshData={refreshData} />);
-    
+
     const listingsTabs = screen.getAllByText('Listings');
     fireEvent.click(listingsTabs[0]);
 

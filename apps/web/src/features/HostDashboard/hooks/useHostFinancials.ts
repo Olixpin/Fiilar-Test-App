@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { User, Booking, Listing } from '@fiilar/types';
-import { updateBooking, getBookings, saveUser } from '../../../services/storage';
-import { escrowService } from '../../../services/escrowService';
+import { updateBooking, getBookings, saveUser } from '@fiilar/storage';
+import { escrowService } from '@fiilar/escrow';
 
 export const useHostFinancials = (user: User | null, listings: Listing[]) => {
     const [hostBookings, setHostBookings] = useState<Booking[]>([]);
@@ -25,7 +25,7 @@ export const useHostFinancials = (user: User | null, listings: Listing[]) => {
         const myListingIds = listings.filter(l => l.hostId === user.id).map(l => l.id);
         setHostBookings(all.filter(b => myListingIds.includes(b.listingId)));
 
-        escrowService.getEscrowTransactions().then(txs => setHostTransactions(txs));
+        escrowService.getEscrowTransactions().then((txs: any[]) => setHostTransactions(txs));
     }, [user, listings]);
 
     useEffect(() => {

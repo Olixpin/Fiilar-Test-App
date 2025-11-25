@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, AlertTriangle, Clock, Info } from 'lucide-react';
 import { Booking, CancellationPolicy } from '@fiilar/types';
 import { calculateRefund, processCancellation, getCancellationPolicyDescription } from '../../../services/cancellationService';
-import { useLocale } from '../../../contexts/LocaleContext';
-import { Button } from '@fiilar/ui';
+import { useLocale, Button } from '@fiilar/ui';
 
 interface CancellationModalProps {
     booking: Booking;

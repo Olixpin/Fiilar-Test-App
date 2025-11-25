@@ -1,9 +1,11 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Listing, User, BookingType, Booking } from '@fiilar/types';
-import { getBookings, toggleFavorite, saveBooking, deleteBooking, startConversation, getAllUsers, addNotification } from '../../../services/storage';
-import { paymentService } from '../../../services/paymentService';
-import { SERVICE_FEE_PERCENTAGE } from '../../../constants';
+import { getBookings, toggleFavorite, saveBooking, deleteBooking, getAllUsers } from '@fiilar/storage';
+import { startConversation } from '@fiilar/messaging';
+import { addNotification } from '@fiilar/notifications';
+import { paymentService } from '@fiilar/escrow';
+import { SERVICE_FEE_PERCENTAGE } from '@fiilar/storage';
 
 interface UseListingDetailsProps {
     listing: Listing;

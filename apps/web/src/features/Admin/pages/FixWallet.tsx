@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { getCurrentUser, updateUserWalletBalance } from '../../../services/storage';
+import { getCurrentUser, updateUserWalletBalance } from '@fiilar/storage';
 import { DollarSign } from 'lucide-react';
 
 const FixWallet: React.FC = () => {
@@ -21,7 +21,7 @@ const FixWallet: React.FC = () => {
 
         updateUserWalletBalance(user.id, amountNum);
         setMessage(`Added ₦${amountNum} to wallet. Refresh the page to see changes.`);
-        
+
         setTimeout(() => {
             window.location.reload();
         }, 1500);

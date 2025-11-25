@@ -22,7 +22,7 @@ const ListingVerification: React.FC<ListingVerificationProps> = ({
     return (
         <div className="space-y-8 max-w-3xl mx-auto animate-in slide-in-from-right duration-300">
             <div className="text-center mb-8">
-                <div className="w-20 h-20 bg-gradient-to-br from-blue-50 to-indigo-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-md">
+                <div className="w-20 h-20 bg-linear-to-br from-blue-50 to-indigo-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-md">
                     <Shield size={36} />
                 </div>
                 <h3 className="font-bold text-3xl text-gray-900">Property Verification</h3>

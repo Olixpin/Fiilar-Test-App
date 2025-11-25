@@ -149,7 +149,7 @@ inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow
                 <button
                     onClick={handleCreateListing}
                     disabled={isSubmitting}
-                    className="flex-1 bg-gradient-to-r from-gray-900 to-gray-800 text-white py-4 rounded-xl font-bold flex justify-center items-center hover:from-black hover:to-gray-900 transition-all shadow-xl hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed text-lg gap-2"
+                    className="flex-1 bg-linear-to-r from-gray-900 to-gray-800 text-white py-4 rounded-xl font-bold flex justify-center items-center hover:from-black hover:to-gray-900 transition-all shadow-xl hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed text-lg gap-2"
                 >
                     {isSubmitting ? <Loader2 className="animate-spin" size={24} /> : (
                         user.kycVerified && newListing.proofOfAddress && newListing.price ?

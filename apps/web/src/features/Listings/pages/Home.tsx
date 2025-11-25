@@ -1,9 +1,9 @@
 import React from 'react';
 import { Listing, User, ListingStatus, SpaceType } from '@fiilar/types';
 import ListingCard from '../components/ListingCard';
-import AdvancedSearch, { SearchFilters } from '../components/AdvancedSearch';
-import { filterListings, parseNaturalLanguageQuery } from '../../../services/searchService';
-import { Home as HomeIcon, Camera, Users, Music, Briefcase, Sun, Search, Plus, X, SlidersHorizontal } from 'lucide-react';
+import AdvancedSearch from '../components/AdvancedSearch';
+import { filterListings, parseNaturalLanguageQuery, SearchFilters } from '@fiilar/search';
+import { Home as HomeIcon, Camera, Users, Music, Briefcase, Sun, Search, Plus, X, SlidersHorizontal, TrendingUp, ArrowRight } from 'lucide-react';
 import { Button } from '@fiilar/ui';
 
 const ListingSkeleton = () => (
@@ -171,17 +171,38 @@ const Home: React.FC<HomeProps> = ({
                     <button
                         key="promo"
                         onClick={onBecomeHostClick}
-                        className="group cursor-pointer flex flex-col gap-2 h-full text-left"
+                        className="group cursor-pointer flex flex-col gap-3 bg-white p-3 rounded-3xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-gray-100 text-left h-full"
                         aria-label="Become a host and earn income"
                     >
-                        <div className="relative aspect-square overflow-hidden rounded-xl bg-gray-50 border border-gray-200 flex flex-col items-center justify-center text-center p-6 hover:bg-gray-100 transition-colors">
-                            <div className="w-12 h-12 rounded-full bg-white shadow-sm flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                                <Plus size={24} className="text-brand-600" />
+                        <div className="relative aspect-square overflow-hidden rounded-2xl bg-gray-200 border border-gray-200 w-full group-hover:border-brand-200">
+                            <img
+                                src="https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=800&q=80"
+                                alt="Become a Host"
+                                className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-700"
+                            />
+                            <div className="absolute inset-0 bg-black/10 group-hover:bg-black/0 transition-colors" />
+                            <div className="absolute inset-0 flex items-center justify-center">
+                                <div className="w-12 h-12 rounded-full bg-white/90 backdrop-blur-sm shadow-sm flex items-center justify-center group-hover:scale-110 transition-transform group-hover:shadow-md">
+                                    <Plus size={24} className="text-brand-600" />
+                                </div>
                             </div>
-                            <h3 className="text-lg font-bold text-gray-900 mb-1">Become a Host</h3>
-                            <p className="text-gray-500 text-sm mb-4 leading-tight">Earn extra income by sharing your space.</p>
                         </div>
-                        <div className="mt-1 opacity-0">Placeholder</div>
+                        <div className="mt-1">
+                            <h3 className="font-medium text-base text-gray-900 leading-tight truncate">Become a Host</h3>
+                            <div className="flex items-center gap-1 text-gray-500 mt-1">
+                                <TrendingUp size={14} className="text-brand-600" />
+                                <span className="text-sm">Earn extra income</span>
+                            </div>
+                            <div className="flex justify-between items-center mt-2">
+                                <div className="flex items-center gap-1">
+                                    <span className="font-medium text-sm text-gray-500">Join Free</span>
+                                </div>
+                                <div className="text-right flex items-center gap-1 text-brand-600">
+                                    <span className="font-bold text-sm">Get Started</span>
+                                    <ArrowRight size={14} />
+                                </div>
+                            </div>
+                        </div>
                     </button>
                 );
                 promoAdded = true;
@@ -208,7 +229,7 @@ const Home: React.FC<HomeProps> = ({
                     {/* Main Content Area */}
                     <div className="flex-1 min-w-0">
                         {/* Categories */}
-                        <div className="flex items-center gap-2 sm:gap-3 lg:gap-0 overflow-x-auto py-3 sm:py-3 mb-4 sm:mb-6 no-scrollbar sticky top-[72px] sm:top-20 bg-white z-30 pl-4 pr-4 sm:pr-0 lg:justify-between lg:px-4 w-full lg:border lg:border-gray-200 lg:rounded-full lg:shadow-sm">
+                        <div className="flex items-center gap-2 sm:gap-3 lg:gap-0 overflow-x-auto py-3 sm:py-3 mb-4 sm:mb-6 no-scrollbar sticky top-[72px] sm:top-20 bg-white z-30 pl-4 pr-4 sm:pr-0 lg:justify-between lg:px-4 w-full lg:border lg:border-gray-100 lg:rounded-full lg:shadow-faint hover:shadow-lg transition-all duration-300">
                             {/* Mobile Filter Button */}
                             <button
                                 onClick={() => setShowMobileFilters(true)}

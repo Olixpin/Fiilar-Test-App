@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { paymentService } from '../../../services/paymentService';
+import { paymentService } from '@fiilar/escrow';
 import { Transaction } from '@fiilar/types';
 import { ArrowDownToLine } from 'lucide-react';
 
