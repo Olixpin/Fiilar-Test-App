@@ -29,11 +29,11 @@ export const MOCK_LISTINGS: Listing[] = [
     price: 50,
     priceUnit: BookingType.HOURLY,
     images: [
-      'https://picsum.photos/800/600?random=1',
-      'https://picsum.photos/800/600?random=2',
-      'https://picsum.photos/800/600?random=11',
-      'https://picsum.photos/800/600?random=12',
-      'https://picsum.photos/800/600?random=13'
+      'https://picsum.photos/id/10/800/600',
+      'https://picsum.photos/id/11/800/600',
+      'https://picsum.photos/id/12/800/600',
+      'https://picsum.photos/id/13/800/600',
+      'https://picsum.photos/id/14/800/600'
     ],
     location: 'Downtown, Metro City',
     status: ListingStatus.LIVE,
@@ -70,11 +70,11 @@ export const MOCK_LISTINGS: Listing[] = [
     price: 120,
     priceUnit: BookingType.HOURLY,
     images: [
-      'https://picsum.photos/800/600?random=3',
-      'https://picsum.photos/800/600?random=5',
-      'https://picsum.photos/800/600?random=6',
-      'https://picsum.photos/800/600?random=14',
-      'https://picsum.photos/800/600?random=15'
+      'https://picsum.photos/id/20/800/600',
+      'https://picsum.photos/id/21/800/600',
+      'https://picsum.photos/id/22/800/600',
+      'https://picsum.photos/id/23/800/600',
+      'https://picsum.photos/id/24/800/600'
     ],
     location: 'Financial District',
     status: ListingStatus.LIVE,
@@ -116,11 +116,11 @@ export const MOCK_LISTINGS: Listing[] = [
     price: 1500,
     priceUnit: BookingType.DAILY,
     images: [
-      'https://picsum.photos/800/600?random=4',
-      'https://picsum.photos/800/600?random=7',
-      'https://picsum.photos/800/600?random=8',
-      'https://picsum.photos/800/600?random=9',
-      'https://picsum.photos/800/600?random=10'
+      'https://picsum.photos/id/30/800/600',
+      'https://picsum.photos/id/31/800/600',
+      'https://picsum.photos/id/32/800/600',
+      'https://picsum.photos/id/33/800/600',
+      'https://picsum.photos/id/34/800/600'
     ],
     location: 'Uptown',
     status: ListingStatus.LIVE,

@@ -146,10 +146,10 @@ const Login: React.FC<LoginProps> = ({ onLogin, onBack }) => {
             </div>
 
             {/* Right Side - Form */}
-            <div className="flex-1 flex flex-col justify-center px-6 sm:px-12 lg:px-24 relative bg-white">
+            <div className="flex-1 flex flex-col justify-center px-4 sm:px-12 lg:px-24 relative bg-white">
                 <button
                     onClick={onBack}
-                    className="absolute top-8 right-8 p-2 hover:bg-gray-50 rounded-full transition-colors text-gray-400 hover:text-gray-900"
+                    className="absolute top-4 right-4 sm:top-8 sm:right-8 p-2 hover:bg-gray-50 rounded-full transition-colors text-gray-400 hover:text-gray-900"
                     title="Close"
                 >
                     <X size={24} />

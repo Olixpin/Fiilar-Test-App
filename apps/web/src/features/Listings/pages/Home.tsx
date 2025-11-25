@@ -29,6 +29,16 @@ interface HomeProps {
     onBecomeHostClick: () => void;
 }
 
+const categories = [
+    { id: 'All', label: 'All', icon: null },
+    { id: SpaceType.APARTMENT, label: 'Apartments', icon: HomeIcon },
+    { id: SpaceType.STUDIO, label: 'Studios', icon: Camera },
+    { id: SpaceType.CONFERENCE, label: 'Conference', icon: Users },
+    { id: SpaceType.EVENT_CENTER, label: 'Events', icon: Music },
+    { id: SpaceType.CO_WORKING, label: 'Co-working', icon: Briefcase },
+    { id: SpaceType.OPEN_SPACE, label: 'Open Air', icon: Sun },
+];
+
 const Home: React.FC<HomeProps> = ({
     listings,
     user,
@@ -37,15 +47,6 @@ const Home: React.FC<HomeProps> = ({
     searchTerm,
     onBecomeHostClick
 }) => {
-    const categories = [
-        { id: 'All', label: 'All', icon: null },
-        { id: SpaceType.APARTMENT, label: 'Apartments', icon: HomeIcon },
-        { id: SpaceType.STUDIO, label: 'Studios', icon: Camera },
-        { id: SpaceType.CONFERENCE, label: 'Conference', icon: Users },
-        { id: SpaceType.EVENT_CENTER, label: 'Events', icon: Music },
-        { id: SpaceType.CO_WORKING, label: 'Co-working', icon: Briefcase },
-        { id: SpaceType.OPEN_SPACE, label: 'Open Air', icon: Sun },
-    ];
 
     const [filters, setFilters] = React.useState<SearchFilters>({
         searchTerm: searchTerm,
@@ -62,7 +63,46 @@ const Home: React.FC<HomeProps> = ({
     const [showMobileFilters, setShowMobileFilters] = React.useState(false);
     const [isLoading, setIsLoading] = React.useState(true);
     const [visibleCount, setVisibleCount] = React.useState(12);
+
     const loadMoreRef = React.useRef<HTMLDivElement>(null);
+    const categoriesRef = React.useRef<HTMLDivElement>(null);
+    const [scrollState, setScrollState] = React.useState({ left: false, right: true });
+    const [isHeaderVisible, setIsHeaderVisible] = React.useState(true);
+    const lastScrollY = React.useRef(0);
+
+    React.useEffect(() => {
+        const handleScroll = () => {
+            const currentScrollY = window.scrollY;
+
+            // Show header if scrolling up or at the top
+            // Removed threshold to make it more responsive ("faster to become not visible")
+            if (currentScrollY < lastScrollY.current || currentScrollY < 50) {
+                setIsHeaderVisible(true);
+            } else if (currentScrollY > lastScrollY.current && currentScrollY > 50) {
+                setIsHeaderVisible(false);
+            }
+
+            lastScrollY.current = currentScrollY;
+        };
+
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+
+    const checkScroll = () => {
+        if (!categoriesRef.current) return;
+        const { scrollLeft, scrollWidth, clientWidth } = categoriesRef.current;
+        setScrollState({
+            left: scrollLeft > 0,
+            right: scrollLeft < scrollWidth - clientWidth - 1 // -1 for rounding tolerance
+        });
+    };
+
+    React.useEffect(() => {
+        checkScroll();
+        window.addEventListener('resize', checkScroll);
+        return () => window.removeEventListener('resize', checkScroll);
+    }, [categories]);
 
     // Simulate initial data loading for skeleton demonstration
     React.useEffect(() => {
@@ -174,15 +214,9 @@ const Home: React.FC<HomeProps> = ({
                         className="group cursor-pointer flex flex-col gap-3 bg-white p-3 rounded-3xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-gray-100 text-left h-full"
                         aria-label="Become a host and earn income"
                     >
-                        <div className="relative aspect-square overflow-hidden rounded-2xl bg-gray-200 border border-gray-200 w-full group-hover:border-brand-200">
-                            <img
-                                src="https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=800&q=80"
-                                alt="Become a Host"
-                                className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-700"
-                            />
-                            <div className="absolute inset-0 bg-black/10 group-hover:bg-black/0 transition-colors" />
+                        <div className="relative aspect-square overflow-hidden rounded-2xl bg-gray-100 border border-gray-200 w-full group-hover:border-brand-200 transition-colors">
                             <div className="absolute inset-0 flex items-center justify-center">
-                                <div className="w-12 h-12 rounded-full bg-white/90 backdrop-blur-sm shadow-sm flex items-center justify-center group-hover:scale-110 transition-transform group-hover:shadow-md">
+                                <div className="w-12 h-12 rounded-full bg-white shadow-sm flex items-center justify-center group-hover:scale-110 transition-transform group-hover:shadow-md">
                                     <Plus size={24} className="text-brand-600" />
                                 </div>
                             </div>
@@ -229,39 +263,54 @@ const Home: React.FC<HomeProps> = ({
                     {/* Main Content Area */}
                     <div className="flex-1 min-w-0">
                         {/* Categories */}
-                        <div className="flex items-center gap-2 sm:gap-3 lg:gap-0 overflow-x-auto py-3 sm:py-3 mb-4 sm:mb-6 no-scrollbar sticky top-[72px] sm:top-20 bg-white z-30 pl-4 pr-4 sm:pr-0 lg:justify-between lg:px-4 w-full lg:border lg:border-gray-100 lg:rounded-full lg:shadow-faint hover:shadow-lg transition-all duration-300">
-                            {/* Mobile Filter Button */}
+                        <div className={`sticky top-[72px] sm:top-20 z-30 mb-4 sm:mb-6 flex items-center gap-3 transition-all duration-300 transform ${isHeaderVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0 pointer-events-none'}`}>
+                            {/* Mobile Filter Button - Separated & Circular */}
                             <button
                                 onClick={() => setShowMobileFilters(true)}
-                                className="lg:hidden flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200 font-medium text-xs sm:text-sm whitespace-nowrap transition-all"
+                                className="lg:hidden shrink-0 w-10 h-10 flex items-center justify-center rounded-full bg-white/80 backdrop-blur-md border border-white/20 text-gray-700 hover:bg-white hover:shadow-md transition-all shadow-sm"
+                                aria-label="Filters"
                             >
-                                <SlidersHorizontal size={16} className="sm:w-[18px] sm:h-[18px]" strokeWidth={1.5} />
-                                <span>Filters</span>
+                                <SlidersHorizontal size={18} strokeWidth={1.5} />
                             </button>
-                            {categories.map((cat, idx) => (
-                                <React.Fragment key={cat.id}>
-                                    <button
-                                        data-category={cat.id}
-                                        onClick={() => {
-                                            setActiveCategory(cat.id);
-                                            setTimeout(() => {
-                                                const btn = document.querySelector(`button[data-category="${cat.id}"]`);
-                                                btn?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-                                            }, 0);
-                                        }}
-                                        className={`flex items-center gap-1.5 sm:gap-2 ${idx === 0 ? 'pl-4 pr-3 sm:px-4' : 'px-3 sm:px-4'} py-1.5 sm:py-2 rounded-full whitespace-nowrap transition-all duration-200 text-xs sm:text-sm hover:scale-105 active:scale-95 ${activeCategory === cat.id
-                                            ? 'bg-brand-600 text-white shadow-md'
-                                            : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200 lg:bg-transparent lg:border-0 lg:hover:bg-gray-50'
-                                            }`}
-                                    >
-                                        {cat.icon ? <cat.icon size={16} className="sm:w-[18px] sm:h-[18px]" strokeWidth={1.5} /> : <Search size={16} className="sm:w-[18px] sm:h-[18px]" strokeWidth={1.5} />}
-                                        <span className="font-medium">{cat.label}</span>
-                                    </button>
-                                    {idx < categories.length - 1 && (
-                                        <div className="hidden lg:block h-5 w-px bg-gray-200 shrink-0 mx-2" />
-                                    )}
-                                </React.Fragment>
-                            ))}
+
+                            {/* Categories List */}
+                            <div
+                                ref={categoriesRef}
+                                onScroll={checkScroll}
+                                className={`flex-1 flex items-center gap-2 sm:gap-3 lg:gap-0 overflow-x-auto py-2 sm:py-3 no-scrollbar rounded-full bg-white/80 backdrop-blur-md border border-white/20 px-2 sm:px-4 lg:justify-between lg:w-full lg:mx-0 lg:bg-white lg:border-gray-100 lg:shadow-faint lg:shadow-none hover:shadow-lg transition-all duration-300 ${scrollState.left && scrollState.right
+                                    ? 'shadow-[inset_12px_0_12px_-8px_rgba(0,0,0,0.08),inset_-12px_0_12px_-8px_rgba(0,0,0,0.08)]'
+                                    : scrollState.left
+                                        ? 'shadow-[inset_12px_0_12px_-8px_rgba(0,0,0,0.08)]'
+                                        : scrollState.right
+                                            ? 'shadow-[inset_-12px_0_12px_-8px_rgba(0,0,0,0.08)]'
+                                            : ''
+                                    }`}
+                            >
+                                {categories.map((cat, idx) => (
+                                    <React.Fragment key={cat.id}>
+                                        <button
+                                            data-category={cat.id}
+                                            onClick={() => {
+                                                setActiveCategory(cat.id);
+                                                setTimeout(() => {
+                                                    const btn = document.querySelector(`button[data-category="${cat.id}"]`);
+                                                    btn?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                                                }, 0);
+                                            }}
+                                            className={`flex items-center gap-1.5 sm:gap-2 ${idx === 0 ? 'pl-4 pr-3 sm:px-4' : 'px-3 sm:px-4'} py-1.5 sm:py-2 rounded-full whitespace-nowrap transition-all duration-200 text-xs sm:text-sm hover:scale-105 active:scale-95 ${activeCategory === cat.id
+                                                ? 'bg-brand-600 text-white shadow-md shadow-brand-600/20'
+                                                : 'bg-white/50 backdrop-blur-sm text-gray-700 hover:bg-white/80 border border-gray-200/50 lg:bg-transparent lg:border-0 lg:hover:bg-gray-50'
+                                                }`}
+                                        >
+                                            {cat.icon ? <cat.icon size={16} className="sm:w-[18px] sm:h-[18px]" strokeWidth={1.5} /> : <Search size={16} className="sm:w-[18px] sm:h-[18px]" strokeWidth={1.5} />}
+                                            <span className="font-medium">{cat.label}</span>
+                                        </button>
+                                        {idx < categories.length - 1 && (
+                                            <div className="hidden lg:block h-5 w-px bg-gray-200 shrink-0 mx-2" />
+                                        )}
+                                    </React.Fragment>
+                                ))}
+                            </div>
                         </div>
 
                         {/* Listings Grid */}

@@ -162,7 +162,7 @@ const HostOnboarding: React.FC<HostOnboardingProps> = ({ onLogin, onBack }) => {
             </div>
 
             {/* Right Side - Form (Full Glass Pane) */}
-            <div className="flex-1 flex flex-col justify-center px-6 sm:px-12 lg:px-24 relative z-10 bg-white/20 backdrop-blur-xl shadow-[0_4px_30px_rgba(0,0,0,0.1)] overflow-hidden">
+            <div className="flex-1 flex flex-col justify-center px-4 sm:px-12 lg:px-24 relative z-10 bg-white/20 backdrop-blur-xl shadow-[0_4px_30px_rgba(0,0,0,0.1)] overflow-hidden">
                 {/* Moving Gradient Left Border */}
                 <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-gradient-to-b from-transparent via-brand-500 to-transparent opacity-80 animate-pulse"></div>
 
@@ -176,7 +176,7 @@ const HostOnboarding: React.FC<HostOnboardingProps> = ({ onLogin, onBack }) => {
 
                 <button
                     onClick={onBack}
-                    className="absolute top-8 right-8 p-2 hover:bg-white/10 rounded-full transition-colors text-white/70 hover:text-white"
+                    className="absolute top-4 right-4 sm:top-8 sm:right-8 p-2 hover:bg-white/10 rounded-full transition-colors text-white/70 hover:text-white"
                     title="Close"
                 >
                     <X size={24} />

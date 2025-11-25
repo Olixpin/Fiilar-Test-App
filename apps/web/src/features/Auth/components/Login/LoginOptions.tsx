@@ -46,8 +46,8 @@ const LoginOptions: React.FC<LoginOptionsProps> = ({
                     name="phone"
                     render={({ field }) => (
                         <FormItem>
-                            <div className="flex gap-3">
-                                <div className="w-[140px] shrink-0">
+                            <div className="flex flex-col sm:flex-row gap-3">
+                                <div className="w-full sm:w-[140px] shrink-0">
                                     <Select
                                         label="Country"
                                         variant={variant === 'default' ? undefined : variant}
