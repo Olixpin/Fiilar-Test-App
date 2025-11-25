@@ -40,54 +40,56 @@ const LoginOptions: React.FC<LoginOptionsProps> = ({
                 <p className={`text-base ${isGlass ? 'text-white/80' : 'text-gray-500'}`}>{subtitle}</p>
             </div>
 
-            <div className="flex gap-3 mb-8">
-                <div className="w-[140px] shrink-0">
-                    <Select
-                        label="Country"
-                        variant={variant === 'default' ? undefined : variant}
-                        value={country}
-                        onChange={(e) => setCountry(e.target.value)}
-                        options={[
-                            { value: 'ng', label: 'NG (+234)' },
-                            { value: 'us', label: 'US (+1)' },
-                            { value: 'uk', label: 'UK (+44)' },
-                        ]}
-                        className={variant === 'default' ? "bg-gray-50/50 border-gray-200 focus:bg-white focus:border-brand-500 transition-all" : ""}
-                    />
-                </div>
-                <div className="grow">
-                    <FormField
-                        control={phoneForm.control}
-                        name="phone"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormControl>
-                                    <Input
-                                        label="Phone number"
-                                        type="tel"
+            <div className="mb-8">
+                <FormField
+                    control={phoneForm.control}
+                    name="phone"
+                    render={({ field }) => (
+                        <FormItem>
+                            <div className="flex gap-3">
+                                <div className="w-[140px] shrink-0">
+                                    <Select
+                                        label="Country"
                                         variant={variant === 'default' ? undefined : variant}
-                                        placeholder="(555) 000-0000"
+                                        value={country}
+                                        onChange={(e) => setCountry(e.target.value)}
+                                        options={[
+                                            { value: 'ng', label: 'NG (+234)' },
+                                            { value: 'us', label: 'US (+1)' },
+                                            { value: 'uk', label: 'UK (+44)' },
+                                        ]}
                                         className={variant === 'default' ? "bg-gray-50/50 border-gray-200 focus:bg-white focus:border-brand-500 transition-all" : ""}
-                                        {...field}
-                                        onChange={(e) => {
-                                            let value = e.target.value.replace(/\D/g, '');
-                                            if (country === 'ng') {
-                                                if (value.startsWith('0')) {
-                                                    value = value.substring(1);
-                                                }
-                                                if (value.length > 10) {
-                                                    value = value.substring(0, 10);
-                                                }
-                                            }
-                                            field.onChange(value);
-                                        }}
                                     />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                </div>
+                                </div>
+                                <div className="grow">
+                                    <FormControl>
+                                        <Input
+                                            label="Phone number"
+                                            type="tel"
+                                            variant={variant === 'default' ? undefined : variant}
+                                            placeholder="(555) 000-0000"
+                                            className={variant === 'default' ? "bg-gray-50/50 border-gray-200 focus:bg-white focus:border-brand-500 transition-all" : ""}
+                                            {...field}
+                                            onChange={(e) => {
+                                                let value = e.target.value.replace(/\D/g, '');
+                                                if (country === 'ng') {
+                                                    if (value.startsWith('0')) {
+                                                        value = value.substring(1);
+                                                    }
+                                                    if (value.length > 10) {
+                                                        value = value.substring(0, 10);
+                                                    }
+                                                }
+                                                field.onChange(value);
+                                            }}
+                                        />
+                                    </FormControl>
+                                </div>
+                            </div>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
             </div>
 
             <Button
