@@ -253,8 +253,8 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({ filters, onFilterChange
                                             onFilterChange(updated);
                                         }}
                                         className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-all ${isActive
-                                                ? 'bg-brand-600 text-white border-brand-600'
-                                                : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                                            ? 'bg-brand-600 text-white border-brand-600'
+                                            : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                                             }`}
                                     >
                                         {range.label}

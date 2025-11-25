@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { User, Role } from '@fiilar/types';
-import { X, Bell, Menu, LogOut, Sparkles, ArrowRight, Home as HomeIcon, Briefcase, User as UserIcon, LayoutDashboard, Shield } from 'lucide-react';
+import { X, Bell, Menu, LogOut, Sparkles, ArrowRight, Home as HomeIcon, Briefcase, User as UserIcon, LayoutDashboard, Shield, Camera, List, DollarSign, CreditCard, Settings, RefreshCw, Heart, LogIn, UserPlus } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getAllUsers, STORAGE_KEYS, getCurrentUser } from '@fiilar/storage';
 import { getUnreadCount } from '@fiilar/notifications';
@@ -254,44 +254,88 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onSearch, searchTerm, o
               />
 
               {isAccountOpen && user && (
-                <div ref={menuRef} aria-label="Account menu" className="absolute right-0 mt-2 w-44 bg-white border rounded-lg shadow-lg py-1 z-50">
-                  <button onClick={() => fileInputRef.current?.click()} className="block px-4 py-2 text-sm hover:bg-gray-100 text-left">Change photo</button>
-                  <Link to={user.role === Role.HOST ? "/host/dashboard" : user.role === Role.ADMIN ? "/admin" : "/dashboard"} onClick={() => setIsAccountOpen(false)} className="block px-4 py-2 text-sm hover:bg-gray-100">Dashboard</Link>
+                <div ref={menuRef} aria-label="Account menu" className="absolute right-0 mt-6 w-64 bg-white border border-gray-100 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] p-2 z-50 animate-in fade-in zoom-in-95 duration-200">
+                  <button onClick={() => fileInputRef.current?.click()} className="w-full text-left px-4 py-2.5 text-sm font-semibold text-gray-700 hover:text-black hover:bg-gray-50 rounded-xl transition-colors flex items-center gap-3">
+                    <Camera size={16} className="text-gray-500 group-hover:text-black transition-colors" />
+                    Change photo
+                  </button>
+                  <Link to={user.role === Role.HOST ? "/host/dashboard" : user.role === Role.ADMIN ? "/admin" : "/dashboard"} onClick={() => setIsAccountOpen(false)} className="px-4 py-2.5 text-sm font-semibold text-gray-700 hover:text-black hover:bg-gray-50 rounded-xl transition-colors flex items-center gap-3">
+                    <LayoutDashboard size={16} className="text-gray-500 transition-colors" />
+                    Dashboard
+                  </Link>
                   {user.role === Role.HOST ? (
                     <>
-                      <Link to="/host/dashboard?view=listings" onClick={() => setIsAccountOpen(false)} className="block px-4 py-2 text-sm hover:bg-gray-100">Listings</Link>
-                      <Link to="/host/dashboard?view=earnings" onClick={() => setIsAccountOpen(false)} className="block px-4 py-2 text-sm hover:bg-gray-100">Earnings</Link>
+                      <Link to="/host/dashboard?view=listings" onClick={() => setIsAccountOpen(false)} className="px-4 py-2.5 text-sm font-semibold text-gray-700 hover:text-black hover:bg-gray-50 rounded-xl transition-colors flex items-center gap-3">
+                        <List size={16} className="text-gray-500 transition-colors" />
+                        Listings
+                      </Link>
+                      <Link to="/host/dashboard?view=earnings" onClick={() => setIsAccountOpen(false)} className="px-4 py-2.5 text-sm font-semibold text-gray-700 hover:text-black hover:bg-gray-50 rounded-xl transition-colors flex items-center gap-3">
+                        <DollarSign size={16} className="text-gray-500 transition-colors" />
+                        Earnings
+                      </Link>
                     </>
                   ) : user.role === Role.USER ? (
                     <>
-                      <Link to="/dashboard?tab=bookings" onClick={() => setIsAccountOpen(false)} className="block px-4 py-2 text-sm hover:bg-gray-100">Bookings</Link>
-                      <Link to="/dashboard?tab=wallet" onClick={() => setIsAccountOpen(false)} className="block px-4 py-2 text-sm hover:bg-gray-100">Wallet</Link>
+                      <Link to="/dashboard?tab=bookings" onClick={() => setIsAccountOpen(false)} className="px-4 py-2.5 text-sm font-semibold text-gray-700 hover:text-black hover:bg-gray-50 rounded-xl transition-colors flex items-center gap-3">
+                        <Briefcase size={16} className="text-gray-500 transition-colors" />
+                        Bookings
+                      </Link>
+                      <Link to="/dashboard?tab=wallet" onClick={() => setIsAccountOpen(false)} className="px-4 py-2.5 text-sm font-semibold text-gray-700 hover:text-black hover:bg-gray-50 rounded-xl transition-colors flex items-center gap-3">
+                        <CreditCard size={16} className="text-gray-500 transition-colors" />
+                        Wallet
+                      </Link>
                     </>
                   ) : null}
-                  <Link to={user.role === Role.HOST ? "/host/dashboard?view=settings" : "/dashboard?tab=settings"} onClick={() => setIsAccountOpen(false)} className="block px-4 py-2 text-sm hover:bg-gray-100">Settings</Link>
+                  <Link to={user.role === Role.HOST ? "/host/dashboard?view=settings" : "/dashboard?tab=settings"} onClick={() => setIsAccountOpen(false)} className="px-4 py-2.5 text-sm font-semibold text-gray-700 hover:text-black hover:bg-gray-50 rounded-xl transition-colors flex items-center gap-3">
+                    <Settings size={16} className="text-gray-500 transition-colors" />
+                    Settings
+                  </Link>
                   <hr className="my-1 border-gray-100" />
                   {user.role === Role.HOST ? (
-                    <button onClick={() => { onSwitchRole?.(Role.USER); setIsAccountOpen(false); }} className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100">Switch to traveling</button>
+                    <button onClick={() => { onSwitchRole?.(Role.USER); setIsAccountOpen(false); }} className="w-full text-left px-4 py-2.5 text-sm font-semibold text-gray-700 hover:text-black hover:bg-gray-50 rounded-xl transition-colors flex items-center gap-3">
+                      <RefreshCw size={16} className="text-gray-500 transition-colors" />
+                      Switch to traveling
+                    </button>
                   ) : user.role === Role.USER ? (
-                    <button onClick={() => { onSwitchRole?.(Role.HOST); setIsAccountOpen(false); }} className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100">Switch to hosting</button>
+                    <button onClick={() => { onSwitchRole?.(Role.HOST); setIsAccountOpen(false); }} className="w-full text-left px-4 py-2.5 text-sm font-semibold text-gray-700 hover:text-black hover:bg-gray-50 rounded-xl transition-colors flex items-center gap-3">
+                      <RefreshCw size={16} className="text-gray-500 transition-colors" />
+                      Switch to hosting
+                    </button>
                   ) : null}
                   <hr className="my-1 border-gray-100" />
-                  <button onClick={() => { setIsAccountOpen(false); onLogout(); }} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100">Log out</button>
+                  <button onClick={() => { setIsAccountOpen(false); onLogout(); }} className="w-full text-left px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 rounded-xl transition-colors flex items-center gap-3">
+                    <LogOut size={16} className="text-red-500 transition-colors" />
+                    Log out
+                  </button>
                 </div>
               )}
 
               {isAccountOpen && !user && (
-                <div ref={menuRef} aria-label="Account menu" className="absolute right-0 mt-2 w-48 bg-white border rounded-lg shadow-lg py-1 z-50">
-                  <div className="px-2 py-1">
-                    <button onClick={() => { setIsAccountOpen(false); navigate('/login'); }} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex justify-between items-center">
-                      <span>Saved</span>
-                      <span className="text-gray-500 text-sm">({savedCount})</span>
+                <div ref={menuRef} aria-label="Account menu" className="absolute right-0 mt-6 w-64 bg-white border border-gray-100 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] p-2 z-50 animate-in fade-in zoom-in-95 duration-200">
+                  <div className="mb-1">
+                    <button onClick={() => { setIsAccountOpen(false); navigate('/login'); }} className="w-full text-left px-4 py-2.5 text-sm font-semibold text-gray-700 hover:text-black hover:bg-gray-50 rounded-xl transition-colors flex justify-between items-center group">
+                      <div className="flex items-center gap-3">
+                        <Heart size={16} className="text-gray-500 group-hover:text-red-500 transition-colors" />
+                        <span>Saved</span>
+                      </div>
+                      <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full text-xs group-hover:bg-white group-hover:shadow-sm transition-all">{savedCount}</span>
                     </button>
-                    <div className="px-4 pb-1 text-xs text-gray-500">Sign in to save favorites</div>
+                    <div className="px-4 pb-1 text-[11px] font-medium text-gray-400 uppercase tracking-wide pl-11">Sign in to save favorites</div>
                   </div>
-                  <button onClick={() => { onLogin?.(); setIsAccountOpen(false); }} className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100">Create an account</button>
-                  <button onClick={() => { onLogin?.(); setIsAccountOpen(false); }} className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100">Log in</button>
-                  <button onClick={() => { onBecomeHost?.(); setIsAccountOpen(false); }} className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100">Become a host</button>
+                  <hr className="my-1 border-gray-100" />
+                  <button onClick={() => { onLogin?.(); setIsAccountOpen(false); }} className="w-full text-left px-4 py-2.5 text-sm font-semibold text-gray-700 hover:text-black hover:bg-gray-50 rounded-xl transition-colors flex items-center gap-3">
+                    <LogIn size={16} className="text-gray-500 transition-colors" />
+                    Log in
+                  </button>
+                  <button onClick={() => { onLogin?.(); setIsAccountOpen(false); }} className="w-full text-left px-4 py-2.5 text-sm font-semibold text-gray-700 hover:text-black hover:bg-gray-50 rounded-xl transition-colors flex items-center gap-3">
+                    <UserPlus size={16} className="text-gray-500 transition-colors" />
+                    Create an account
+                  </button>
+                  <hr className="my-1 border-gray-100" />
+                  <button onClick={() => { onBecomeHost?.(); setIsAccountOpen(false); }} className="w-full text-left px-4 py-2.5 text-sm font-semibold text-gray-700 hover:text-black hover:bg-gray-50 rounded-xl transition-colors flex items-center gap-3">
+                    <HomeIcon size={16} className="text-gray-500 transition-colors" />
+                    Become a host
+                  </button>
                 </div>
               )}
             </div>
