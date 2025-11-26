@@ -4,6 +4,7 @@ import { DollarSign, TrendingUp, Home, Calendar as CalendarIcon, Clock, Sparkles
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 import { getConversations } from '@fiilar/messaging';
+import ProfileCompletionWidget from './ProfileCompletionWidget';
 
 interface HostOverviewProps {
     user: User;
@@ -41,6 +42,12 @@ const HostOverview: React.FC<HostOverviewProps> = ({ user, listings, hostBooking
 
     return (
         <div className="space-y-6 animate-in fade-in">
+            {/* Profile Completion Widget */}
+            <ProfileCompletionWidget
+                user={user}
+                onCompleteProfile={() => setView('settings')}
+            />
+
             {/* Stats Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
