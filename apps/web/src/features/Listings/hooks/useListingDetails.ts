@@ -6,6 +6,7 @@ import { startConversation } from '@fiilar/messaging';
 import { addNotification } from '@fiilar/notifications';
 import { paymentService } from '@fiilar/escrow';
 import { SERVICE_FEE_PERCENTAGE } from '@fiilar/storage';
+import { useToast } from '@fiilar/ui';
 
 interface UseListingDetailsProps {
     listing: Listing;
@@ -19,6 +20,7 @@ interface UseListingDetailsProps {
 export const useListingDetails = ({ listing, user, onBook, onVerify, onLogin, onRefreshUser }: UseListingDetailsProps) => {
     const host = useMemo(() => getAllUsers().find(u => u.id === listing.hostId), [listing.hostId]);
     const navigate = useNavigate();
+    const toast = useToast();
 
     // Payment State
     const [paymentMethod, setPaymentMethod] = useState<'WALLET' | 'CARD'>('WALLET');
@@ -322,19 +324,24 @@ export const useListingDetails = ({ listing, user, onBook, onVerify, onLogin, on
         }
 
         if (!user.emailVerified && !user.phoneVerified) {
-            alert("Please verify your email address or phone number before booking.");
+            toast.showToast({ message: "Please verify your email address or phone number before booking.", type: "error" });
+            return;
+        }
+
+        if (user.id === listing.hostId) {
+            toast.showToast({ message: "You cannot book your own listing.", type: "info" });
             return;
         }
 
         if (isHourly && selectedHours.length === 0) {
-            alert("Please scroll up and select at least one hour to continue.");
+            toast.showToast({ message: "Please scroll up and select at least one hour to continue.", type: "info" });
             window.scrollTo({ top: 0, behavior: 'smooth' });
             return;
         }
 
         const unavailableDate = bookingSeries.find(d => d.status !== 'AVAILABLE');
         if (unavailableDate) {
-            alert(`Unable to book series: ${unavailableDate.date} is unavailable.`);
+            toast.showToast({ message: `Unable to book series: ${unavailableDate.date} is unavailable.`, type: "error" });
             return;
         }
 
@@ -343,12 +350,12 @@ export const useListingDetails = ({ listing, user, onBook, onVerify, onLogin, on
                 const dateHours = listing.availability?.[item.date] || [];
                 const hostMissingHours = selectedHours.some(h => !dateHours.includes(h));
                 if (hostMissingHours) {
-                    alert(`The host is closed during some of your selected hours on ${item.date}.`);
+                    toast.showToast({ message: `The host is closed during some of your selected hours on ${item.date}.`, type: "info" });
                     return;
                 }
                 const alreadyBooked = selectedHours.some(h => isSlotBooked(item.date, h));
                 if (alreadyBooked) {
-                    alert(`Some hours on ${item.date} are already booked.`);
+                    toast.showToast({ message: `Some hours on ${item.date} are already booked.`, type: "error" });
                     return;
                 }
             }
@@ -404,7 +411,7 @@ export const useListingDetails = ({ listing, user, onBook, onVerify, onLogin, on
         };
         saveBooking(reservedBooking);
         if (!silent) {
-            alert("Booking saved to Reserve List! You can complete it later from your dashboard.");
+            toast.showToast({ message: "Booking saved to Reserve List! You can complete it later from your dashboard.", type: "success" });
         }
     };
 
@@ -414,7 +421,7 @@ export const useListingDetails = ({ listing, user, onBook, onVerify, onLogin, on
             return;
         }
         if (isHourly && selectedHours.length === 0) {
-            alert("Please scroll up and select at least one hour to continue.");
+            toast.showToast({ message: "Please scroll up and select at least one hour to continue.", type: "info" });
             window.scrollTo({ top: 0, behavior: 'smooth' });
             return;
         }
@@ -488,7 +495,7 @@ export const useListingDetails = ({ listing, user, onBook, onVerify, onLogin, on
             setShowConfirmModal(false);
             setShowVerificationModal(false);
         } catch (error: any) {
-            alert(`Payment Failed: ${error.message}`);
+            toast.showToast({ message: `Payment Failed: ${error.message}`, type: "error" });
         } finally {
             setIsBookingLoading(false);
         }
@@ -508,7 +515,7 @@ export const useListingDetails = ({ listing, user, onBook, onVerify, onLogin, on
             handleBookClick(true);
         } catch (err) {
             setIsVerifying(false);
-            alert('Verification failed. Please try again.');
+            toast.showToast({ message: 'Verification failed. Please try again.', type: "error" });
         }
     };
 

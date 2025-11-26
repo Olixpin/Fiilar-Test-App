@@ -61,7 +61,7 @@ export const sendVerificationEmail = (email: string, _token: string, userName: s
         // Create a new user for verification purposes
         user = {
             id: 'user_' + Date.now(),
-            name: userName || 'New User',
+            name: userName || '',
             email: email,
             password: '',
             role: Role.USER,

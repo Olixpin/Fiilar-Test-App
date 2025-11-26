@@ -135,6 +135,8 @@ export const OTPInput: React.FC<OTPInputProps> = ({
                 <input
                     key={index}
                     ref={(el) => { inputRefs.current[index] = el; }}
+                    id={`otp-${index}`}
+                    name={`otp-${index}`}
                     value={valueArray[index] || ''}
                     type="text"
                     inputMode="numeric"

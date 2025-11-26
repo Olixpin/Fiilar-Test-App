@@ -10,6 +10,7 @@ interface BookingWidgetProps {
   listing: Listing;
   user: User | null;
   isHourly: boolean;
+  isHost: boolean;
   guestCount: number;
   setGuestCount: (count: number) => void;
   selectedDate: string;
@@ -45,6 +46,7 @@ interface BookingWidgetProps {
 export const BookingWidget: React.FC<BookingWidgetProps> = ({
   listing,
   user,
+  isHost,
   isHourly,
   guestCount,
   setGuestCount,
@@ -360,18 +362,19 @@ export const BookingWidget: React.FC<BookingWidgetProps> = ({
           {/* Smart Booking Button */}
           <Button
             onClick={handleBookClick}
-            disabled={(isHourly && hostOpenHours.length === 0) || isBookingLoading || bookingSeries.some(s => s.status !== 'AVAILABLE')}
+            disabled={isHost || (isHourly && hostOpenHours.length === 0) || isBookingLoading || bookingSeries.some(s => s.status !== 'AVAILABLE')}
             variant="primary"
             size="lg"
             className="w-full shadow-lg"
             isLoading={isBookingLoading}
           >
             {!isBookingLoading && (
-              bookingSeries.some(s => s.status !== 'AVAILABLE') ? 'Dates Unavailable' :
-                (user ?
-                  (listing.requiresIdentityVerification && !user.kycVerified ? 'Verify & Book' : (isRecurring ? `Book Series` : 'Book Now'))
-                  : 'Sign in to Book'
-                )
+              isHost ? 'You host this space' :
+                bookingSeries.some(s => s.status !== 'AVAILABLE') ? 'Dates Unavailable' :
+                  (user ?
+                    (listing.requiresIdentityVerification && !user.kycVerified ? 'Verify & Book' : (isRecurring ? `Book Series` : 'Book Now'))
+                    : 'Sign in to Book'
+                  )
             )}
           </Button>
 

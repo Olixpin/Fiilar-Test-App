@@ -5,6 +5,7 @@ import { getBookings, deleteBooking } from '@fiilar/storage';
 import { migrateBookingTimestamps } from '../../../services/bookingMigration';
 import { removeDuplicateBookings } from '../../../services/bookingCleanup';
 import { Sparkles, Clock, Calendar, Info } from 'lucide-react';
+import { ConfirmDialog } from '@fiilar/ui';
 
 interface UserReserveListTabProps {
   user: User;
@@ -16,6 +17,10 @@ export const UserReserveListTab: React.FC<UserReserveListTabProps> = ({ user, li
   const navigate = useNavigate();
   const [compareMode, setCompareMode] = useState(false);
   const [selectedForCompare, setSelectedForCompare] = useState<string[]>([]);
+  const [confirmDelete, setConfirmDelete] = useState<{ isOpen: boolean; bookingId: string | null }>({
+    isOpen: false,
+    bookingId: null,
+  });
 
   const reservedBookings = getBookings().filter(b => b.userId === user.id && b.status === 'Reserved');
 
@@ -158,12 +163,7 @@ export const UserReserveListTab: React.FC<UserReserveListTabProps> = ({ user, li
                       Complete Booking
                     </button>
                     <button
-                      onClick={() => {
-                        if (window.confirm('Remove this draft?')) {
-                          deleteBooking(b.id);
-                          onUpdate();
-                        }
-                      }}
+                      onClick={() => setConfirmDelete({ isOpen: true, bookingId: b.id })}
                       className="px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-50 transition-colors"
                     >
                       Remove
@@ -175,6 +175,24 @@ export const UserReserveListTab: React.FC<UserReserveListTabProps> = ({ user, li
           })}
         </div>
       )}
+
+      {/* Confirm Delete Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDelete.isOpen}
+        title="Remove Draft?"
+        message="This will permanently remove this draft booking from your reserve list. This action cannot be undone."
+        confirmText="Remove"
+        cancelText="Keep"
+        variant="warning"
+        onConfirm={() => {
+          if (confirmDelete.bookingId) {
+            deleteBooking(confirmDelete.bookingId);
+            onUpdate();
+          }
+          setConfirmDelete({ isOpen: false, bookingId: null });
+        }}
+        onCancel={() => setConfirmDelete({ isOpen: false, bookingId: null })}
+      />
     </div>
   );
 };

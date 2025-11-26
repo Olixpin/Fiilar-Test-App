@@ -11,4 +11,8 @@ export * from './LocaleContext';
 export * from './Toast';
 export * from './ToastContext';
 export * from './Form';
+export * from './ConfirmDialog';
+export * from './UserAvatar';
+export * from './CompleteProfileModal';
+export * from './ProfileStrengthWidget';
 

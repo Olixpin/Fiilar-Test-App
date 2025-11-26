@@ -6,7 +6,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { getAllUsers, STORAGE_KEYS, getCurrentUser } from '@fiilar/storage';
 import { getUnreadCount } from '@fiilar/notifications';
 import NotificationCenter from '../../features/Notifications/components/NotificationCenter';
-import { Avatar } from '@fiilar/ui';
+import { UserAvatar } from '@fiilar/ui';
 
 interface NavbarProps {
   user: User | null;
@@ -200,8 +200,8 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onSearch, searchTerm, o
                 ref={accountToggleRef}
                 onClick={() => setIsAccountOpen(!isAccountOpen)}
                 aria-haspopup="menu"
-                aria-label={user ? `Account menu — ${user.name}` : "Account — Sign in or create an account"}
-                title={user ? `Account menu — ${user.name}` : "Account — Sign in or create an account"}
+                aria-label={user ? `Account menu — ${user.firstName || user.name}` : "Account — Sign in or create an account"}
+                title={user ? `Account menu — ${user.firstName || user.name}` : "Account — Sign in or create an account"}
                 className={`flex items-center gap-2 rounded-full hover:bg-gray-100 transition ${user ? 'p-1.5 pr-3' : 'p-2'}`}
               >
                 {!user ? (
@@ -209,13 +209,14 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onSearch, searchTerm, o
                     <Menu size={20} className="text-gray-700" />
                   </div>
                 ) : (
-                  <Avatar
-                    src={avatarSrc || user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}`}
-                    alt="Profile"
+                  <UserAvatar
+                    src={avatarSrc || user.avatar}
+                    firstName={user.firstName}
+                    lastName={user.lastName}
                     size="sm"
                   />
                 )}
-                {user && <span className="hidden sm:inline text-sm font-medium">{user.name?.split(' ')[0]}</span>}
+                {user && <span className="hidden sm:inline text-sm font-medium">{user.firstName || user.email?.split('@')[0] || 'Account'}</span>}
               </button>
 
               <input

@@ -2,8 +2,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { User, Booking, Listing } from '@fiilar/types';
 import { updateBooking, getBookings, saveUser } from '@fiilar/storage';
 import { escrowService } from '@fiilar/escrow';
+import { useToast } from '@fiilar/ui';
 
 export const useHostFinancials = (user: User | null, listings: Listing[]) => {
+    const toast = useToast();
     const [hostBookings, setHostBookings] = useState<Booking[]>([]);
     const [hostTransactions, setHostTransactions] = useState<any[]>([]);
     const [bankDetails, setBankDetails] = useState({
@@ -34,7 +36,7 @@ export const useHostFinancials = (user: User | null, listings: Listing[]) => {
 
     const handleVerifyBank = () => {
         if (!bankDetails.accountNumber || !bankDetails.bankName) {
-            alert("Please enter bank name and account number");
+            toast.showToast({ message: "Please enter bank name and account number", type: "info" });
             return;
         }
         setIsVerifyingBank(true);
@@ -46,7 +48,7 @@ export const useHostFinancials = (user: User | null, listings: Listing[]) => {
                 isVerified: true
             }));
             setIsVerifyingBank(false);
-            alert("Account Verified Successfully!");
+            toast.showToast({ message: "Account Verified Successfully!", type: "success" });
         }, 1500);
     };
 
@@ -59,7 +61,7 @@ export const useHostFinancials = (user: User | null, listings: Listing[]) => {
         };
 
         saveUser(updatedUser);
-        alert("Bank details saved successfully! You can now receive payouts.");
+        toast.showToast({ message: "Bank details saved successfully! You can now receive payouts.", type: "success" });
     };
 
     const handleUpdateBookingStatus = (bookingId: string, updates: Partial<Booking>) => {

@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useToast } from '@fiilar/ui';
 import { Listing, ListingStatus, SpaceType, BookingType, ListingAddOn, CancellationPolicy, User, Booking } from '@fiilar/types';
 import { saveListing } from '@fiilar/storage';
 import { parseListingDescription } from '../../../services/geminiService';
 
 export const useListingForm = (user: User | null, listings: Listing[], activeBookings: Booking[], editingListing: Listing | null, refreshData: () => void, setView: (view: any) => void, onCreateListing?: (l: Listing) => void, onUpdateListing?: (l: Listing) => void) => {
+    const toast = useToast();
     // Listings Form State
     const [newListing, setNewListing] = useState<Partial<Listing>>({
         type: SpaceType.APARTMENT,
@@ -63,6 +65,17 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
     const [draggedImageIndex, setDraggedImageIndex] = useState<number | null>(null);
     const [showSaveToast, setShowSaveToast] = useState(false);
 
+    // Confirmation Dialog States
+    const [draftRestoreDialog, setDraftRestoreDialog] = useState<{
+        isOpen: boolean;
+        draftData: any | null;
+    }>({ isOpen: false, draftData: null });
+
+    const [blockDateDialog, setBlockDateDialog] = useState<{
+        isOpen: boolean;
+        dateStr: string | null;
+    }>({ isOpen: false, dateStr: null });
+
     // Initialize form (Edit Mode or Draft)
     useEffect(() => {
         if (!user) return;
@@ -76,40 +89,11 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
             const savedDraft = localStorage.getItem(draftKey);
 
             if (savedDraft) {
-                const shouldRestore = window.confirm("You have an unsaved draft. Would you like to continue where you left off?");
-                if (shouldRestore) {
-                    const draft = JSON.parse(savedDraft);
-                    setNewListing(draft);
-                    setStep(draft.step || 1);
-                    setShowAiInput(false);
-                } else {
-                    localStorage.removeItem(draftKey);
-                    // Reset to default
-                    setNewListing({
-                        type: SpaceType.APARTMENT,
-                        priceUnit: BookingType.DAILY,
-                        tags: [],
-                        images: [],
-                        availability: {},
-                        requiresIdentityVerification: false,
-                        proofOfAddress: '',
-                        settings: { allowRecurring: true, minDuration: 1, instantBook: false },
-                        capacity: 1,
-                        includedGuests: 1,
-                        pricePerExtraGuest: 0,
-                        cautionFee: 0,
-                        addOns: [],
-                        amenities: [],
-                        cancellationPolicy: CancellationPolicy.MODERATE,
-                        houseRules: [],
-                        safetyItems: []
-                    });
-                    setStep(1);
-                    setShowAiInput(true);
-                }
+                const draft = JSON.parse(savedDraft);
+                setDraftRestoreDialog({ isOpen: true, draftData: draft });
             }
         }
-    }, [editingListing, user]); // Run when editingListing changes or user loads
+    }, [editingListing, user]);
 
     // Auto-save draft (only if not editing an existing listing, or maybe we want to save drafts of edits too? For now let's keep it simple and only draft new listings to avoid overwriting)
     useEffect(() => {
@@ -133,7 +117,7 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
     const handleEditListing = (listing: Listing) => {
         if (!user) return;
         if (!user.emailVerified && !user.phoneVerified) {
-            alert("Please verify your email address or phone number to edit listings.");
+            toast.showToast({ message: "Please verify your email address or phone number to edit listings.", type: "info" });
             return;
         }
         setNewListing({
@@ -178,7 +162,7 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
             setShowAiInput(false);
         } catch (e) {
             console.error(e);
-            alert("Could not auto-fill listing. Please fill manually.");
+            toast.showToast({ message: "Could not auto-fill listing. Please fill manually.", type: "info" });
         } finally {
             setIsAiGenerating(false);
         }
@@ -271,7 +255,7 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
     const handleCreateListing = () => {
         if (!user) return;
         if (!newListing.title) {
-            alert("Please enter a title for your listing before saving.");
+            toast.showToast({ message: "Please enter a title for your listing before saving.", type: "info" });
             return;
         }
 
@@ -359,7 +343,7 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
                     : (finalStatus as unknown as string) === ListingStatus.PENDING_APPROVAL
                         ? 'Listing submitted for approval!'
                         : isNew ? 'Listing published successfully!' : 'Listing updated successfully!';
-                alert(statusMessage);
+                toast.showToast({ message: statusMessage, type: "info" });
 
                 // Reset form and return to listings view
                 setNewListing({
@@ -387,7 +371,7 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
                 return true; // Signal success
             } catch (error) {
                 console.error("Failed to save listing:", error);
-                alert("Failed to save listing. Please try again.");
+                toast.showToast({ message: "Failed to save listing. Please try again.", type: "info" });
             } finally {
                 setIsSubmitting(false);
             }
@@ -449,7 +433,7 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
     const applyWeeklySchedule = () => {
         const generated = generateAvailabilityMap(weeklySchedule);
         setNewListing({ ...newListing, availability: generated });
-        alert("Schedule applied to the next 3 months!");
+        toast.showToast({ message: "Schedule applied to the next 3 months!", type: "info" });
     };
 
     const toggleDaySchedule = (dayIndex: number) => {
@@ -489,8 +473,8 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
     const blockEntireDay = (dateStr: string) => {
         const hasBooking = activeBookings.some(b => b.date === dateStr);
         if (hasBooking) {
-            const confirmBlock = window.confirm("Warning: You have active bookings on this date. Blocking it will require cancelling them manually. Continue?");
-            if (!confirmBlock) return;
+            setBlockDateDialog({ isOpen: true, dateStr });
+            return;
         }
 
         const newAvailability = { ...newListing.availability };
@@ -524,6 +508,36 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
             }
             return acc;
         }, [] as { url: string, location: string, title: string }[]);
+    };
+
+    const handleRestoreDraft = () => {
+        if (draftRestoreDialog.draftData && user) {
+            setNewListing(draftRestoreDialog.draftData);
+            setStep(draftRestoreDialog.draftData.step || 1);
+            setShowAiInput(false);
+        }
+        setDraftRestoreDialog({ isOpen: false, draftData: null });
+    };
+
+    const handleDiscardDraft = () => {
+        if (user) {
+            const draftKey = `listing_draft_${user.id}_temp`;
+            localStorage.removeItem(draftKey);
+        }
+        setDraftRestoreDialog({ isOpen: false, draftData: null });
+    };
+
+    const handleConfirmBlockDate = () => {
+        if (blockDateDialog.dateStr) {
+            const newAvailability = { ...newListing.availability };
+            delete newAvailability[blockDateDialog.dateStr];
+            setNewListing({ ...newListing, availability: newAvailability });
+        }
+        setBlockDateDialog({ isOpen: false, dateStr: null });
+    };
+
+    const handleCancelBlockDate = () => {
+        setBlockDateDialog({ isOpen: false, dateStr: null });
     };
 
     return {
@@ -576,6 +590,14 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
             for (let i = 0; i < firstDay.getDay(); i++) days.push(null);
             for (let i = 1; i <= lastDay.getDate(); i++) days.push(new Date(year, month, i));
             return days;
-        }
+        },
+
+        // Dialog states and handlers
+        draftRestoreDialog,
+        handleRestoreDraft,
+        handleDiscardDraft,
+        blockDateDialog,
+        handleConfirmBlockDate,
+        handleCancelBlockDate,
     };
 };

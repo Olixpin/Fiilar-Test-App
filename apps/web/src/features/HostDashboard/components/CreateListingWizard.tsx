@@ -1,6 +1,6 @@
 import React from 'react';
 import { Listing, User, Booking } from '@fiilar/types';
-import { Button } from '@fiilar/ui';
+import { Button, ConfirmDialog } from '@fiilar/ui';
 import ListingBasicInfo from './CreateListingWizard/ListingBasicInfo';
 import ListingPhotos from './CreateListingWizard/ListingPhotos';
 import ListingAvailability from './CreateListingWizard/ListingAvailability';
@@ -34,7 +34,9 @@ const CreateListingWizard: React.FC<CreateListingWizardProps> = ({
         currentMonth, setCurrentMonth, getDaysInMonth, handleDateClick, toggleHourOverride,
         isSubmitting, handleCreateListing, lastSaved,
         isEditingUpload, setIsEditingUpload, getPreviousProofs, formatDate,
-        selectedCalendarDate, setSelectedCalendarDate, draggedImageIndex
+        selectedCalendarDate, setSelectedCalendarDate, draggedImageIndex,
+        draftRestoreDialog, handleRestoreDraft, handleDiscardDraft,
+        blockDateDialog, handleConfirmBlockDate, handleCancelBlockDate
     } = useListingForm(user, listings, activeBookings, editingListing, refreshData, setView, onCreateListing, onUpdateListing);
 
     return (
@@ -159,6 +161,30 @@ const CreateListingWizard: React.FC<CreateListingWizardProps> = ({
                 lastSaved={lastSaved}
                 step={step}
                 setStep={setStep}
+            />
+
+            {/* Draft Restore Confirmation Dialog */}
+            <ConfirmDialog
+                isOpen={draftRestoreDialog.isOpen}
+                title="Restore Draft?"
+                message="You have an unsaved draft. Would you like to continue where you left off?"
+                confirmText="Restore Draft"
+                cancelText="Start Fresh"
+                variant="info"
+                onConfirm={handleRestoreDraft}
+                onCancel={handleDiscardDraft}
+            />
+
+            {/* Block Date Confirmation Dialog */}
+            <ConfirmDialog
+                isOpen={blockDateDialog.isOpen}
+                title="Block Date with Active Bookings?"
+                message="Warning: You have active bookings on this date. Blocking it will require cancelling them manually. Are you sure you want to continue?"
+                confirmText="Block Date"
+                cancelText="Cancel"
+                variant="warning"
+                onConfirm={handleConfirmBlockDate}
+                onCancel={handleCancelBlockDate}
             />
         </div>
     );

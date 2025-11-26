@@ -3,8 +3,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { User, Listing, Booking } from '@fiilar/types';
 import { getBookings, updateBooking, verifyHandshake, setModificationAllowed } from '@fiilar/storage';
 import { addNotification } from '@fiilar/notifications';
+import { useToast } from '@fiilar/ui';
 
 export const useHostBookings = (user: User | null, listings: Listing[], refreshData: () => void) => {
+    const toast = useToast();
     const [hostBookings, setHostBookings] = useState<Booking[]>([]);
     const [bookingFilter, setBookingFilter] = useState<'all' | 'pending' | 'confirmed' | 'completed'>('all');
     const [bookingView, setBookingView] = useState<'table' | 'cards'>('cards');
@@ -59,9 +61,9 @@ export const useHostBookings = (user: User | null, listings: Listing[], refreshD
         fetchBookings(); // Refresh local state
 
         if (bookingsToUpdate.length > 1) {
-            alert(`Recurring booking series confirmed(${bookingsToUpdate.length} sessions)!`);
+            toast.showToast({ message: `Recurring booking series confirmed (${bookingsToUpdate.length} sessions)!`, type: 'success' });
         } else {
-            alert(`Booking ${booking.id} confirmed!`);
+            toast.showToast({ message: `Booking confirmed!`, type: 'success' });
         }
     };
 
@@ -100,14 +102,14 @@ export const useHostBookings = (user: User | null, listings: Listing[], refreshD
         fetchBookings(); // Refresh local state
 
         if (bookingsToUpdate.length > 1) {
-            alert(`Recurring booking series rejected.`);
+            toast.showToast({ message: `Recurring booking series rejected.`, type: 'info' });
         } else {
-            alert(`Booking ${booking.id} rejected.`);
+            toast.showToast({ message: `Booking rejected.`, type: 'info' });
         }
     };
 
     const handleReleaseFunds = (bookingId: string) => {
-        alert(`Funds released for booking ${bookingId}`);
+        toast.showToast({ message: `Funds released for booking`, type: 'success' });
     };
 
     const handleVerifyGuest = (bookingId: string, code: string): boolean => {
@@ -155,9 +157,9 @@ export const useHostBookings = (user: User | null, listings: Listing[], refreshD
         fetchBookings();
 
         if (bookingsToUpdate.length > 1) {
-            alert(`Modification enabled for recurring booking series.`);
+            toast.showToast({ message: `Modification enabled for recurring booking series.`, type: 'info' });
         } else {
-            alert(`Modification enabled for booking ${booking.id}.`);
+            toast.showToast({ message: `Modification enabled for booking.`, type: 'info' });
         }
     };
 

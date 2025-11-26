@@ -163,29 +163,42 @@ const ListingCard: React.FC<ListingCardProps> = ({ listing, badgeVariant = 'whit
         </button>
       </div>
 
-      <div className="mt-1">
-        <h3 className="font-medium text-base text-gray-900 leading-tight truncate">{listing.title}</h3>
+      <div className="mt-1 flex gap-2">
+        {/* Vertical ID Badge (if required) */}
+        {listing.requiresIdentityVerification && (
+          <div className="flex flex-col items-center justify-center gap-[1px] bg-blue-50 border border-blue-100 text-blue-700 px-0 py-1 rounded-md min-w-[20px]">
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+            <span className="text-[7px] font-bold leading-none">ID</span>
+          </div>
+        )}
 
-        <div className="flex items-center gap-1 text-gray-500 mt-1">
-          <MapPin size={14} className="text-red-500" />
-          <span className="text-sm">{listing.location}</span>
+        {/* Title and Location */}
+        <div className="flex-1 min-w-0">
+          <h3 className="font-medium text-base text-gray-900 leading-tight truncate">{listing.title}</h3>
+
+          <div className="flex items-center gap-1 text-gray-500 mt-1">
+            <MapPin size={14} className="text-red-500" />
+            <span className="text-sm">{listing.location}</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex justify-between items-center mt-2">
+        <div className="flex items-center gap-1">
+          <Star size={14} className="fill-gray-500 text-gray-500" />
+          <span className="font-medium text-sm text-gray-500">
+            {(listing.rating !== undefined && listing.rating !== null) ? Number(listing.rating).toFixed(1) : 'New'}
+          </span>
+          {listing.reviewCount ? (
+            <span className="text-gray-400 text-xs">({listing.reviewCount} {listing.reviewCount === 1 ? 'Review' : 'Reviews'})</span>
+          ) : null}
         </div>
 
-        <div className="flex justify-between items-center mt-2">
-          <div className="flex items-center gap-1">
-            <Star size={14} className="fill-gray-500 text-gray-500" />
-            <span className="font-medium text-sm text-gray-500">
-              {(listing.rating !== undefined && listing.rating !== null) ? Number(listing.rating).toFixed(1) : 'New'}
-            </span>
-            {listing.reviewCount ? (
-              <span className="text-gray-400 text-xs">({listing.reviewCount} {listing.reviewCount === 1 ? 'Review' : 'Reviews'})</span>
-            ) : null}
-          </div>
-
-          <div className="text-right">
-            <span className="font-bold text-lg text-red-500">{formatCurrency(listing.price, { compact: true })}</span>
-            <span className="text-gray-400 text-xs">/{listing.priceUnit === BookingType.HOURLY ? 'Hr' : 'Night'}</span>
-          </div>
+        <div className="text-right">
+          <span className="font-bold text-lg text-red-500">{formatCurrency(listing.price, { compact: true })}</span>
+          <span className="text-gray-400 text-xs">/{listing.priceUnit === BookingType.HOURLY ? 'Hr' : 'Night'}</span>
         </div>
       </div>
     </Link>

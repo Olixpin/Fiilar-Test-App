@@ -1,7 +1,7 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import Navbar from './components/common/Navbar';
 import { User, Role, Listing, Booking } from '@fiilar/types';
-import { initStorage, loginUser, getCurrentUser, logoutUser, getListings, getAllUsers, createBooking, STORAGE_KEYS } from '@fiilar/storage';
+import { initStorage, loginUser, getCurrentUser, logoutUser, getListings, getAllUsers, createBooking, STORAGE_KEYS, updateUserProfile } from '@fiilar/storage';
 import { updateKYC, updateLiveness } from '@fiilar/kyc';
 import { escrowService } from '@fiilar/escrow';
 import { startAutoReleaseScheduler, stopAutoReleaseScheduler } from '@fiilar/escrow';
@@ -19,6 +19,8 @@ const AdminPanel = lazy(() => import('@fiilar/admin').then(module => ({ default:
 const ListingDetails = lazy(() => import('./features/Listings/pages/ListingDetails'));
 const Login = lazy(() => import('./features/Auth/pages/Login'));
 const HostOnboarding = lazy(() => import('./features/HostDashboard/pages/HostOnboarding'));
+const CompleteProfile = lazy(() => import('./features/Auth/pages/CompleteProfile'));
+const CompleteProfileHost = lazy(() => import('./features/Auth/pages/CompleteProfileHost'));
 const KYCUpload = lazy(() => import('./features/Auth/components/KYCUpload'));
 const TermsAndConditions = lazy(() => import('./components/common/TermsAndConditions'));
 const PrivacyPolicy = lazy(() => import('./components/common/PrivacyPolicy'));
@@ -67,6 +69,7 @@ const App: React.FC = () => {
   const { showToast } = useToast();
 
   const [loading, setLoading] = useState(true);
+  const [showCompleteProfile, setShowCompleteProfile] = useState(false);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -92,6 +95,62 @@ const App: React.FC = () => {
       stopAutoReleaseScheduler();
     };
   }, []);
+
+  // Check if user needs to complete profile - REACTIVE to user state changes
+  useEffect(() => {
+    if (user) {
+      // Migration: If user has name but no firstName/lastName, split it
+      if (user.name && (!user.firstName || !user.lastName)) {
+        const parts = user.name.split(' ');
+        const firstName = parts[0];
+        const lastName = parts.slice(1).join(' ') || parts[0]; // Fallback if single name
+
+        // Update profile silently
+        updateUserProfile(user.id, { firstName, lastName });
+
+        // Update local state
+        setUser(prev => prev ? { ...prev, firstName, lastName } : null);
+      }
+      // Show modal only if NO name exists at all
+      else if ((!user.firstName || !user.lastName) &&
+        !user.name &&
+        (user.authProvider === 'email' || user.authProvider === 'phone')) {
+        setShowCompleteProfile(true);
+      } else {
+        // Hide modal if requirements are met
+        setShowCompleteProfile(false);
+      }
+    }
+  }, [user]);
+
+  // Block navigation when profile is incomplete
+  useEffect(() => {
+    if (!showCompleteProfile) return;
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Block browser back button (Backspace outside inputs)
+      if (e.key === 'Backspace' && !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)) {
+        e.preventDefault();
+      }
+      // Block refresh
+      if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+        e.preventDefault();
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [showCompleteProfile]);
 
   // Listen for listing changes dispatched by other components and refresh
   useEffect(() => {
@@ -138,11 +197,38 @@ const App: React.FC = () => {
     }
   };
 
-  const handleLogin = (role: Role, provider: 'email' | 'google' | 'phone' = 'email') => {
-    const u = loginUser(role, provider);
+  const handleLogin = (
+    role: Role,
+    provider: 'email' | 'google' | 'phone' = 'email',
+    identifier?: string,
+    profileData?: { firstName?: string; lastName?: string; avatar?: string }
+  ) => {
+    const u = loginUser(role, provider, identifier, profileData);
+    console.log('LOGIN DEBUG:', {
+      u,
+      isProfileIncomplete: !u.firstName && !u.lastName && !u.name,
+      firstName: u.firstName,
+      lastName: u.lastName,
+      name: u.name
+    });
     setUser(u);
-    showToast({ message: 'Welcome back!', type: 'success' });
+
+    // Check if profile is incomplete
+    const isProfileIncomplete = !u.firstName && !u.lastName && !u.name;
+
+    // Show appropriate toast based on profile status
+    if (isProfileIncomplete) {
+      showToast({ message: 'Verification successful! Please complete your profile.', type: 'success' });
+      // Navigate to role-specific profile completion page
+      navigate(role === Role.HOST ? '/complete-profile-host' : '/complete-profile');
+      return;
+    } else {
+      showToast({ message: 'Welcome back!', type: 'success' });
+    }
+
     analytics.trackLogin(provider);
+
+    // Only navigate if profile is complete
     if (role === Role.HOST) {
       // If host is not verified, guide them
       if (!u.kycVerified && !u.identityDocument) {
@@ -221,6 +307,38 @@ const App: React.FC = () => {
     await new Promise((res) => setTimeout(res, 50));
   };
 
+  const handleCompleteProfile = (firstName: string, lastName: string) => {
+    if (!user) return;
+
+    console.log('Completing profile:', { firstName, lastName, userRole: user.role, userId: user.id });
+
+    const updatedUser = updateUserProfile(user.id, { firstName, lastName });
+    if (updatedUser) {
+      console.log('Updated user:', { role: updatedUser.role, isHost: updatedUser.isHost });
+      setUser(updatedUser);
+      setShowCompleteProfile(false);
+      showToast({ message: 'Profile completed! Welcome to Fiilar.', type: 'success' });
+
+      // Navigate to appropriate page based on role
+      if (updatedUser.role === Role.HOST) {
+        console.log('Navigating HOST to:', !updatedUser.kycVerified && !updatedUser.identityDocument ? '/kyc' : '/host/dashboard');
+        // Check if KYC is needed
+        if (!updatedUser.kycVerified && !updatedUser.identityDocument) {
+          navigate('/kyc');
+        } else {
+          navigate('/host/dashboard');
+        }
+      } else if (updatedUser.role === Role.ADMIN) {
+        console.log('Navigating ADMIN to: /admin');
+        navigate('/admin');
+      } else {
+        console.log('Navigating USER to: /dashboard');
+        // Regular user
+        navigate('/dashboard');
+      }
+    }
+  };
+
 
 
   const handleBookSpace = async (listing: Listing, dates: string[], duration: number, breakdown: { total: number, service: number, caution: number }, selectedHours?: number[], guestCount?: number, selectedAddOns?: string[]): Promise<Booking[]> => {
@@ -294,7 +412,7 @@ const App: React.FC = () => {
         ) : (
           <div className="min-h-screen bg-gray-50">
             {/* Show navbar only on valid routes */}
-            {isValidRoute && (
+            {isValidRoute && !showCompleteProfile && (
               <Navbar
                 user={user}
                 onLogin={() => navigate('/login', { state: { from: location } })}
@@ -368,38 +486,54 @@ const App: React.FC = () => {
                     user?.role === Role.ADMIN ? <Navigate to="/admin" replace /> :
                       <HostOnboarding onLogin={handleLogin} onBack={() => navigate('/')} />
                   } />
+                  <Route path="/complete-profile" element={
+                    !user ? <Navigate to="/login" replace /> :
+                      user.role === Role.HOST ? <Navigate to="/complete-profile-host" replace /> :
+                        <CompleteProfile user={user} onComplete={handleCompleteProfile} />
+                  } />
+                  <Route path="/complete-profile-host" element={
+                    !user ? <Navigate to="/login-host" replace /> :
+                      user.role !== Role.HOST ? <Navigate to="/complete-profile" replace /> :
+                        <CompleteProfileHost user={user} onComplete={handleCompleteProfile} />
+                  } />
                   <Route path="/kyc" element={<KYCUpload onUpload={handleKYCUpload} onSkip={() => navigate('/host/dashboard')} />} />
                   <Route path="/dashboard" element={
-                    <UserDashboard
-                      user={user!}
-                      listings={listings}
-                    />
+                    !user ? <Navigate to="/login" replace /> :
+                      (!user.firstName || !user.lastName) && !user.name ? <Navigate to="/complete-profile" replace /> :
+                        <UserDashboard
+                          user={user}
+                          listings={listings}
+                        />
                   } />
                   <Route path="/host/dashboard" element={
                     !user ? <Navigate to="/login-host" replace /> :
                       user.role === Role.ADMIN ? <Navigate to="/admin" replace /> :
-                        <HostDashboard
-                          user={user}
-                          listings={listings}
-                          refreshData={refreshData}
-                          onUpdateListing={(updated) => {
-                            const newListings = listings.map(l => l.id === updated.id ? updated : l);
-                            setListings(newListings);
-                            localStorage.setItem(STORAGE_KEYS.LISTINGS, JSON.stringify(newListings));
-                          }}
-                          onCreateListing={(newListing) => {
-                            const newListings = [...listings, newListing];
-                            setListings(newListings);
-                            localStorage.setItem(STORAGE_KEYS.LISTINGS, JSON.stringify(newListings));
-                          }}
-                        />
+                        (!user.firstName || !user.lastName) && !user.name ? <Navigate to="/complete-profile-host" replace /> :
+                          <HostDashboard
+                            user={user}
+                            listings={listings}
+                            refreshData={refreshData}
+                            hideUI={showCompleteProfile}
+                            onUpdateListing={(updated) => {
+                              const newListings = listings.map(l => l.id === updated.id ? updated : l);
+                              setListings(newListings);
+                              localStorage.setItem(STORAGE_KEYS.LISTINGS, JSON.stringify(newListings));
+                            }}
+                            onCreateListing={(newListing) => {
+                              const newListings = [...listings, newListing];
+                              setListings(newListings);
+                              localStorage.setItem(STORAGE_KEYS.LISTINGS, JSON.stringify(newListings));
+                            }}
+                          />
                   } />
                   <Route path="/admin" element={
-                    <AdminPanel
-                      users={allUsers}
-                      listings={listings}
-                      refreshData={refreshData}
-                    />
+                    !user ? <Navigate to="/login" replace /> :
+                      (!user.firstName || !user.lastName) && !user.name ? <Navigate to="/complete-profile" replace /> :
+                        <AdminPanel
+                          users={allUsers}
+                          listings={listings}
+                          refreshData={refreshData}
+                        />
                   } />
                   <Route path="/listing/:id" element={
                     <ListingDetailsRoute
@@ -516,6 +650,7 @@ const App: React.FC = () => {
             )}
           </div>
         )}
+
       </ErrorBoundary>
     </LocaleProvider>
   );

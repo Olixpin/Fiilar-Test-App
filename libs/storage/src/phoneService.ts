@@ -14,13 +14,13 @@ export const sendVerificationSms = (phone: string): string => {
 
     // Update user with OTP
     let user = db.users.find(u => u.phone === normalizedPhone);
-    
+
     if (!user) {
         // Create a new user for verification purposes if not found
         // Note: In a real app, you might want to check if email exists first or handle this differently
         user = {
             id: 'user_' + Date.now(),
-            name: 'New User',
+            name: '',
             email: '', // Email might be empty if signing up via phone
             password: '',
             role: Role.USER,

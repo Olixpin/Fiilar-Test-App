@@ -41,6 +41,8 @@ const EmailLogin: React.FC<EmailLoginProps> = ({
                         <FormItem>
                             <FormControl>
                                 <Input
+                                    id="email"
+                                    autoComplete="email"
                                     type="email"
                                     label="Email address"
                                     variant={variant === 'default' ? undefined : variant}

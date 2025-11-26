@@ -82,6 +82,8 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
     handleShare
   } = useListingDetails({ listing, user, onBook, onVerify, onLogin, onRefreshUser });
 
+  const isHost = user?.id === listing.hostId;
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-4 sm:py-8 pb-24 lg:pb-8 animate-in slide-in-from-right duration-300">
       <ShareModal
@@ -150,6 +152,7 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
           <BookingWidget
             listing={listing}
             user={user}
+            isHost={isHost}
             guestCount={guestCount}
             setGuestCount={setGuestCount}
             selectedDate={selectedDate}
@@ -187,6 +190,7 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
 
       <MobileBookingBar
         listing={listing}
+        isHost={isHost}
         onReserve={() => setShowMobileBookingModal(true)}
       />
 
@@ -195,6 +199,7 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
         onClose={() => setShowMobileBookingModal(false)}
         listing={listing}
         user={user}
+        isHost={isHost}
         guestCount={guestCount}
         setGuestCount={setGuestCount}
         selectedDate={selectedDate}

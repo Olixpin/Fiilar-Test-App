@@ -11,7 +11,12 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 
 interface HostOnboardingProps {
-    onLogin: (role: Role, provider: 'email' | 'google' | 'phone') => void;
+    onLogin: (
+        role: Role,
+        provider: 'email' | 'google' | 'phone',
+        identifier?: string,
+        profileData?: { firstName?: string; lastName?: string; avatar?: string }
+    ) => void;
     onBack: () => void;
 }
 
@@ -85,9 +90,10 @@ const HostOnboarding: React.FC<HostOnboardingProps> = ({ onLogin, onBack }) => {
             const code = codeOverride || otp;
 
             if (provider === 'email') {
-                const result = verifyEmailOtp(emailForm.getValues().email, code);
+                const email = emailForm.getValues().email;
+                const result = verifyEmailOtp(email, code);
                 if (result.success) {
-                    onLogin(Role.HOST, 'email');
+                    onLogin(Role.HOST, 'email', email);
                 } else {
                     setError(result.message || 'Invalid verification code');
                     setIsLoading(false);
@@ -96,7 +102,7 @@ const HostOnboarding: React.FC<HostOnboardingProps> = ({ onLogin, onBack }) => {
                 const fullPhone = `${countryCodes[country] || ''}${phoneForm.getValues().phone}`;
                 const result = verifyPhoneOtp(fullPhone, code);
                 if (result.success) {
-                    onLogin(Role.HOST, 'phone');
+                    onLogin(Role.HOST, 'phone', fullPhone);
                 } else {
                     setError(result.message || 'Invalid verification code');
                     setIsLoading(false);
@@ -108,7 +114,7 @@ const HostOnboarding: React.FC<HostOnboardingProps> = ({ onLogin, onBack }) => {
     const handleResend = (provider: 'email' | 'phone') => {
         // Simulate resending code
         if (provider === 'email') {
-            const code = sendVerificationEmail(emailForm.getValues().email, 'mock-token', 'Host');
+            const code = sendVerificationEmail(emailForm.getValues().email, 'mock-token', '');
             showToast({ message: `Demo Code: ${code}`, type: 'info', duration: 5000 });
         } else {
             const fullPhone = `${countryCodes[country] || ''}${phoneForm.getValues().phone}`;
@@ -197,7 +203,11 @@ const HostOnboarding: React.FC<HostOnboardingProps> = ({ onLogin, onBack }) => {
                                         handleStepChange(2);
                                     })}
                                     onEmailLogin={() => handleStepChange(1)}
-                                    onGoogleLogin={() => onLogin(Role.HOST, 'google')}
+                                    onGoogleLogin={() => onLogin(Role.HOST, 'google', 'alex.taylor@gmail.example.com', {
+                                        firstName: 'Alex',
+                                        lastName: 'Taylor',
+                                        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=AlexTaylor'
+                                    })}
                                     title="Become a Host"
                                     subtitle="Enter your details to start hosting."
                                     showAdminLink={false}
@@ -212,7 +222,7 @@ const HostOnboarding: React.FC<HostOnboardingProps> = ({ onLogin, onBack }) => {
                                     form={emailForm}
                                     onBack={() => handleStepChange(0)}
                                     onContinue={emailForm.handleSubmit((data) => {
-                                        const code = sendVerificationEmail(data.email, 'mock-token', 'Host');
+                                        const code = sendVerificationEmail(data.email, 'mock-token', '');
                                         showToast({ message: `Demo Code: ${code}`, type: 'info', duration: 5000 });
                                         handleStepChange(3);
                                     })}

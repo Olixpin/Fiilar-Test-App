@@ -9,6 +9,7 @@ interface MobileBookingModalProps {
   onClose: () => void;
   listing: Listing;
   user: User | null;
+  isHost: boolean;
   guestCount: number;
   setGuestCount: (count: number) => void;
   selectedDate: string;
@@ -45,6 +46,7 @@ export const MobileBookingModal: React.FC<MobileBookingModalProps> = ({
   onClose,
   listing,
   user,
+  isHost,
   guestCount,
   setGuestCount,
   selectedDate,
@@ -263,8 +265,8 @@ export const MobileBookingModal: React.FC<MobileBookingModalProps> = ({
               <span>One-time verification required to book.</span>
             </div>
           )}
-          <button onClick={() => { onClose(); handleBookClick(); }} disabled={(isHourly && selectedHours.length === 0) || isBookingLoading || bookingSeries.some(s => s.status !== 'AVAILABLE')} className={`w-full font-bold py-3 rounded-lg transition ${(isHourly && selectedHours.length === 0) || bookingSeries.some(s => s.status !== 'AVAILABLE') ? 'bg-gray-300 text-gray-500' : 'bg-brand-600 text-white hover:bg-brand-700'}`}>
-            {isBookingLoading ? <Loader2 className="animate-spin" size={18} /> : (bookingSeries.some(s => s.status !== 'AVAILABLE') ? 'Dates Unavailable' : (user ? (listing.requiresIdentityVerification && !user.kycVerified ? 'Verify & Book' : (isRecurring ? 'Book Series' : 'Book Now')) : 'Sign in to Book'))}
+          <button onClick={() => { onClose(); handleBookClick(); }} disabled={isHost || (isHourly && selectedHours.length === 0) || isBookingLoading || bookingSeries.some(s => s.status !== 'AVAILABLE')} className={`w-full font-bold py-3 rounded-lg transition ${isHost || (isHourly && selectedHours.length === 0) || bookingSeries.some(s => s.status !== 'AVAILABLE') ? 'bg-gray-300 text-gray-500' : 'bg-brand-600 text-white hover:bg-brand-700'}`}>
+            {isBookingLoading ? <Loader2 className="animate-spin" size={18} /> : (isHost ? 'You host this space' : bookingSeries.some(s => s.status !== 'AVAILABLE') ? 'Dates Unavailable' : (user ? (listing.requiresIdentityVerification && !user.kycVerified ? 'Verify & Book' : (isRecurring ? 'Book Series' : 'Book Now')) : 'Sign in to Book'))}
           </button>
         </div>
       </div>

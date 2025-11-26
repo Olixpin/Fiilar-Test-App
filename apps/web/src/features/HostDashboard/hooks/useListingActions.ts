@@ -1,7 +1,15 @@
+import { useState } from 'react';
 import { ListingStatus } from '@fiilar/types';
+import { useToast } from '@fiilar/ui';
 import { deleteListing, getBookings } from '@fiilar/storage';
 
 export const useListingActions = (refreshData: () => void) => {
+    const toast = useToast();
+    const [deleteConfirm, setDeleteConfirm] = useState<{
+        isOpen: boolean;
+        listingId: string | null;
+        message: string;
+    }>({ isOpen: false, listingId: null, message: '' });
     const handleDeleteListing = (id: string, status: ListingStatus) => {
         const allBookings = getBookings();
         const hasActiveBookings = allBookings.some(b =>
@@ -11,7 +19,7 @@ export const useListingActions = (refreshData: () => void) => {
         );
 
         if (hasActiveBookings) {
-            alert("Unable to delete: This listing has active upcoming bookings. Please cancel all bookings associated with this listing first.");
+            toast.showToast({ message: "Unable to delete: This listing has active upcoming bookings. Please cancel all bookings associated with this listing first.", type: "info" });
             return;
         }
 
@@ -24,14 +32,30 @@ export const useListingActions = (refreshData: () => void) => {
             confirmMsg = "Discard this draft listing?";
         }
 
-        if (window.confirm(confirmMsg)) {
-            deleteListing(id);
+        setDeleteConfirm({
+            isOpen: true,
+            listingId: id,
+            message: confirmMsg,
+        });
+    };
+
+    const confirmDelete = () => {
+        if (deleteConfirm.listingId) {
+            deleteListing(deleteConfirm.listingId);
             refreshData();
-            alert("Listing deleted successfully.");
+            toast.showToast({ message: "Listing deleted successfully.", type: "info" });
         }
+        setDeleteConfirm({ isOpen: false, listingId: null, message: '' });
+    };
+
+    const cancelDelete = () => {
+        setDeleteConfirm({ isOpen: false, listingId: null, message: '' });
     };
 
     return {
-        handleDeleteListing
+        handleDeleteListing,
+        deleteConfirm,
+        confirmDelete,
+        cancelDelete,
     };
 };

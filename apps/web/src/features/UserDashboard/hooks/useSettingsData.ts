@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useToast } from '@fiilar/ui';
 import { User } from '@fiilar/types';
 
 interface UseSettingsDataProps {
@@ -9,6 +10,7 @@ interface UseSettingsDataProps {
 export type SettingsTab = 'account' | 'support' | 'about' | 'feedback';
 
 export const useSettingsData = ({ user, onUpdateUser }: UseSettingsDataProps) => {
+    const toast = useToast();
     const [activeTab, setActiveTab] = useState<SettingsTab>('account');
 
     // Profile Form State
@@ -93,7 +95,7 @@ export const useSettingsData = ({ user, onUpdateUser }: UseSettingsDataProps) =>
 
     const handleDeleteAccount = () => {
         if (deleteConfirmText !== 'DELETE') {
-            alert('Please type DELETE to confirm');
+            toast.showToast({ message: 'Please type DELETE to confirm', type: 'info' });
             return;
         }
 

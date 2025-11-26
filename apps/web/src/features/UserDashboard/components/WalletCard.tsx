@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useToast } from '@fiilar/ui';
 import { paymentService } from '@fiilar/escrow';
 import { Transaction } from '@fiilar/types';
 import { ArrowDownToLine } from 'lucide-react';
@@ -9,6 +10,7 @@ interface WalletCardProps {
 }
 
 export const WalletCard: React.FC<WalletCardProps> = ({ onTransactionComplete, refreshTrigger }) => {
+    const toast = useToast();
     const [balance, setBalance] = useState<number>(0);
     const [loading, setLoading] = useState(true);
     const [addingFunds, setAddingFunds] = useState(false);
@@ -42,10 +44,10 @@ export const WalletCard: React.FC<WalletCardProps> = ({ onTransactionComplete, r
             setBalance(prev => prev + Number(amount));
             setAmount('');
             if (onTransactionComplete) onTransactionComplete(tx);
-            alert('Funds added successfully!');
+            toast.showToast({ message: 'Funds added successfully!', type: 'info' });
         } catch (error) {
             console.error('Failed to add funds', error);
-            alert('Failed to add funds');
+            toast.showToast({ message: 'Failed to add funds', type: 'info' });
         } finally {
             setAddingFunds(false);
         }
@@ -55,7 +57,7 @@ export const WalletCard: React.FC<WalletCardProps> = ({ onTransactionComplete, r
         e.preventDefault();
         const amt = Number(withdrawAmount);
         if (!withdrawAmount || isNaN(amt) || amt > balance) {
-            alert('Invalid amount or insufficient balance');
+            toast.showToast({ message: 'Invalid amount or insufficient balance', type: 'info' });
             return;
         }
 
@@ -65,10 +67,10 @@ export const WalletCard: React.FC<WalletCardProps> = ({ onTransactionComplete, r
             setBalance(prev => prev - amt);
             setWithdrawAmount('');
             setShowWithdraw(false);
-            alert('Withdrawal initiated! Funds will arrive in 1-3 business days.');
+            toast.showToast({ message: 'Withdrawal initiated! Funds will arrive in 1-3 business days.', type: 'info' });
         } catch (error) {
             console.error('Failed to withdraw', error);
-            alert('Failed to process withdrawal');
+            toast.showToast({ message: 'Failed to process withdrawal', type: 'info' });
         } finally {
             setWithdrawing(false);
         }

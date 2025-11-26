@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useToast } from '@fiilar/ui';
 import { Booking, Listing } from '@fiilar/types';
 import { X, Calendar, Clock, AlertCircle, CheckCircle, DollarSign, Trash2, Plus } from 'lucide-react';
 import { updateBooking, getBookings, deleteBooking, createBooking, setModificationAllowed, updateUserWalletBalance } from '@fiilar/storage';
@@ -13,6 +14,7 @@ interface ModifyBookingModalProps {
 }
 
 const ModifyBookingModal: React.FC<ModifyBookingModalProps> = ({ booking, listing, onClose, onSuccess }) => {
+    const toast = useToast();
     // Mode: Single or Recurring
     const isRecurring = !!booking.groupId;
 
@@ -86,7 +88,7 @@ const ModifyBookingModal: React.FC<ModifyBookingModalProps> = ({ booking, listin
             || pendingAdditions.includes(newDateInput);
 
         if (exists) {
-            alert('This date is already in your booking list.');
+            toast.showToast({ message: 'This date is already in your booking list.', type: 'info' });
             return;
         }
 
@@ -206,13 +208,13 @@ const ModifyBookingModal: React.FC<ModifyBookingModalProps> = ({ booking, listin
                 message += ` A refund of $${Math.abs(priceDifference).toFixed(2)} has been added to your wallet.`;
             }
 
-            alert(message);
+            toast.showToast({ message: message, type: "info" });
             onSuccess();
             onClose();
 
         } catch (error) {
             console.error('Failed to update booking:', error);
-            alert('Failed to update booking. Please try again.');
+            toast.showToast({ message: 'Failed to update booking. Please try again.', type: 'info' });
         } finally {
             setIsSubmitting(false);
         }

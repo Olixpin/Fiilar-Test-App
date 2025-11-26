@@ -49,6 +49,7 @@ const LoginOptions: React.FC<LoginOptionsProps> = ({
                             <div className="flex flex-col sm:flex-row gap-3">
                                 <div className="w-full sm:w-[140px] shrink-0">
                                     <Select
+                                        id="country"
                                         label="Country"
                                         variant={variant === 'default' ? undefined : variant}
                                         value={country}
@@ -64,6 +65,8 @@ const LoginOptions: React.FC<LoginOptionsProps> = ({
                                 <div className="grow">
                                     <FormControl>
                                         <Input
+                                            id="phone"
+                                            autoComplete="tel"
                                             label="Phone number"
                                             type="tel"
                                             variant={variant === 'default' ? undefined : variant}

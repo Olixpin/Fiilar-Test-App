@@ -5,7 +5,7 @@ import { SpaceType, Listing, ListingStatus, BookingType, CancellationPolicy } fr
  */
 export const STORAGE_KEYS = {
   USER: 'fiilar_user',
-  USERS_DB: 'fiilar_users_db',
+  USERS_DB: 'fiilar_users',
   LISTINGS: 'fiilar_listings',
   BOOKINGS: 'fiilar_bookings',
   REVIEWS: 'fiilar_reviews',

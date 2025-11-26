@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { useToast } from '@fiilar/ui';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { getCurrentUser, getBookings } from '@fiilar/storage';
 import { startConversation, getConversations } from '@fiilar/messaging';
@@ -27,6 +28,7 @@ interface UserDashboardProps {
 
 const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings }) => {
   const navigate = useNavigate();
+  const toast = useToast();
   // Hooks must be declared unconditionally and in the same order on every render.
   // Move state and router hooks to the top so an early return (when user is null)
   // doesn't change the Hooks call order.
@@ -232,7 +234,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings }) => {
                     setModifyModalBooking({ booking, listing });
                   } else {
                     console.error('Listing not found for booking', booking);
-                    alert('Error: Could not find listing details for this booking.');
+                    toast.showToast({ message: 'Error: Could not find listing details for this booking.', type: 'info' });
                   }
                 }}
               />

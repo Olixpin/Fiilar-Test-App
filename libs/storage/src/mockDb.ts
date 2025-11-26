@@ -57,7 +57,7 @@ class MockCollection<T extends { id: string }> {
         const all = this.getAll();
         const filtered = all.filter(item => item.id !== id);
         if (filtered.length === all.length) return false;
-        
+
         this.saveAll(filtered);
         return true;
     }
@@ -66,18 +66,23 @@ class MockCollection<T extends { id: string }> {
 /**
  * Centralized Mock Database
  */
+import { STORAGE_KEYS } from './constants';
+
+/**
+ * Centralized Mock Database
+ */
 export class MockDatabase {
-    users = new MockCollection<User>('fiilar_users');
-    listings = new MockCollection<Listing>('fiilar_listings');
-    bookings = new MockCollection<Booking>('fiilar_bookings');
-    reviews = new MockCollection<Review>('fiilar_reviews');
+    users = new MockCollection<User>(STORAGE_KEYS.USERS_DB);
+    listings = new MockCollection<Listing>(STORAGE_KEYS.LISTINGS);
+    bookings = new MockCollection<Booking>(STORAGE_KEYS.BOOKINGS);
+    reviews = new MockCollection<Review>(STORAGE_KEYS.REVIEWS);
     messages = new MockCollection<Message>('fiilar_messages');
     notifications = new MockCollection<Notification>('fiilar_notifications');
 
     // Singleton instance
     private static instance: MockDatabase;
 
-    private constructor() {}
+    private constructor() { }
 
     public static getInstance(): MockDatabase {
         if (!MockDatabase.instance) {

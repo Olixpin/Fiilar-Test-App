@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, AlertTriangle, Clock, Info } from 'lucide-react';
 import { Booking, CancellationPolicy } from '@fiilar/types';
 import { calculateRefund, processCancellation, getCancellationPolicyDescription } from '../../../services/cancellationService';
-import { useLocale, Button } from '@fiilar/ui';
+import { useLocale, Button, useToast } from '@fiilar/ui';
 
 interface CancellationModalProps {
     booking: Booking;
@@ -22,6 +22,7 @@ const CANCELLATION_REASONS = [
 
 const CancellationModal: React.FC<CancellationModalProps> = ({ booking, policy, onClose, onSuccess }) => {
     const { locale } = useLocale();
+    const toast = useToast();
     const [reason, setReason] = useState('');
     const [customReason, setCustomReason] = useState('');
     const [confirmed, setConfirmed] = useState(false);
@@ -38,12 +39,12 @@ const CancellationModal: React.FC<CancellationModalProps> = ({ booking, policy, 
 
     const handleCancel = async () => {
         if (!reason) {
-            alert('Please select a cancellation reason');
+            toast.showToast({ message: 'Please select a cancellation reason', type: 'info' });
             return;
         }
 
         if (!confirmed) {
-            alert('Please confirm that you understand the cancellation policy');
+            toast.showToast({ message: 'Please confirm that you understand the cancellation policy', type: 'info' });
             return;
         }
 
@@ -62,11 +63,11 @@ const CancellationModal: React.FC<CancellationModalProps> = ({ booking, policy, 
         setIsProcessing(false);
 
         if (result.success) {
-            alert(result.message);
+            toast.showToast({ message: result.message, type: 'success' });
             onSuccess();
             onClose();
         } else {
-            alert(result.message);
+            toast.showToast({ message: result.message, type: 'error' });
         }
     };
 

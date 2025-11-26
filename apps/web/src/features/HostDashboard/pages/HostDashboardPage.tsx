@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { User, Listing, ListingStatus, Booking } from '@fiilar/types';
 import { Menu, Plus } from 'lucide-react';
 import { getConversations } from '@fiilar/messaging';
+import { ConfirmDialog } from '@fiilar/ui';
 
 // Hooks
 import { useHostBookings } from '../hooks/useHostBookings';
@@ -29,13 +30,14 @@ interface HostDashboardPageProps {
     user: User;
     listings: Listing[];
     refreshData: () => void;
-    onCreateListing?: (l: Listing) => void;
-    onUpdateListing?: (l: Listing) => void;
+    hideUI?: boolean;
+    onUpdateListing: (listing: Listing) => void;
+    onCreateListing: (listing: Listing) => void;
 }
 
 type View = 'overview' | 'listings' | 'create' | 'edit' | 'calendar' | 'settings' | 'bookings' | 'earnings' | 'payouts' | 'messages' | 'notifications' | 'verify';
 
-const HostDashboardPage: React.FC<HostDashboardPageProps> = ({ user, listings, refreshData, onCreateListing, onUpdateListing }) => {
+const HostDashboardPage: React.FC<HostDashboardPageProps> = ({ user, listings, refreshData, hideUI = false, onUpdateListing, onCreateListing }) => {
     // View State
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
@@ -74,7 +76,7 @@ const HostDashboardPage: React.FC<HostDashboardPageProps> = ({ user, listings, r
         handleVerifyBank, handleSaveBankDetails
     } = useHostFinancials(user, hostListings);
 
-    const { handleDeleteListing } = useListingActions(refreshData);
+    const { handleDeleteListing, deleteConfirm, confirmDelete, cancelDelete } = useListingActions(refreshData);
 
     // Helper to get conversations
     const conversations = getConversations(user.id);
@@ -105,14 +107,16 @@ const HostDashboardPage: React.FC<HostDashboardPageProps> = ({ user, listings, r
     return (
         <div className="bg-gray-50 min-h-screen">
             {/* Sidebar */}
-            <HostSidebar
-                view={view}
-                setView={setView}
-                pendingListingsCount={pendingListingsCount}
-                pendingBookingsCount={pendingBookingsCount}
-                unreadMessages={unreadMessages}
-                handleStartNewListing={handleStartNewListing}
-            />
+            {!hideUI && (
+                <HostSidebar
+                    view={view}
+                    setView={setView}
+                    pendingListingsCount={pendingListingsCount}
+                    pendingBookingsCount={pendingBookingsCount}
+                    unreadMessages={unreadMessages}
+                    handleStartNewListing={handleStartNewListing}
+                />
+            )}
 
             {/* Main Content */}
             <div className="min-h-screen lg:ml-64">
@@ -259,6 +263,18 @@ const HostDashboardPage: React.FC<HostDashboardPageProps> = ({ user, listings, r
                     </div>
                 </main>
             </div>
+
+            {/* Delete Listing Confirmation Dialog */}
+            <ConfirmDialog
+                isOpen={deleteConfirm.isOpen}
+                title="Delete Listing?"
+                message={deleteConfirm.message}
+                confirmText="Delete"
+                cancelText="Cancel"
+                variant="danger"
+                onConfirm={confirmDelete}
+                onCancel={cancelDelete}
+            />
         </div>
     );
 };

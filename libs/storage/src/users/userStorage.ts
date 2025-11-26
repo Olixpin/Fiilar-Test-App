@@ -98,3 +98,39 @@ export const updateUserWalletBalance = (userId: string, amount: number) => {
         saveUser(user);
     }
 };
+
+/**
+ * Update a user's profile information
+ */
+export const updateUserProfile = (
+    userId: string,
+    updates: {
+        firstName?: string;
+        lastName?: string;
+        avatar?: string;
+        bio?: string;
+        name?: string;
+    }
+): User | null => {
+    const users = getAllUsers();
+    const user = users.find(u => u.id === userId);
+
+    if (!user) {
+        console.error('User not found:', userId);
+        return null;
+    }
+
+    // Apply updates
+    const updatedUser = { ...user, ...updates };
+
+    // Auto-generate full name if firstName/lastName provided
+    if (updates.firstName || updates.lastName) {
+        const firstName = updates.firstName || user.firstName || '';
+        const lastName = updates.lastName || user.lastName || '';
+        updatedUser.name = `${firstName} ${lastName}`.trim();
+    }
+
+    saveUser(updatedUser);
+    return updatedUser;
+};
+

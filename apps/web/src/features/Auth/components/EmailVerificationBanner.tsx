@@ -27,7 +27,7 @@ const EmailVerificationBanner: React.FC<EmailVerificationBannerProps> = ({ userI
             }, 3000);
         } else {
             setIsResending(false);
-            alert('Failed to resend verification email. Please try again.');
+            showToast({ message: 'Failed to resend verification email. Please try again.', type: 'info' });
         }
     };
 

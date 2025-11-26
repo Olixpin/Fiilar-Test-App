@@ -4,7 +4,7 @@ import { Bell, Check, Trash2, AlertTriangle, Calendar, MessageSquare, Star, Info
 import { Notification } from '@fiilar/types';
 import { getNotifications, markAllNotificationsAsRead, markNotificationAsRead, clearAllNotifications } from '@fiilar/notifications';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '@fiilar/ui';
+import { Button, ConfirmDialog } from '@fiilar/ui';
 
 interface NotificationsPageProps {
     userId: string;
@@ -13,6 +13,7 @@ interface NotificationsPageProps {
 const NotificationsPage: React.FC<NotificationsPageProps> = ({ userId }) => {
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [filter, setFilter] = useState<'all' | 'unread' | 'urgent'>('all');
+    const [showClearConfirm, setShowClearConfirm] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -42,10 +43,7 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ userId }) => {
     };
 
     const handleClearAll = () => {
-        if (window.confirm('Are you sure you want to clear all notifications?')) {
-            clearAllNotifications(userId);
-            loadNotifications();
-        }
+        setShowClearConfirm(true);
     };
 
     const handleNotificationClick = (notification: Notification) => {
@@ -151,8 +149,8 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ userId }) => {
                         <button
                             onClick={() => setFilter('all')}
                             className={`px-4 py-2 rounded-lg text-sm font-medium transition ${filter === 'all'
-                                    ? 'bg-brand-100 text-brand-700'
-                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                ? 'bg-brand-100 text-brand-700'
+                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                 }`}
                         >
                             All ({notifications.length})
@@ -160,8 +158,8 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ userId }) => {
                         <button
                             onClick={() => setFilter('unread')}
                             className={`px-4 py-2 rounded-lg text-sm font-medium transition ${filter === 'unread'
-                                    ? 'bg-brand-100 text-brand-700'
-                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                ? 'bg-brand-100 text-brand-700'
+                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                 }`}
                         >
                             Unread ({unreadCount})
@@ -169,8 +167,8 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ userId }) => {
                         <button
                             onClick={() => setFilter('urgent')}
                             className={`px-4 py-2 rounded-lg text-sm font-medium transition ${filter === 'urgent'
-                                    ? 'bg-brand-100 text-brand-700'
-                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                ? 'bg-brand-100 text-brand-700'
+                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                 }`}
                         >
                             Urgent ({urgentCount})
@@ -268,6 +266,22 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ userId }) => {
                     </div>
                 ))
             )}
+
+            {/* Clear All Confirmation Dialog */}
+            <ConfirmDialog
+                isOpen={showClearConfirm}
+                title="Clear All Notifications?"
+                message="This will permanently delete all your notifications. This action cannot be undone."
+                confirmText="Clear All"
+                cancelText="Cancel"
+                variant="danger"
+                onConfirm={() => {
+                    clearAllNotifications(userId);
+                    loadNotifications();
+                    setShowClearConfirm(false);
+                }}
+                onCancel={() => setShowClearConfirm(false)}
+            />
         </div>
     );
 };

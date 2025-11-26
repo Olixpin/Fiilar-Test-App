@@ -136,6 +136,8 @@ const VerifyEmailPage: React.FC = () => {
                             <div className="space-y-4">
                                 <div>
                                     <Input
+                                        id="email"
+                                        autoComplete="email"
                                         label="Email Address"
                                         type="email"
                                         value={email}
@@ -145,9 +147,9 @@ const VerifyEmailPage: React.FC = () => {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-3 text-center">
+                                    <div className="block text-sm font-medium text-gray-700 mb-3 text-center">
                                         Verification Code
-                                    </label>
+                                    </div>
                                     <OTPInput
                                         length={6}
                                         value={otp}

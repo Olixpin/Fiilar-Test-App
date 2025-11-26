@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { useToast } from '@fiilar/ui';
 import { Shield, Camera, Check } from 'lucide-react';
 import { Button } from '@fiilar/ui';
 
@@ -8,6 +9,7 @@ interface KYCUploadProps {
 }
 
 const KYCUpload: React.FC<KYCUploadProps> = ({ onUpload, onSkip }) => {
+    const toast = useToast();
     const [step, setStep] = useState<'ID' | 'SELFIE'>('ID');
     const [selfieImage, setSelfieImage] = useState<string | null>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
@@ -32,7 +34,7 @@ const KYCUpload: React.FC<KYCUploadProps> = ({ onUpload, onSkip }) => {
             }
         } catch (err) {
             console.error("Error accessing camera", err);
-            alert("Could not access camera. Please allow camera permissions.");
+            toast.showToast({ message: "Could not access camera. Please allow camera permissions.", type: "info" });
         }
     };
 
@@ -73,7 +75,14 @@ const KYCUpload: React.FC<KYCUploadProps> = ({ onUpload, onSkip }) => {
                         </p>
 
                         <label className="block w-full border-2 border-dashed border-gray-300 rounded-xl p-8 mb-6 cursor-pointer hover:border-brand-500 hover:bg-brand-50 transition">
-                            <input type="file" className="hidden" onChange={handleIdUpload} accept="image/*" />
+                            <input
+                                id="kyc-id-upload"
+                                name="kyc-id-upload"
+                                type="file"
+                                className="hidden"
+                                onChange={handleIdUpload}
+                                accept="image/*"
+                            />
                             <div className="text-gray-500 font-medium">Upload Government ID</div>
                             <div className="text-xs text-gray-400 mt-1">(Passport, Driver's License, ID Card)</div>
                         </label>

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useToast } from '@fiilar/ui';
 import { X, AlertTriangle, DollarSign, Check } from 'lucide-react';
 import { DamageReport } from '@fiilar/types';
 import { updateDamageReport } from '@fiilar/storage';
@@ -14,6 +15,7 @@ interface DamageReportViewProps {
 
 const DamageReportView: React.FC<DamageReportViewProps> = ({ report, onClose, onUpdate }) => {
     const { locale } = useLocale();
+    const toast = useToast();
     const [response, setResponse] = useState(report.userResponse || '');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -46,7 +48,7 @@ const DamageReportView: React.FC<DamageReportViewProps> = ({ report, onClose, on
 
     const handleDispute = () => {
         if (!response.trim()) {
-            alert('Please provide a reason for disputing');
+            toast.showToast({ message: 'Please provide a reason for disputing', type: 'info' });
             return;
         }
 

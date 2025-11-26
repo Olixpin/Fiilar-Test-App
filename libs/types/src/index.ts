@@ -41,9 +41,14 @@ export type KYCStatus = 'pending' | 'verified' | 'rejected' | 'none';
 
 export interface User {
   id: string;
-  name: string;
+
+  // Name fields (NEW: split into first/last)
+  firstName?: string;      // Required for dashboard access
+  lastName?: string;       // Required for dashboard access
+  name: string;            // DEPRECATED: Keep for backward compatibility
+
   email: string;
-  password: string;
+  password?: string;
   role: Role;
   isHost: boolean;
   createdAt: string;
