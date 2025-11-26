@@ -1,6 +1,7 @@
 import React from 'react';
 import { Listing } from '@fiilar/types';
 import { X, Star, Wifi, Wind, Utensils, Car, Dumbbell, Waves, Briefcase, Tv, Shirt, Scissors, Zap, Coffee, Music, Video, Shield, Sun, CheckCircle } from 'lucide-react';
+import { useScrollLock } from '../../../../hooks/useScrollLock';
 import { getReviews, getAverageRating } from '@fiilar/reviews';
 import { getAllUsers } from '@fiilar/storage'; // Re-import getAllUsers if still needed
 
@@ -11,6 +12,7 @@ interface ReviewsModalProps {
 }
 
 export const ReviewsModal: React.FC<ReviewsModalProps> = ({ isOpen, onClose, listing }) => {
+  useScrollLock(isOpen);
   if (!isOpen) return null;
 
   const reviews = getReviews(listing.id);

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Listing, CancellationPolicy } from '@fiilar/types';
-import { X, Star, CreditCard, Wallet, AlertCircle, Info, Check } from 'lucide-react';
+import { X, ShieldCheck, CreditCard, Wallet, AlertCircle, Loader2, Star, Info, Check } from 'lucide-react';
+import { useScrollLock } from '../../../../hooks/useScrollLock';
 import { formatCurrency } from '../../../../utils/currency';
 import { getAverageRating, getReviews } from '@fiilar/reviews';
 import { useNavigate } from 'react-router-dom';
@@ -34,6 +35,8 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   handleConfirmBooking
 }) => {
   const navigate = useNavigate();
+  useScrollLock(isOpen);
+
   if (!isOpen || !pendingBooking) return null;
 
   return (

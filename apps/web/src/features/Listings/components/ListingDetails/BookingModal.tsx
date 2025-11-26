@@ -5,6 +5,7 @@ import { formatCurrency } from '../../../../utils/currency';
 import { getAverageRating, getReviews } from '@fiilar/reviews';
 import { ListingCalendar } from '@fiilar/calendar';
 import { Button } from '@fiilar/ui';
+import { useScrollLock } from '../../../../hooks/useScrollLock';
 
 interface BookingModalProps {
     isOpen: boolean;
@@ -83,6 +84,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     checkDateAvailability,
     setSelectedHours
 }) => {
+    useScrollLock(isOpen);
+
     if (!isOpen) return null;
 
     return (

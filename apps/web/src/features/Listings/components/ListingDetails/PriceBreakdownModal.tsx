@@ -1,5 +1,6 @@
 import React from 'react';
 import { X, Info, ShieldCheck } from 'lucide-react';
+import { useScrollLock } from '../../../../hooks/useScrollLock';
 import { Listing, BookingType } from '@fiilar/types';
 import { formatCurrency } from '../../../../utils/currency';
 
@@ -27,6 +28,8 @@ export const PriceBreakdownModal: React.FC<PriceBreakdownModalProps> = ({
     duration,
     guestCount
 }) => {
+    useScrollLock(isOpen);
+
     if (!isOpen) return null;
 
     return (

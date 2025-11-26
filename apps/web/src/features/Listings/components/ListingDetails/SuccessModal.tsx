@@ -1,6 +1,7 @@
 import React from 'react';
 import { Booking } from '@fiilar/types';
 import { CheckCircle } from 'lucide-react';
+import { useScrollLock } from '../../../../hooks/useScrollLock';
 import { useNavigate } from 'react-router-dom';
 
 interface SuccessModalProps {
@@ -9,11 +10,12 @@ interface SuccessModalProps {
 }
 
 export const SuccessModal: React.FC<SuccessModalProps> = ({ isOpen, confirmedBookings }) => {
+  useScrollLock(isOpen);
   const navigate = useNavigate();
   if (!isOpen || confirmedBookings.length === 0) return null;
 
   return (
-    <div className="fixed inset-0 z-70 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
       <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl overflow-hidden relative animate-in zoom-in-95 duration-300 border border-white/20">
         <div className="bg-green-500 h-2 w-full"></div>
         <div className="p-8 text-center">

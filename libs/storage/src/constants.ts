@@ -70,11 +70,11 @@ export const MOCK_LISTINGS: Listing[] = [
     price: 120,
     priceUnit: BookingType.HOURLY,
     images: [
-      'https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&q=80&w=2069',
-      'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&q=80&w=2069',
-      'https://images.unsplash.com/photo-1517502884422-41eaead166d4?auto=format&fit=crop&q=80&w=2025',
-      'https://images.unsplash.com/photo-1504384308090-c54be3855833?auto=format&fit=crop&q=80&w=2062',
-      'https://images.unsplash.com/photo-1577412647305-991150c7d163?auto=format&fit=crop&q=80&w=2070'
+      '/assets/listing-2-hero.png',
+      '/assets/listing-2-detail-1.png',
+      '/assets/listing-2-detail-2.png',
+      '/assets/listing-2-detail-3.png',
+      '/assets/listing-2-detail-4.png'
     ],
     location: 'Financial District',
     status: ListingStatus.LIVE,

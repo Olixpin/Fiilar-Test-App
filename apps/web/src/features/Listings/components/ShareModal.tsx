@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, Copy, Check, Mail, Twitter, Facebook, Linkedin, MessageCircle } from 'lucide-react';
+import { useScrollLock } from '../../../hooks/useScrollLock';
 import { Listing } from '@fiilar/types';
 
 interface ShareModalProps {
@@ -9,6 +10,7 @@ interface ShareModalProps {
 }
 
 const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, listing }) => {
+    useScrollLock(isOpen);
     const [copied, setCopied] = useState(false);
     const url = window.location.href;
 

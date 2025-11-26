@@ -1,5 +1,6 @@
 import React from 'react';
 import { X, ShieldCheck, Loader2, UploadCloud } from 'lucide-react';
+import { useScrollLock } from '../../../../hooks/useScrollLock';
 
 interface VerificationModalProps {
   isOpen: boolean;
@@ -9,6 +10,8 @@ interface VerificationModalProps {
 }
 
 export const VerificationModal: React.FC<VerificationModalProps> = ({ isOpen, onClose, isVerifying, handleVerificationComplete }) => {
+  useScrollLock(isOpen);
+
   if (!isOpen) return null;
 
   return (
