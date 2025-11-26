@@ -12,6 +12,7 @@ import ErrorBoundary from './components/common/ErrorBoundary';
 import { analytics } from './services/analytics';
 import { LocaleProvider, useToast } from '@fiilar/ui';
 import { formatCurrency } from './utils/currency';
+import ScrollToTop from './components/common/ScrollToTop';
 
 const HostDashboard = lazy(() => import('./features/HostDashboard/pages/HostDashboardPage'));
 const UserDashboard = lazy(() => import('./features/UserDashboard/pages/UserDashboard'));
@@ -411,6 +412,7 @@ const App: React.FC = () => {
           </div>
         ) : (
           <div className="min-h-screen bg-gray-50">
+            <ScrollToTop />
             {/* Show navbar only on valid routes */}
             {isValidRoute && !showCompleteProfile && (
               <Navbar
@@ -652,7 +654,7 @@ const App: React.FC = () => {
         )}
 
       </ErrorBoundary>
-    </LocaleProvider>
+    </LocaleProvider >
   );
 };
 
