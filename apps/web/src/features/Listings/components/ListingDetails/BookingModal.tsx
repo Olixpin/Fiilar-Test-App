@@ -102,150 +102,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 </button>
 
                 {/* Scrollable Content Area */}
-                <div className="flex-1 overflow-y-auto md:overflow-hidden flex flex-col-reverse md:flex-row" id="booking-scroll-container">
+                <div className="flex-1 overflow-y-auto md:overflow-hidden flex flex-col md:flex-row-reverse" id="booking-scroll-container">
 
-                    {/* Left Column: The Receipt (Price Summary) */}
-                    <div className="w-full md:w-2/5 bg-gradient-to-br from-gray-50 to-gray-100/50 p-6 md:p-8 flex flex-col md:overflow-y-auto border-t md:border-t-0 border-gray-200 pb-32 md:pb-8">
-                        {/* Listing Preview (Desktop Only) */}
-                        <div className="hidden md:block aspect-[4/3] rounded-xl overflow-hidden mb-4 shadow-md">
-                            <img src={listing.images[0]} alt={listing.title} className="w-full h-full object-cover" />
-                        </div>
-
-                        <h2 className="hidden md:block text-xl font-bold text-gray-900 mb-2 line-clamp-2 font-display">{listing.title}</h2>
-
-                        <div className="hidden md:flex items-center gap-2 text-sm text-gray-600 mb-6">
-                            <Star size={16} className="fill-brand-500 text-brand-500" />
-                            <span className="font-medium text-gray-900">{getAverageRating(listing.id).toFixed(1)}</span>
-                            <span>({getReviews(listing.id).length} reviews)</span>
-                        </div>
-
-                        {/* Price Breakdown - Enhanced for Transparency */}
-                        <div className="mt-auto" id="price-breakdown">
-                            <h3 className="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide">Price Summary</h3>
-                            <div className="bg-white rounded-xl p-4 shadow-sm space-y-4">
-
-                                {/* Base Rate Calculation */}
-                                <div className="space-y-2">
-                                    {/* Time/Duration Line */}
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-gray-600">
-                                            {isHourly
-                                                ? `${selectedHours.length || 1} ${selectedHours.length === 1 ? 'hour' : 'hours'} × ${formatCurrency(listing.price)}/hr`
-                                                : `${selectedDays} ${selectedDays === 1 ? 'day' : 'days'} × ${formatCurrency(listing.price)}/day`
-                                            }
-                                        </span>
-                                        <span className="font-medium text-gray-900">
-                                            {formatCurrency(listing.price * (isHourly ? (selectedHours.length || 1) : selectedDays))}
-                                        </span>
-                                    </div>
-
-                                    {/* Guest Pricing Breakdown */}
-                                    {typeof listing.includedGuests === 'number' && listing.includedGuests > 0 && typeof listing.pricePerExtraGuest === 'number' && listing.pricePerExtraGuest > 0 && guestCount > 0 && (
-                                        <div className="pl-2 space-y-1 border-l-2 border-gray-200">
-                                            {/* Base guests included */}
-                                            <div className="flex justify-between text-xs text-gray-500">
-                                                <span>Base ({Math.min(guestCount, listing.includedGuests)} {Math.min(guestCount, listing.includedGuests) === 1 ? 'guest' : 'guests'} included)</span>
-                                                <span>—</span>
-                                            </div>
-
-                                            {/* Additional guests charge */}
-                                            {guestCount > listing.includedGuests && (
-                                                <div className="flex justify-between text-xs">
-                                                    <span className="text-gray-600">
-                                                        + {guestCount - listing.includedGuests} extra {guestCount - listing.includedGuests === 1 ? 'guest' : 'guests'} × {formatCurrency(listing.pricePerExtraGuest)}
-                                                    </span>
-                                                    <span className="font-medium text-gray-900">
-                                                        {formatCurrency((guestCount - listing.includedGuests) * listing.pricePerExtraGuest)}
-                                                    </span>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-
-                                    {/* Simple guest count (when no tiered pricing) */}
-                                    {(!listing.includedGuests || !listing.pricePerExtraGuest) && guestCount > 1 && (
-                                        <div className="text-xs text-gray-500 pl-1">
-                                            For {guestCount} guests
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Add-ons Itemized */}
-                                {selectedAddOns.length > 0 && listing.addOns && (
-                                    <div className="space-y-2 pt-2 border-t border-gray-100">
-                                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Optional Extras</p>
-                                        {listing.addOns
-                                            .filter(addOn => selectedAddOns.includes(addOn.id))
-                                            .map(addOn => (
-                                                <div key={addOn.id} className="flex justify-between text-sm">
-                                                    <span className="text-gray-600">+ {addOn.name}</span>
-                                                    <span className="font-medium text-gray-900">{formatCurrency(addOn.price)}</span>
-                                                </div>
-                                            ))
-                                        }
-                                    </div>
-                                )}
-
-                                {/* Recurring Multiplier */}
-                                {isRecurring && recurrenceCount > 1 && (
-                                    <div className="flex justify-between text-sm pt-2 border-t border-gray-100">
-                                        <span className="text-gray-600">× {recurrenceCount} bookings</span>
-                                        <span className="font-medium text-gray-900">{formatCurrency(fees.subtotal)}</span>
-                                    </div>
-                                )}
-
-                                {/* Subtotal */}
-                                {!isRecurring && (
-                                    <div className="flex justify-between text-sm pt-2 border-t border-gray-100">
-                                        <span className="font-medium text-gray-700">Subtotal</span>
-                                        <span className="font-semibold text-gray-900">{formatCurrency(fees.subtotal)}</span>
-                                    </div>
-                                )}
-
-                                {/* Service Fee with Tooltip */}
-                                <div className="flex justify-between text-sm group relative">
-                                    <span className="flex items-center gap-1 text-gray-600">
-                                        Service Fee (10%)
-                                        <Info size={12} className="text-gray-400 cursor-help" />
-                                        <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block w-56 p-2 bg-gray-900 text-white text-xs rounded-lg shadow-lg z-10">
-                                            Helps us run and improve the platform, provide customer support, and keep your data secure.
-                                        </div>
-                                    </span>
-                                    <span className="font-medium text-gray-900">{formatCurrency(fees.serviceFee)}</span>
-                                </div>
-
-                                {/* Caution Fee with Tooltip */}
-                                {fees.cautionFee > 0 && (
-                                    <div className="flex justify-between text-sm group relative pb-2 border-b border-gray-100">
-                                        <span className="flex items-center gap-1 text-amber-700">
-                                            Caution Deposit
-                                            <Info size={12} className="text-amber-600 cursor-help" />
-                                            <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block w-56 p-2 bg-gray-900 text-white text-xs rounded-lg shadow-lg z-10">
-                                                <strong>Refundable deposit</strong> held during your booking. Returned within 48 hours after checkout if no damages occur.
-                                            </div>
-                                        </span>
-                                        <span className="font-medium text-amber-700">{formatCurrency(fees.cautionFee)}</span>
-                                    </div>
-                                )}
-
-                                {/* Total */}
-                                <div className="flex justify-between items-center text-lg font-bold text-gray-900 pt-2 font-display">
-                                    <span>Total Due</span>
-                                    <span>{formatCurrency(fees.total)}</span>
-                                </div>
-
-                                {/* Refund Note */}
-                                {fees.cautionFee > 0 && (
-                                    <p className="text-xs text-gray-500 pt-2 border-t border-gray-100">
-                                        You'll pay <strong>{formatCurrency(fees.total)}</strong> now.
-                                        <strong className="text-amber-700"> {formatCurrency(fees.cautionFee)}</strong> will be refunded after checkout.
-                                    </p>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Right Column: The Configurator */}
+                    {/* Right Column: The Configurator (Now First in DOM for Mobile Scroll Fix) */}
                     <div className="w-full md:w-3/5 p-6 md:p-10 md:overflow-y-auto custom-scrollbar pb-6 md:pb-10">
 
                         {/* Mobile Header (Image + Title) */}
@@ -582,6 +441,147 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                 )}
                             </div>
 
+                        </div>
+                    </div>
+
+                    {/* Left Column: The Receipt (Now Second in DOM) */}
+                    <div className="w-full md:w-2/5 bg-gradient-to-br from-gray-50 to-gray-100/50 p-6 md:p-8 flex flex-col md:overflow-y-auto border-t md:border-t-0 border-gray-200 pb-32 md:pb-8">
+                        {/* Listing Preview (Desktop Only) */}
+                        <div className="hidden md:block aspect-[4/3] rounded-xl overflow-hidden mb-4 shadow-md">
+                            <img src={listing.images[0]} alt={listing.title} className="w-full h-full object-cover" />
+                        </div>
+
+                        <h2 className="hidden md:block text-xl font-bold text-gray-900 mb-2 line-clamp-2 font-display">{listing.title}</h2>
+
+                        <div className="hidden md:flex items-center gap-2 text-sm text-gray-600 mb-6">
+                            <Star size={16} className="fill-brand-500 text-brand-500" />
+                            <span className="font-medium text-gray-900">{getAverageRating(listing.id).toFixed(1)}</span>
+                            <span>({getReviews(listing.id).length} reviews)</span>
+                        </div>
+
+                        {/* Price Breakdown - Enhanced for Transparency */}
+                        <div className="mt-auto" id="price-breakdown">
+                            <h3 className="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide">Price Summary</h3>
+                            <div className="bg-white rounded-xl p-4 shadow-sm space-y-4">
+
+                                {/* Base Rate Calculation */}
+                                <div className="space-y-2">
+                                    {/* Time/Duration Line */}
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-gray-600">
+                                            {isHourly
+                                                ? `${selectedHours.length || 1} ${selectedHours.length === 1 ? 'hour' : 'hours'} × ${formatCurrency(listing.price)}/hr`
+                                                : `${selectedDays} ${selectedDays === 1 ? 'day' : 'days'} × ${formatCurrency(listing.price)}/day`
+                                            }
+                                        </span>
+                                        <span className="font-medium text-gray-900">
+                                            {formatCurrency(listing.price * (isHourly ? (selectedHours.length || 1) : selectedDays))}
+                                        </span>
+                                    </div>
+
+                                    {/* Guest Pricing Breakdown */}
+                                    {typeof listing.includedGuests === 'number' && listing.includedGuests > 0 && typeof listing.pricePerExtraGuest === 'number' && listing.pricePerExtraGuest > 0 && guestCount > 0 && (
+                                        <div className="pl-2 space-y-1 border-l-2 border-gray-200">
+                                            {/* Base guests included */}
+                                            <div className="flex justify-between text-xs text-gray-500">
+                                                <span>Base ({Math.min(guestCount, listing.includedGuests)} {Math.min(guestCount, listing.includedGuests) === 1 ? 'guest' : 'guests'} included)</span>
+                                                <span>—</span>
+                                            </div>
+
+                                            {/* Additional guests charge */}
+                                            {guestCount > listing.includedGuests && (
+                                                <div className="flex justify-between text-xs">
+                                                    <span className="text-gray-600">
+                                                        + {guestCount - listing.includedGuests} extra {guestCount - listing.includedGuests === 1 ? 'guest' : 'guests'} × {formatCurrency(listing.pricePerExtraGuest)}
+                                                    </span>
+                                                    <span className="font-medium text-gray-900">
+                                                        {formatCurrency((guestCount - listing.includedGuests) * listing.pricePerExtraGuest)}
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* Simple guest count (when no tiered pricing) */}
+                                    {(!listing.includedGuests || !listing.pricePerExtraGuest) && guestCount > 1 && (
+                                        <div className="text-xs text-gray-500 pl-1">
+                                            For {guestCount} guests
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Add-ons Itemized */}
+                                {selectedAddOns.length > 0 && listing.addOns && (
+                                    <div className="space-y-2 pt-2 border-t border-gray-100">
+                                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Optional Extras</p>
+                                        {listing.addOns
+                                            .filter(addOn => selectedAddOns.includes(addOn.id))
+                                            .map(addOn => (
+                                                <div key={addOn.id} className="flex justify-between text-sm">
+                                                    <span className="text-gray-600">+ {addOn.name}</span>
+                                                    <span className="font-medium text-gray-900">{formatCurrency(addOn.price)}</span>
+                                                </div>
+                                            ))
+                                        }
+                                    </div>
+                                )}
+
+                                {/* Recurring Multiplier */}
+                                {isRecurring && recurrenceCount > 1 && (
+                                    <div className="flex justify-between text-sm pt-2 border-t border-gray-100">
+                                        <span className="text-gray-600">× {recurrenceCount} bookings</span>
+                                        <span className="font-medium text-gray-900">{formatCurrency(fees.subtotal)}</span>
+                                    </div>
+                                )}
+
+                                {/* Subtotal */}
+                                {!isRecurring && (
+                                    <div className="flex justify-between text-sm pt-2 border-t border-gray-100">
+                                        <span className="font-medium text-gray-700">Subtotal</span>
+                                        <span className="font-semibold text-gray-900">{formatCurrency(fees.subtotal)}</span>
+                                    </div>
+                                )}
+
+                                {/* Service Fee with Tooltip */}
+                                <div className="flex justify-between text-sm group relative">
+                                    <span className="flex items-center gap-1 text-gray-600">
+                                        Service Fee (10%)
+                                        <Info size={12} className="text-gray-400 cursor-help" />
+                                        <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block w-56 p-2 bg-gray-900 text-white text-xs rounded-lg shadow-lg z-10">
+                                            Helps us run and improve the platform, provide customer support, and keep your data secure.
+                                        </div>
+                                    </span>
+                                    <span className="font-medium text-gray-900">{formatCurrency(fees.serviceFee)}</span>
+                                </div>
+
+                                {/* Caution Fee with Tooltip */}
+                                {fees.cautionFee > 0 && (
+                                    <div className="flex justify-between text-sm group relative pb-2 border-b border-gray-100">
+                                        <span className="flex items-center gap-1 text-amber-700">
+                                            Caution Deposit
+                                            <Info size={12} className="text-amber-600 cursor-help" />
+                                            <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block w-56 p-2 bg-gray-900 text-white text-xs rounded-lg shadow-lg z-10">
+                                                <strong>Refundable deposit</strong> held during your booking. Returned within 48 hours after checkout if no damages occur.
+                                            </div>
+                                        </span>
+                                        <span className="font-medium text-amber-700">{formatCurrency(fees.cautionFee)}</span>
+                                    </div>
+                                )}
+
+                                {/* Total */}
+                                <div className="flex justify-between items-center text-lg font-bold text-gray-900 pt-2 font-display">
+                                    <span>Total Due</span>
+                                    <span>{formatCurrency(fees.total)}</span>
+                                </div>
+
+                                {/* Refund Note */}
+                                {fees.cautionFee > 0 && (
+                                    <p className="text-xs text-gray-500 pt-2 border-t border-gray-100">
+                                        You'll pay <strong>{formatCurrency(fees.total)}</strong> now.
+                                        <strong className="text-amber-700"> {formatCurrency(fees.cautionFee)}</strong> will be refunded after checkout.
+                                    </p>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
