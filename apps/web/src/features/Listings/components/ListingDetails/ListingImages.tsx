@@ -68,7 +68,7 @@ export const ListingImages: React.FC<ListingImagesProps> = ({
           <img
             src={images[0]}
             loading="eager"
-            className="w-full h-full object-cover transition-all duration-700 ease-out group-hover/gallery:blur-[2px] group-hover/gallery:brightness-75 group-hover/image:blur-none group-hover/image:brightness-100 group-hover/image:scale-105 group-hover/image:rotate-1"
+            className="w-full h-full object-cover transition-all duration-700 ease-out md:group-hover/gallery:blur-[2px] md:group-hover/gallery:brightness-75 md:group-hover/image:blur-none md:group-hover/image:brightness-100 group-hover/image:scale-105 group-hover/image:rotate-1"
             alt="Main view"
           />
           <div className="absolute inset-0 bg-black/0 transition-colors duration-500 ease-out" />
@@ -83,11 +83,11 @@ export const ListingImages: React.FC<ListingImagesProps> = ({
         {count > 1 && (
           <>
             {/* Image 2 */}
-            <div className="relative overflow-hidden cursor-pointer min-w-[90vw] md:min-w-0 snap-center rounded-xl md:rounded-none hover:z-10 group/image md:block md:col-span-2 md:row-span-1" onClick={() => openGallery(1)}>
+            <div className="relative overflow-hidden cursor-pointer min-w-[90vw] md:min-w-0 snap-center rounded-xl md:rounded-none hover:z-10 group/image md:block md:col-span-1 md:row-span-1" onClick={() => openGallery(1)}>
               <img
                 src={images[1]}
                 loading="lazy"
-                className="w-full h-full object-cover transition-all duration-700 ease-out group-hover/gallery:blur-[2px] group-hover/gallery:brightness-75 group-hover/image:blur-none group-hover/image:brightness-100 group-hover/image:scale-105 group-hover/image:rotate-1"
+                className="w-full h-full object-cover transition-all duration-700 ease-out md:group-hover/gallery:blur-[2px] md:group-hover/gallery:brightness-75 md:group-hover/image:blur-none md:group-hover/image:brightness-100 group-hover/image:scale-105 group-hover/image:rotate-1"
                 alt="View 2"
               />
               <div className="absolute inset-0 bg-black/0 transition-colors duration-500 ease-out" />
@@ -99,7 +99,7 @@ export const ListingImages: React.FC<ListingImagesProps> = ({
                 <img
                   src={images[2]}
                   loading="lazy"
-                  className="w-full h-full object-cover transition-all duration-700 ease-out group-hover/gallery:blur-[2px] group-hover/gallery:brightness-75 group-hover/image:blur-none group-hover/image:brightness-100 group-hover/image:scale-105 group-hover/image:rotate-1"
+                  className="w-full h-full object-cover transition-all duration-700 ease-out md:group-hover/gallery:blur-[2px] md:group-hover/gallery:brightness-75 md:group-hover/image:blur-none md:group-hover/image:brightness-100 group-hover/image:scale-105 group-hover/image:rotate-1"
                   alt="View 3"
                 />
                 <div className="absolute inset-0 bg-black/0 transition-colors duration-500 ease-out" />
@@ -114,7 +114,7 @@ export const ListingImages: React.FC<ListingImagesProps> = ({
                 <img
                   src={images[3]}
                   loading="lazy"
-                  className="w-full h-full object-cover transition-all duration-700 ease-out group-hover/gallery:blur-[2px] group-hover/gallery:brightness-75 group-hover/image:blur-none group-hover/image:brightness-100 group-hover/image:scale-105 group-hover/image:rotate-1"
+                  className="w-full h-full object-cover transition-all duration-700 ease-out md:group-hover/gallery:blur-[2px] md:group-hover/gallery:brightness-75 md:group-hover/image:blur-none md:group-hover/image:brightness-100 group-hover/image:scale-105 group-hover/image:rotate-1"
                   alt="View 4"
                 />
                 <div className="absolute inset-0 bg-black/0 transition-colors duration-500 ease-out" />
@@ -129,7 +129,7 @@ export const ListingImages: React.FC<ListingImagesProps> = ({
                 <img
                   src={images[4]}
                   loading="lazy"
-                  className="w-full h-full object-cover transition-all duration-700 ease-out group-hover/gallery:blur-[2px] group-hover/gallery:brightness-75 group-hover/image:blur-none group-hover/image:brightness-100 group-hover/image:scale-105 group-hover/image:rotate-1"
+                  className="w-full h-full object-cover transition-all duration-700 ease-out md:group-hover/gallery:blur-[2px] md:group-hover/gallery:brightness-75 md:group-hover/image:blur-none md:group-hover/image:brightness-100 group-hover/image:scale-105 group-hover/image:rotate-1"
                   alt="View 5"
                 />
                 <div className="absolute inset-0 bg-black/0 transition-colors duration-500 ease-out" />

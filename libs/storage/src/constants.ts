@@ -29,11 +29,11 @@ export const MOCK_LISTINGS: Listing[] = [
     price: 50,
     priceUnit: BookingType.HOURLY,
     images: [
-      'https://picsum.photos/id/10/800/600',
-      'https://picsum.photos/id/11/800/600',
-      'https://picsum.photos/id/12/800/600',
-      'https://picsum.photos/id/13/800/600',
-      'https://picsum.photos/id/14/800/600'
+      'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?auto=format&fit=crop&q=80&w=2070',
+      'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&q=80&w=2080',
+      'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&q=80&w=2070',
+      'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=2069',
+      'https://images.unsplash.com/photo-1497215842964-222b430dc094?auto=format&fit=crop&q=80&w=2070'
     ],
     location: 'Downtown, Metro City',
     status: ListingStatus.LIVE,
@@ -70,11 +70,11 @@ export const MOCK_LISTINGS: Listing[] = [
     price: 120,
     priceUnit: BookingType.HOURLY,
     images: [
-      'https://picsum.photos/id/20/800/600',
-      'https://picsum.photos/id/21/800/600',
-      'https://picsum.photos/id/22/800/600',
-      'https://picsum.photos/id/23/800/600',
-      'https://picsum.photos/id/24/800/600'
+      'https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&q=80&w=2069',
+      'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&q=80&w=2069',
+      'https://images.unsplash.com/photo-1517502884422-41eaead166d4?auto=format&fit=crop&q=80&w=2025',
+      'https://images.unsplash.com/photo-1504384308090-c54be3855833?auto=format&fit=crop&q=80&w=2062',
+      'https://images.unsplash.com/photo-1577412647305-991150c7d163?auto=format&fit=crop&q=80&w=2070'
     ],
     location: 'Financial District',
     status: ListingStatus.LIVE,
@@ -116,11 +116,11 @@ export const MOCK_LISTINGS: Listing[] = [
     price: 1500,
     priceUnit: BookingType.DAILY,
     images: [
-      'https://picsum.photos/id/30/800/600',
-      'https://picsum.photos/id/31/800/600',
-      'https://picsum.photos/id/32/800/600',
-      'https://picsum.photos/id/33/800/600',
-      'https://picsum.photos/id/34/800/600'
+      'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&q=80&w=2070',
+      'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&q=80&w=2053',
+      'https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?auto=format&fit=crop&q=80&w=2070',
+      'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&q=80&w=2074',
+      'https://images.unsplash.com/photo-1600607687644-c7171b42498f?auto=format&fit=crop&q=80&w=2074'
     ],
     location: 'Uptown',
     status: ListingStatus.LIVE,
