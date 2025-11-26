@@ -400,7 +400,7 @@ const App: React.FC = () => {
   };
 
   const validRoutes = ['/', '/kyc', '/dashboard', '/host/dashboard', '/admin', '/verify-email', '/terms', '/privacy', '/demo/glass-slider'];
-  const isValidRoute = validRoutes.includes(location.pathname) || location.pathname.startsWith('/listing/');
+  const isValidRoute = validRoutes.includes(location.pathname);
 
   return (
     <LocaleProvider>
@@ -557,8 +557,8 @@ const App: React.FC = () => {
                 </Routes>
               </Suspense>
             </main>
-            {/* Footer */}
-            {(location.pathname === '/' || location.pathname.startsWith('/listing/')) && (
+            {/* Footer - Hide on Listing Details */}
+            {(location.pathname === '/' || (location.pathname.startsWith('/listing/') && false)) && (
               <footer className="bg-[#1f2937] text-white py-12 mt-20">
                 <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-8">
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">

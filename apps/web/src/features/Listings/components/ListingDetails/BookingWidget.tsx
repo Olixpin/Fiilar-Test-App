@@ -210,56 +210,51 @@ export const BookingWidget: React.FC<BookingWidgetProps> = ({
               </div>
 
               {isRecurring && (
-                <div className="space-y-3 mt-3 pt-3 border-t border-gray-200 animate-in slide-in-from-top-2">
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-500 mb-1">Frequency</label>
-                    <div className="flex gap-2">
-                      {isHourly && (
+                <div className="mt-3 pt-3 border-t border-gray-200 animate-in slide-in-from-top-2">
+                  <div className="grid grid-cols-2 gap-3 mb-3">
+                    <div>
+                      <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Frequency</label>
+                      <div className="flex gap-1">
+                        {isHourly && (
+                          <button
+                            onClick={() => setRecurrenceFreq('DAILY')}
+                            className={`flex-1 py-1.5 text-[10px] rounded border ${recurrenceFreq === 'DAILY' ? 'bg-brand-50 border-brand-500 text-brand-700 font-bold' : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'}`}
+                          >
+                            Daily
+                          </button>
+                        )}
                         <button
-                          onClick={() => setRecurrenceFreq('DAILY')}
-                          className={`flex-1 py-1.5 text-xs rounded border ${recurrenceFreq === 'DAILY' ? 'bg-white border-brand-500 text-brand-600 ring-1 ring-brand-500' : 'bg-white border-gray-300 text-gray-600'}`}
+                          onClick={() => setRecurrenceFreq('WEEKLY')}
+                          className={`py-1.5 text-[10px] rounded border ${isHourly ? 'flex-1' : 'w-full'} ${recurrenceFreq === 'WEEKLY' ? 'bg-brand-50 border-brand-500 text-brand-700 font-bold' : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'}`}
                         >
-                          Daily
+                          Weekly
                         </button>
-                      )}
-                      <button
-                        onClick={() => setRecurrenceFreq('WEEKLY')}
-                        className={`py-1.5 text-xs rounded border ${isHourly ? 'flex-1' : 'w-full'} ${recurrenceFreq === 'WEEKLY' ? 'bg-white border-brand-500 text-brand-600 ring-1 ring-brand-500' : 'bg-white border-gray-300 text-gray-600'}`}
-                      >
-                        Weekly
-                      </button>
+                      </div>
                     </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-500 mb-1">Occurrences</label>
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="range"
-                        min={2}
-                        max={8}
-                        value={recurrenceCount}
-                        onChange={(e) => setRecurrenceCount(parseInt(e.target.value))}
-                        aria-label="Number of occurrences"
-                        title="Number of occurrences"
-                        className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-brand-600"
-                      />
-                      <span className="text-sm font-bold w-8 text-center">{recurrenceCount}</span>
+                    <div>
+                      <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Repeats</label>
+                      <div className="flex items-center gap-2 bg-white border border-gray-200 rounded p-1">
+                        <input
+                          type="range"
+                          min={2}
+                          max={8}
+                          value={recurrenceCount}
+                          onChange={(e) => setRecurrenceCount(parseInt(e.target.value))}
+                          className="flex-1 h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-brand-600"
+                        />
+                        <span className="text-xs font-bold w-4 text-center">{recurrenceCount}</span>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Dates Preview with Validity Check */}
-                  <div className="text-[10px] bg-white p-2 rounded border border-gray-100">
-                    <div className="font-bold mb-1 text-gray-700">Series Preview:</div>
-                    <div className="grid grid-cols-2 gap-y-1 gap-x-2">
+                  {/* Series Preview (Compact) */}
+                  <div className="bg-gray-50 p-2 rounded border border-gray-100">
+                    <div className="text-[10px] font-bold text-gray-500 mb-1 uppercase">Dates</div>
+                    <div className="flex flex-wrap gap-1">
                       {bookingSeries.map((item, i) => (
-                        <div key={i} className={`flex items-center gap-1 truncate ${item.status !== 'AVAILABLE' ? 'text-red-500 font-medium' : 'text-gray-500'}`}>
-                          {item.status === 'AVAILABLE' ? (
-                            <CheckCircle size={10} className="text-green-500" />
-                          ) : (
-                            <X size={10} />
-                          )}
-                          <span>{item.date.slice(5)}</span>
-                          {item.status !== 'AVAILABLE' && <span className="text-[8px] uppercase ml-auto border border-red-200 px-1 rounded">Blocked</span>}
+                        <div key={i} className={`text-[10px] px-1.5 py-0.5 rounded border flex items-center gap-1 ${item.status === 'AVAILABLE' ? 'bg-white border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700'}`}>
+                          {item.status === 'AVAILABLE' ? <CheckCircle size={8} /> : <X size={8} />}
+                          {item.date.slice(5)}
                         </div>
                       ))}
                     </div>
@@ -269,136 +264,160 @@ export const BookingWidget: React.FC<BookingWidgetProps> = ({
             </div>
           )}
 
-          {/* Hourly Selection */}
+          {/* Hourly Selection (Start/End Dropdowns) */}
           {isHourly && (
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <label className="block text-sm font-medium text-gray-700">Select Hours</label>
-                <span className="text-xs text-gray-500">{selectedHours.length} selected</span>
-              </div>
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">Start Time</label>
+                <select
+                  className="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all"
+                  value={selectedHours.length > 0 ? Math.min(...selectedHours) : ''}
+                  onChange={(e) => {
+                    const start = parseInt(e.target.value);
+                    const currentEnd = selectedHours.length > 0 ? Math.max(...selectedHours) + 1 : start + 1;
+                    const end = Math.max(currentEnd, start + 1);
 
-              {hostOpenHours.length === 0 ? (
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center text-gray-500 text-sm">
-                  <Ban className="mx-auto mb-2 text-gray-400" size={20} />
-                  Host is unavailable on this date.
-                </div>
-              ) : (
-                <div className="grid grid-cols-4 gap-2">
-                  {hostOpenHours.map(hour => {
-                    const booked = isSlotBooked(selectedDate, hour);
-                    const isSelected = selectedHours.includes(hour);
-                    return (
-                      <button key={hour} onClick={() => !booked && handleHourToggle(hour)} disabled={booked} className={`py-2 rounded text-xs font-medium transition-all relative border ${booked ? 'bg-gray-100 text-gray-300 border-transparent cursor-not-allowed' : (isSelected ? 'bg-brand-600 text-white border-brand-600' : 'bg-white border-gray-200 text-gray-700 hover:border-brand-300')}`}>
-                        {hour.toString().padStart(2, '0')}:00
-                        {booked && <div className="absolute inset-0 flex items-center justify-center"><div className="w-[60%] h-px bg-gray-300 transform -rotate-12"></div></div>}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-              {isRecurring && selectedHours.length > 0 && (
-                <div className="mt-2 bg-blue-50 border border-blue-100 p-2 rounded flex items-start gap-2">
-                  <Info size={14} className="text-blue-600 shrink-0 mt-0.5" />
-                  <p className="text-xs text-blue-800">
-                    Selected hours will apply to all {recurrenceCount} dates in the series.
-                    <span className="block text-gray-500 text-[10px] mt-1">We check availability for every single date.</span>
-                  </p>
-                </div>
-              )}
+                    const newRange = [];
+                    for (let h = start; h < end; h++) newRange.push(h);
+                    setSelectedHours(newRange);
+                  }}
+                >
+                  <option value="" disabled>Select</option>
+                  {hostOpenHours.map(h => (
+                    <option key={h} value={h} disabled={isSlotBooked(selectedDate, h)}>
+                      {h.toString().padStart(2, '0')}:00
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">End Time</label>
+                <select
+                  className="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all"
+                  value={selectedHours.length > 0 ? Math.max(...selectedHours) + 1 : ''}
+                  onChange={(e) => {
+                    const end = parseInt(e.target.value);
+                    const currentStart = selectedHours.length > 0 ? Math.min(...selectedHours) : end - 1;
+                    const start = Math.min(currentStart, end - 1);
+
+                    const newRange = [];
+                    for (let h = start; h < end; h++) newRange.push(h);
+                    setSelectedHours(newRange);
+                  }}
+                >
+                  <option value="" disabled>Select</option>
+                  {hostOpenHours.map(h => (
+                    <option key={h} value={h + 1}>
+                      {(h + 1).toString().padStart(2, '0')}:00
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           )}
-
-          {/* Daily Selection */}
-          {!isHourly && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Duration (Nights)</label>
-              <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden">
-                <button type="button" onClick={() => setSelectedDays(Math.max(1, selectedDays - 1))} aria-label="Decrease nights" title="Decrease nights" className="px-4 py-3 bg-gray-50 hover:bg-gray-100 border-r border-gray-300">-</button>
-                <input type="number" value={selectedDays} readOnly aria-label="Number of nights" title="Number of nights" className="w-full text-center p-3 outline-none bg-white" />
-                <button type="button" onClick={() => setSelectedDays(selectedDays + 1)} aria-label="Increase nights" title="Increase nights" className="px-4 py-3 bg-gray-50 hover:bg-gray-100 border-l border-gray-300">+</button>
-              </div>
+          {isRecurring && selectedHours.length > 0 && (
+            <div className="mt-2 bg-blue-50 border border-blue-100 p-2 rounded flex items-start gap-2">
+              <Info size={14} className="text-blue-600 shrink-0 mt-0.5" />
+              <p className="text-xs text-blue-800">
+                Selected hours will apply to all {recurrenceCount} dates in the series.
+                <span className="block text-gray-500 text-[10px] mt-1">We check availability for every single date.</span>
+              </p>
             </div>
           )}
         </div>
 
-        {/* Total & Breakdown */}
-        <div className="space-y-4">
-          <div className="border-t border-gray-100 pt-4 space-y-2">
-            <div className="flex justify-between text-sm text-gray-600">
-              <span>Subtotal {isRecurring && `(${recurrenceCount} bookings)`}</span>
-              <span>{formatCurrency(fees.subtotal)}</span>
+
+        {/* Daily Selection */}
+        {!isHourly && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Duration (Nights)</label>
+            <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden">
+              <button type="button" onClick={() => setSelectedDays(Math.max(1, selectedDays - 1))} aria-label="Decrease nights" title="Decrease nights" className="px-4 py-3 bg-gray-50 hover:bg-gray-100 border-r border-gray-300">-</button>
+              <input type="number" value={selectedDays} readOnly aria-label="Number of nights" title="Number of nights" className="w-full text-center p-3 outline-none bg-white" />
+              <button type="button" onClick={() => setSelectedDays(selectedDays + 1)} aria-label="Increase nights" title="Increase nights" className="px-4 py-3 bg-gray-50 hover:bg-gray-100 border-l border-gray-300">+</button>
             </div>
+          </div>
+        )}
+      </div>
+
+      {/* Total & Breakdown */}
+      <div className="space-y-4">
+        <div className="border-t border-gray-100 pt-4 space-y-2">
+          <div className="flex justify-between text-sm text-gray-600">
+            <span>Subtotal {isRecurring && `(${recurrenceCount} bookings)`}</span>
+            <span>{formatCurrency(fees.subtotal)}</span>
+          </div>
+          <div className="flex justify-between text-sm text-gray-600">
+            <span>Service Fee (10%)</span>
+            <span>{formatCurrency(fees.serviceFee)}</span>
+          </div>
+          {fees.cautionFee > 0 && (
             <div className="flex justify-between text-sm text-gray-600">
-              <span>Service Fee (10%)</span>
-              <span>{formatCurrency(fees.serviceFee)}</span>
-            </div>
-            {fees.cautionFee > 0 && (
-              <div className="flex justify-between text-sm text-gray-600">
-                <span className="flex items-center gap-1">
-                  Caution Fee
-                  <span title="Refundable Deposit">
-                    <Info size={12} className="text-gray-400" />
-                  </span>
+              <span className="flex items-center gap-1">
+                Caution Fee
+                <span title="Refundable Deposit">
+                  <Info size={12} className="text-gray-400" />
                 </span>
-                <span>{formatCurrency(fees.cautionFee)}</span>
-              </div>
-            )}
-          </div>
-
-          <div className="flex justify-between items-center text-lg font-bold text-gray-900 border-t border-gray-200 pt-4">
-            <span>Total</span>
-            <div className="text-right">
-              <div>{formatCurrency(fees.total)}</div>
+              </span>
+              <span>{formatCurrency(fees.cautionFee)}</span>
             </div>
-          </div>
-
-          {user && !user.kycVerified && listing.requiresIdentityVerification && (
-            <div className="flex items-start gap-2 bg-yellow-50 p-3 rounded-lg text-xs text-yellow-800">
-              <AlertCircle size={14} className="mt-0.5 shrink-0" />
-              <span>One-time verification required to book.</span>
-            </div>
-          )}
-
-          {/* Smart Booking Button */}
-          <Button
-            onClick={handleBookClick}
-            disabled={isHost || (isHourly && hostOpenHours.length === 0) || isBookingLoading || bookingSeries.some(s => s.status !== 'AVAILABLE')}
-            variant="primary"
-            size="lg"
-            className="w-full shadow-lg"
-            isLoading={isBookingLoading}
-          >
-            {!isBookingLoading && (
-              isHost ? 'You host this space' :
-                bookingSeries.some(s => s.status !== 'AVAILABLE') ? 'Dates Unavailable' :
-                  (user ?
-                    (listing.requiresIdentityVerification && !user.kycVerified ? 'Verify & Book' : (isRecurring ? `Book Series` : 'Book Now'))
-                    : 'Sign in to Book'
-                  )
-            )}
-          </Button>
-
-          {/* Save for Later Button */}
-          {user && (
-            <Button
-              onClick={handleSaveToReserveList}
-              disabled={(isHourly && hostOpenHours.length === 0)}
-              variant={isSavedForLater ? "outline" : "outline"}
-              className={`w-full ${isSavedForLater
-                ? 'bg-brand-50 text-brand-700 border-brand-200'
-                : 'border-brand-600 text-brand-600 hover:bg-brand-50'
-                }`}
-              leftIcon={<Heart size={18} className={isSavedForLater ? 'fill-current' : ''} />}
-            >
-              {isSavedForLater ? 'Saved to Reserve List' : 'Save for Later'}
-            </Button>
-          )}
-
-          {!user && (
-            <p className="text-center text-xs text-gray-500">You won't be charged yet</p>
           )}
         </div>
+
+        <div className="flex justify-between items-center text-lg font-bold text-gray-900 border-t border-gray-200 pt-4">
+          <span>Total</span>
+          <div className="text-right">
+            <div>{formatCurrency(fees.total)}</div>
+          </div>
+        </div>
+
+        {user && !user.kycVerified && listing.requiresIdentityVerification && (
+          <div className="flex items-start gap-2 bg-yellow-50 p-3 rounded-lg text-xs text-yellow-800">
+            <AlertCircle size={14} className="mt-0.5 shrink-0" />
+            <span>One-time verification required to book.</span>
+          </div>
+        )}
+
+        {/* Smart Booking Button */}
+        <Button
+          onClick={handleBookClick}
+          disabled={isHost || (isHourly && hostOpenHours.length === 0) || isBookingLoading || bookingSeries.some(s => s.status !== 'AVAILABLE')}
+          variant="primary"
+          size="lg"
+          className="w-full shadow-lg"
+          isLoading={isBookingLoading}
+        >
+          {!isBookingLoading && (
+            isHost ? 'You host this space' :
+              bookingSeries.some(s => s.status !== 'AVAILABLE') ? 'Dates Unavailable' :
+                (user ?
+                  (listing.requiresIdentityVerification && !user.kycVerified ? 'Verify & Book' : (isRecurring ? `Book Series` : 'Book Now'))
+                  : 'Sign in to Book'
+                )
+          )}
+        </Button>
+
+        {/* Save for Later Button */}
+        {user && (
+          <Button
+            onClick={handleSaveToReserveList}
+            disabled={(isHourly && hostOpenHours.length === 0)}
+            variant={isSavedForLater ? "outline" : "outline"}
+            className={`w-full ${isSavedForLater
+              ? 'bg-brand-50 text-brand-700 border-brand-200'
+              : 'border-brand-600 text-brand-600 hover:bg-brand-50'
+              }`}
+            leftIcon={<Heart size={18} className={isSavedForLater ? 'fill-current' : ''} />}
+          >
+            {isSavedForLater ? 'Saved to Reserve List' : 'Save for Later'}
+          </Button>
+        )}
+
+        {!user && (
+          <p className="text-center text-xs text-gray-500">You won't be charged yet</p>
+        )}
       </div>
     </div>
+
   );
 };

@@ -1,21 +1,23 @@
-import React from 'react';
-import { Listing, User, Booking } from '@fiilar/types';
+import React, { useState, useEffect } from 'react';
+import { cn } from '@fiilar/utils';
+import { Listing, User, Booking, BookingType } from '@fiilar/types';
 import { ArrowLeft, Share, Heart } from 'lucide-react';
+import { PriceBreakdownModal } from '../components/ListingDetails/PriceBreakdownModal';
+import { SectionNav } from '../components/ListingDetails/SectionNav';
 import ShareModal from '../components/ShareModal';
 import ImmersiveGallery from '../components/ImmersiveGallery';
+import { formatCurrency } from '../../../utils/currency';
 
 // New Component Imports
 import { ListingHeader } from '../components/ListingDetails/ListingHeader';
 
 import { ListingImages } from '../components/ListingDetails/ListingImages';
-import { HostInfo } from '../components/ListingDetails/HostInfo';
 import { ListingDescription } from '../components/ListingDetails/ListingDescription';
 import { ListingAmenities } from '../components/ListingDetails/ListingAmenities';
 import { ListingReviews } from '../components/ListingDetails/ListingReviews';
 import { ListingPolicies } from '../components/ListingDetails/ListingPolicies';
-import { BookingWidget } from '../components/ListingDetails/BookingWidget';
-import { MobileBookingBar } from '../components/ListingDetails/MobileBookingBar';
-import { MobileBookingModal } from '../components/ListingDetails/MobileBookingModal';
+import { BookingModal } from '../components/ListingDetails/BookingModal';
+import { HostSidebarCard } from '../components/ListingDetails/HostSidebarCard';
 import { ReviewsModal } from '../components/ListingDetails/ReviewsModal';
 import { SuccessModal } from '../components/ListingDetails/SuccessModal';
 import { VerificationModal } from '../components/ListingDetails/VerificationModal';
@@ -34,7 +36,7 @@ interface ListingDetailsProps {
   onRefreshUser?: () => void;
 }
 
-const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, onBook, onVerify, onLogin, onRefreshUser }) => {
+const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBook, onVerify, onLogin, onRefreshUser }) => {
   const {
     host,
     paymentMethod, setPaymentMethod,
@@ -82,39 +84,30 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
     handleShare
   } = useListingDetails({ listing, user, onBook, onVerify, onLogin, onRefreshUser });
 
+  const [showPriceBreakdownModal, setShowPriceBreakdownModal] = useState(false);
+
+  const [showTopNav, setShowTopNav] = useState(true);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      // Hide top nav when scrolled past 60% of viewport (before sheet hits top)
+      const threshold = window.innerHeight * 0.6;
+      setShowTopNav(window.scrollY < threshold);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   const isHost = user?.id === listing.hostId;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-4 sm:py-8 pb-24 lg:pb-8 animate-in slide-in-from-right duration-300">
+    <div className="min-h-screen bg-white">
       <ShareModal
         isOpen={isShareModalOpen}
         onClose={() => setIsShareModalOpen(false)}
         listing={listing}
       />
-
-      <div className="flex items-center justify-between mb-4">
-        <button
-          onClick={() => onBack()}
-          className="flex items-center text-gray-500 hover:text-gray-900 font-medium px-3 py-2 rounded-full hover:bg-gray-100 -ml-3 transition-colors"
-        >
-          <ArrowLeft size={20} className="mr-2" /> Back to browse
-        </button>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleShare}
-            aria-label="Share listing"
-            className="p-2 hover:bg-gray-100 rounded-full text-gray-600 transition-colors flex items-center gap-2"
-          >
-            <Share size={18} /> <span className="text-sm underline hidden sm:inline">Share</span>
-          </button>
-          <button
-            onClick={handleToggleFavorite}
-            className={`p-2 hover:bg-gray-100 rounded-full transition-colors flex items-center gap-2 ${isFavorite ? 'text-red-500' : 'text-gray-600'}`}
-          >
-            <Heart size={18} className={isFavorite ? 'fill-current' : ''} /> <span className="text-sm underline hidden sm:inline">{isFavorite ? 'Saved' : 'Save'}</span>
-          </button>
-        </div>
-      </div>
 
       <ImmersiveGallery
         images={listing.images}
@@ -123,145 +116,213 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
         onClose={() => setIsGalleryOpen(false)}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-        <div className="lg:col-span-2 space-y-6 lg:space-y-8">
-          <ListingImages
-            listing={listing}
-            openGallery={openGallery}
-            onBack={onBack}
-            isFavorite={isFavorite}
-            onToggleFavorite={handleToggleFavorite}
-          />
-
-          <div>
-            <ListingHeader listing={listing} />
-
-            <HostInfo listing={listing} host={host} handleContactHost={handleContactHost} />
-
-            <ListingDescription listing={listing} />
-
-            <ListingAmenities listing={listing} />
-
-            <ListingReviews listing={listing} onShowAllReviews={() => setShowReviewsModal(true)} />
-
-            <ListingPolicies listing={listing} />
-          </div>
-        </div>
-
-        <div className="lg:col-span-1">
-          <BookingWidget
-            listing={listing}
-            user={user}
-            isHost={isHost}
-            guestCount={guestCount}
-            setGuestCount={setGuestCount}
-            selectedDate={selectedDate}
-            setSelectedDate={setSelectedDate}
-            isCalendarOpen={isCalendarOpen}
-            setIsCalendarOpen={setIsCalendarOpen}
-            selectedAddOns={selectedAddOns}
-            toggleAddOn={toggleAddOn}
-            isRecurring={isRecurring}
-            setIsRecurring={setIsRecurring}
-            recurrenceFreq={recurrenceFreq}
-            setRecurrenceFreq={setRecurrenceFreq}
-            recurrenceCount={recurrenceCount}
-            setRecurrenceCount={setRecurrenceCount}
-            bookingSeries={bookingSeries}
-            isHourly={isHourly}
-            selectedHours={selectedHours}
-            handleHourToggle={handleHourToggle}
-            hostOpenHours={hostOpenHours}
-            isSlotBooked={isSlotBooked}
-            selectedDays={selectedDays}
-            setSelectedDays={setSelectedDays}
-            fees={fees}
-            isBookingLoading={isBookingLoading}
-            handleBookClick={handleBookClick}
-            isSavedForLater={isSavedForLater}
-            handleSaveToReserveList={handleSaveToReserveList}
-            currentMonth={currentMonth}
-            setCurrentMonth={setCurrentMonth}
-            checkDateAvailability={checkDateAvailability}
-            setSelectedHours={setSelectedHours}
-          />
+      {/* Top Navigation (Floating) */}
+      <div className={cn(
+        "fixed top-0 left-0 w-full z-50 p-4 sm:p-6 flex justify-between items-start pointer-events-none transition-opacity duration-300",
+        showTopNav ? "opacity-100" : "opacity-0"
+      )}>
+        <button
+          onClick={() => window.history.back()}
+          className="pointer-events-auto p-2.5 bg-white/90 backdrop-blur-md rounded-full shadow-sm hover:bg-white transition-all hover:scale-105 border border-gray-200/50"
+          aria-label="Go back"
+        >
+          <ArrowLeft size={20} className="text-gray-700" />
+        </button>
+        <div className="flex items-center gap-3 pointer-events-auto">
+          <button
+            onClick={handleShare}
+            className="p-2.5 bg-white/90 backdrop-blur-md rounded-full shadow-sm hover:bg-white transition-all hover:scale-105 border border-gray-200/50"
+            aria-label="Share"
+          >
+            <Share size={20} className="text-gray-700" />
+          </button>
+          <button
+            onClick={handleToggleFavorite}
+            className="p-2.5 bg-white/90 backdrop-blur-md rounded-full shadow-sm hover:bg-white transition-all hover:scale-105 border border-gray-200/50"
+            aria-label="Save"
+          >
+            <Heart size={20} className={isFavorite ? "fill-red-500 text-red-500" : "text-gray-700"} />
+          </button>
         </div>
       </div>
 
-      <MobileBookingBar
-        listing={listing}
-        isHost={isHost}
-        onReserve={() => setShowMobileBookingModal(true)}
-      />
+      {/* Floating Action Bar (Desktop - Minimal) */}
+      <div className="hidden lg:flex fixed bottom-8 left-1/2 -translate-x-1/2 z-40 bg-white/80 backdrop-blur-md border border-gray-200/50 p-2 pl-6 rounded-full shadow-2xl items-center gap-6 animate-in slide-in-from-bottom-4 duration-700">
+        <div className="flex flex-col items-start">
+          <p className="text-lg font-bold text-gray-900">
+            {formatCurrency(listing.price)}
+            <span className="text-sm font-normal text-gray-500">/{listing.priceUnit === BookingType.HOURLY ? 'hr' : 'day'}</span>
+          </p>
+          <button
+            onClick={() => setShowPriceBreakdownModal(true)}
+            className="text-xs text-gray-500 underline hover:text-gray-900 transition-colors mt-0.5"
+          >
+            Price breakdown
+          </button>
+        </div>
+        <button
+          onClick={() => setShowMobileBookingModal(true)}
+          className="bg-gray-900 hover:bg-black text-white px-8 py-3 rounded-full font-semibold shadow-xl transition-all hover:scale-105"
+        >
+          Book Now
+        </button>
+      </div>
 
-      <MobileBookingModal
-        isOpen={showMobileBookingModal}
-        onClose={() => setShowMobileBookingModal(false)}
-        listing={listing}
-        user={user}
-        isHost={isHost}
-        guestCount={guestCount}
-        setGuestCount={setGuestCount}
-        selectedDate={selectedDate}
-        setSelectedDate={setSelectedDate}
-        isCalendarOpen={isCalendarOpen}
-        setIsCalendarOpen={setIsCalendarOpen}
-        selectedAddOns={selectedAddOns}
-        toggleAddOn={toggleAddOn}
-        isRecurring={isRecurring}
-        setIsRecurring={setIsRecurring}
-        recurrenceFreq={recurrenceFreq}
-        setRecurrenceFreq={setRecurrenceFreq}
-        recurrenceCount={recurrenceCount}
-        setRecurrenceCount={setRecurrenceCount}
-        bookingSeries={bookingSeries}
-        isHourly={isHourly}
-        selectedHours={selectedHours}
-        handleHourToggle={handleHourToggle}
-        hostOpenHours={hostOpenHours}
-        isSlotBooked={isSlotBooked}
-        selectedDays={selectedDays}
-        setSelectedDays={setSelectedDays}
-        fees={fees}
-        isBookingLoading={isBookingLoading}
-        handleBookClick={handleBookClick}
-        currentMonth={currentMonth}
-        setCurrentMonth={setCurrentMonth}
-        checkDateAvailability={checkDateAvailability}
-        setSelectedHours={setSelectedHours}
-      />
+      {/* Hero Images (Parallax Fixed Background) */}
+      <div className="fixed top-0 left-0 w-full h-[85vh] z-0">
+        <ListingImages
+          listing={listing}
+          openGallery={openGallery}
+          onBack={() => { }}
+          isFavorite={isFavorite}
+          onToggleFavorite={handleToggleFavorite}
+        />
+        {/* Gradient Overlay for text readability if needed, though content covers it */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-transparent pointer-events-none" />
+      </div>
 
-      <ReviewsModal
-        isOpen={showReviewsModal}
-        onClose={() => setShowReviewsModal(false)}
-        listing={listing}
-      />
+      {/* Main Content Grid (Sliding Sheet) */}
+      <div className="relative z-10 bg-white mt-[75vh] rounded-t-[40px] shadow-[0_-10px_40px_rgba(0,0,0,0.1)] min-h-screen pb-32">
+        <SectionNav />
+        <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-8 py-12">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start">
 
-      <SuccessModal
-        isOpen={showSuccessModal}
-        confirmedBookings={confirmedBookings}
-      />
+            {/* Left Column: The Story (66%) */}
+            <div className="lg:col-span-8 space-y-12">
 
-      <VerificationModal
-        isOpen={showVerificationModal}
-        onClose={() => setShowVerificationModal(false)}
-        isVerifying={isVerifying}
-        handleVerificationComplete={handleVerificationComplete}
-      />
+              {/* Title & Header moved here */}
+              <div id="overview">
+                <ListingHeader listing={listing} />
+              </div>
 
-      <ConfirmModal
-        isOpen={showConfirmModal}
-        onClose={() => setShowConfirmModal(false)}
-        listing={listing}
-        pendingBooking={pendingBooking}
-        paymentMethod={paymentMethod}
-        setPaymentMethod={setPaymentMethod}
-        walletBalance={walletBalance}
-        agreedToTerms={agreedToTerms}
-        setAgreedToTerms={setAgreedToTerms}
-        isBookingLoading={isBookingLoading}
-        handleConfirmBooking={handleConfirmBooking}
-      />
+              <div className="border-b border-gray-100 pb-10">
+                <ListingDescription listing={listing} />
+              </div>
+
+              <div id="amenities" className="border-b border-gray-100 pb-10">
+                <ListingAmenities listing={listing} />
+              </div>
+
+              <div id="reviews" className="border-b border-gray-100 pb-10">
+                <ListingReviews listing={listing} onShowAllReviews={() => setShowReviewsModal(true)} />
+              </div>
+
+              <div id="policies">
+                <ListingPolicies listing={listing} />
+              </div>
+            </div>
+
+            {/* Right Column: Context Sidebar (33%) */}
+            <div id="location" className="hidden lg:block lg:col-span-4 sticky top-24 space-y-8 pt-4">
+              <HostSidebarCard listing={listing} host={host} handleContactHost={handleContactHost} />
+            </div>
+          </div>
+        </div>
+
+        {/* Floating Action Bar (Mobile Only) */}
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 lg:hidden z-40 flex justify-between items-center shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+          <div className="flex flex-col">
+            <div className="flex items-baseline gap-1">
+              <span className="text-xl font-bold text-gray-900">{formatCurrency(listing.price)}</span>
+              <span className="text-sm text-gray-500">/{listing.priceUnit === BookingType.HOURLY ? 'hr' : 'day'}</span>
+            </div>
+            <div
+              onClick={() => setShowPriceBreakdownModal(true)}
+              className="text-xs text-gray-500 underline cursor-pointer hover:text-gray-900 transition-colors"
+            >
+              Show price breakdown
+            </div>
+          </div>
+          <button
+            onClick={() => setShowMobileBookingModal(true)}
+            className="bg-brand-600 hover:bg-brand-700 text-white px-8 py-3 rounded-xl font-bold text-lg shadow-lg shadow-brand-500/30 transition-all transform hover:scale-105 active:scale-95"
+          >
+            Book Now
+          </button>
+        </div>
+
+        <PriceBreakdownModal
+          isOpen={showPriceBreakdownModal}
+          onClose={() => setShowPriceBreakdownModal(false)}
+          listing={listing}
+          fees={fees}
+          isHourly={isHourly}
+          duration={isHourly ? (selectedHours.length || 1) : selectedDays}
+          guestCount={guestCount}
+        />
+
+        {/* The Comprehensive Booking Modal (Replaces Widget) */}
+        <BookingModal
+          isOpen={showMobileBookingModal} // Reusing this state for the main modal
+          onClose={() => setShowMobileBookingModal(false)}
+          listing={listing}
+          user={user}
+          isHost={isHost}
+          guestCount={guestCount}
+          setGuestCount={setGuestCount}
+          selectedDate={selectedDate}
+          setSelectedDate={setSelectedDate}
+          isCalendarOpen={isCalendarOpen}
+          setIsCalendarOpen={setIsCalendarOpen}
+          selectedAddOns={selectedAddOns}
+          toggleAddOn={toggleAddOn}
+          isRecurring={isRecurring}
+          setIsRecurring={setIsRecurring}
+          recurrenceFreq={recurrenceFreq}
+          setRecurrenceFreq={setRecurrenceFreq}
+          recurrenceCount={recurrenceCount}
+          setRecurrenceCount={setRecurrenceCount}
+          bookingSeries={bookingSeries}
+          isHourly={isHourly}
+          selectedHours={selectedHours}
+          handleHourToggle={handleHourToggle}
+          hostOpenHours={hostOpenHours}
+          isSlotBooked={isSlotBooked}
+          selectedDays={selectedDays}
+          setSelectedDays={setSelectedDays}
+          fees={fees}
+          isBookingLoading={isBookingLoading}
+          handleBookClick={handleBookClick}
+          isSavedForLater={isSavedForLater}
+          handleSaveToReserveList={handleSaveToReserveList}
+          currentMonth={currentMonth}
+          setCurrentMonth={setCurrentMonth}
+          checkDateAvailability={checkDateAvailability}
+          setSelectedHours={setSelectedHours}
+        />
+
+        <ReviewsModal
+          isOpen={showReviewsModal}
+          onClose={() => setShowReviewsModal(false)}
+          listing={listing}
+        />
+
+        <SuccessModal
+          isOpen={showSuccessModal}
+          confirmedBookings={confirmedBookings}
+        />
+
+        <VerificationModal
+          isOpen={showVerificationModal}
+          onClose={() => setShowVerificationModal(false)}
+          isVerifying={isVerifying}
+          handleVerificationComplete={handleVerificationComplete}
+        />
+
+        <ConfirmModal
+          isOpen={showConfirmModal}
+          onClose={() => setShowConfirmModal(false)}
+          listing={listing}
+          pendingBooking={pendingBooking}
+          paymentMethod={paymentMethod}
+          setPaymentMethod={setPaymentMethod}
+          walletBalance={walletBalance}
+          agreedToTerms={agreedToTerms}
+          setAgreedToTerms={setAgreedToTerms}
+          isBookingLoading={isBookingLoading}
+          handleConfirmBooking={handleConfirmBooking}
+        />
+      </div>
     </div>
   );
 };

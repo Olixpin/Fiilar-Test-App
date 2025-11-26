@@ -1,66 +1,65 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Listing } from '@fiilar/types';
-import { Wifi, Wind, Utensils, Car, Dumbbell, Waves, Briefcase, Tv, Shirt, Scissors, Zap, Coffee, Music, Video, Shield, Sun, Star, CheckCircle } from 'lucide-react';
+import { Wifi, Wind, Utensils, Car, Dumbbell, Waves, Briefcase, Tv, Shirt, Scissors, Zap, Coffee, Music, Video, Shield, Sun, Star, CheckCircle, Plus } from 'lucide-react';
 
 interface ListingAmenitiesProps {
   listing: Listing;
 }
 
 export const ListingAmenities: React.FC<ListingAmenitiesProps> = ({ listing }) => {
-  const getIcon = (name: string) => {
+  const [showAll, setShowAll] = useState(false);
+
+  const getIcon = (name: string, size: number = 22) => {
     switch (name) {
-      case 'Wifi': return <Wifi size={20} />;
-      case 'Wind': return <Wind size={20} />;
-      case 'Utensils': return <Utensils size={20} />;
-      case 'Car': return <Car size={20} />;
-      case 'Dumbbell': return <Dumbbell size={20} />;
-      case 'Waves': return <Waves size={20} />;
-      case 'Briefcase': return <Briefcase size={20} />;
-      case 'Tv': return <Tv size={20} />;
-      case 'Shirt': return <Shirt size={20} />;
-      case 'Scissors': return <Scissors size={20} />;
-      case 'Zap': return <Zap size={20} />;
-      case 'Coffee': return <Coffee size={20} />;
-      case 'Music': return <Music size={20} />;
-      case 'Video': return <Video size={20} />;
-      case 'Shield': return <Shield size={20} />;
-      case 'Sun': return <Sun size={20} />;
-      case 'Star': return <Star size={20} />;
-      default: return <CheckCircle size={20} />;
+      case 'Wifi': return <Wifi size={size} />;
+      case 'Wind': return <Wind size={size} />;
+      case 'Utensils': return <Utensils size={size} />;
+      case 'Car': return <Car size={size} />;
+      case 'Dumbbell': return <Dumbbell size={size} />;
+      case 'Waves': return <Waves size={size} />;
+      case 'Briefcase': return <Briefcase size={size} />;
+      case 'Tv': return <Tv size={size} />;
+      case 'Shirt': return <Shirt size={size} />;
+      case 'Scissors': return <Scissors size={size} />;
+      case 'Zap': return <Zap size={size} />;
+      case 'Coffee': return <Coffee size={size} />;
+      case 'Music': return <Music size={size} />;
+      case 'Video': return <Video size={size} />;
+      case 'Shield': return <Shield size={size} />;
+      case 'Sun': return <Sun size={size} />;
+      case 'Star': return <Star size={size} />;
+      default: return <CheckCircle size={size} />;
     }
   };
 
-  return (
-    <div className="mt-10 border-t border-gray-100 pt-10">
-      <h3 className="text-xl font-bold text-gray-900 mb-6">What this place offers</h3>
+  const displayedAmenities = showAll ? listing.amenities : listing.amenities?.slice(0, 6);
+  const remainingCount = (listing.amenities?.length || 0) - 6;
 
-      {/* Amenities */}
+  return (
+    <div className="py-8">
+      <h3 className="text-2xl font-bold text-gray-900 mb-8 font-display">What this place offers</h3>
+
       {listing.amenities && listing.amenities.length > 0 && (
-        <div className="mb-8">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {listing.amenities.map(amenity => (
-              <div key={amenity.name} className="flex items-center gap-4 p-4 rounded-2xl border border-gray-100 hover:border-gray-200 hover:shadow-sm transition-all bg-white">
-                <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-700 shrink-0">
-                  {getIcon(amenity.icon)}
+        <div className="space-y-6">
+          <div className="flex flex-wrap gap-3">
+            {displayedAmenities?.map(amenity => (
+              <div key={amenity.name} className="group inline-flex items-center gap-3 px-4 py-3 rounded-xl border border-gray-100 bg-white hover:border-gray-200 hover:shadow-sm hover:scale-[1.02] transition-all duration-300 cursor-default w-auto">
+                <div className="w-8 h-8 rounded-lg bg-gray-50 group-hover:bg-brand-50 flex items-center justify-center text-gray-500 group-hover:text-brand-600 transition-colors shrink-0">
+                  {getIcon(amenity.icon, 18)}
                 </div>
-                <span className="font-medium text-gray-700">{amenity.name}</span>
+                <span className="font-medium text-gray-700 group-hover:text-gray-900 transition-colors text-sm">{amenity.name}</span>
               </div>
             ))}
           </div>
-        </div>
-      )}
 
-      {/* Tags */}
-      {listing.tags && listing.tags.length > 0 && (
-        <div>
-          <h4 className="text-sm font-bold text-gray-900 mb-4 uppercase tracking-wider">Tags</h4>
-          <div className="flex flex-wrap gap-2">
-            {listing.tags.map(tag => (
-              <span key={tag} className="px-4 py-2 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-full text-sm font-medium transition-colors border border-gray-200">
-                #{tag}
-              </span>
-            ))}
-          </div>
+          {!showAll && remainingCount > 0 && (
+            <button
+              onClick={() => setShowAll(true)}
+              className="mt-6 px-8 py-3 rounded-xl border border-gray-900 text-gray-900 font-semibold hover:bg-gray-50 transition-all active:scale-95"
+            >
+              Show all {listing.amenities.length} amenities
+            </button>
+          )}
         </div>
       )}
     </div>

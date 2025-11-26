@@ -34,6 +34,7 @@ export const HostInfo: React.FC<HostInfoProps> = ({ listing, host, handleContact
             <p className="font-medium text-gray-900">{host?.name || 'Unknown Host'}</p>
             {host?.kycVerified && <CheckCircle size={14} className="text-blue-500 fill-blue-50" />}
           </div>
+          <p className="text-sm text-gray-500 mb-1">Responds within 1 hour</p>
           <button
             onClick={handleContactHost}
             className="text-brand-600 text-sm font-semibold hover:underline mt-1 flex items-center gap-1"

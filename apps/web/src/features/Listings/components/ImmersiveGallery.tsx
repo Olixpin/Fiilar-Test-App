@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { X, ChevronLeft, ChevronRight, Maximize2, Minimize2 } from 'lucide-react';
 
 interface ImmersiveGalleryProps {
@@ -16,30 +16,39 @@ const ImmersiveGallery: React.FC<ImmersiveGalleryProps> = ({
 }) => {
     const [currentIndex, setCurrentIndex] = useState(initialIndex);
     const [isZoomed, setIsZoomed] = useState(false);
-    const [dragStart, setDragStart] = useState<{ x: number; time: number } | null>(null);
-    const [dragOffset, setDragOffset] = useState(0);
-    const [isDragging, setIsDragging] = useState(false);
-    const [velocity, setVelocity] = useState(0);
-    const [isTransitioning, setIsTransitioning] = useState(false);
+    const [isDragging, setIsDragging] = useState(false); // Only for cursor style
+
+    // Refs for physics - No re-renders during drag!
+    const dragOffsetRef = useRef(0);
+    const dragStartRef = useRef<{ x: number; time: number } | null>(null);
+    const animationFrameRef = useRef<number | null>(null);
+
+    // DOM Refs
     const containerRef = useRef<HTMLDivElement>(null);
-    const animationRef = useRef<number | null>(null);
     const prevImageRef = useRef<HTMLDivElement>(null);
     const currImageRef = useRef<HTMLDivElement>(null);
     const nextImageRef = useRef<HTMLDivElement>(null);
 
-    useLayoutEffect(() => {
+    // Helper to update DOM directly
+    const updateDOM = useCallback((offset: number) => {
+        const GAP = 40; // Space between slides
+
         if (prevImageRef.current) {
-            prevImageRef.current.style.transform = `translateX(calc(-100% + ${dragOffset}px))`;
-            prevImageRef.current.style.opacity = Math.abs(dragOffset) > 50 ? '0.5' : '0';
+            prevImageRef.current.style.transform = `translateX(calc(-100% - ${GAP}px + ${offset}px))`;
         }
         if (currImageRef.current) {
-            currImageRef.current.style.transform = `translateX(${dragOffset}px)`;
+            currImageRef.current.style.transform = `translateX(${offset}px)`;
         }
         if (nextImageRef.current) {
-            nextImageRef.current.style.transform = `translateX(calc(100% + ${dragOffset}px))`;
-            nextImageRef.current.style.opacity = Math.abs(dragOffset) > 50 ? '0.5' : '0';
+            nextImageRef.current.style.transform = `translateX(calc(100% + ${GAP}px + ${offset}px))`;
         }
-    }, [dragOffset]);
+    }, []);
+
+    // Reset on index change
+    useEffect(() => {
+        dragOffsetRef.current = 0;
+        updateDOM(0);
+    }, [currentIndex, updateDOM]);
 
     useEffect(() => {
         setCurrentIndex(initialIndex);
@@ -57,6 +66,50 @@ const ImmersiveGallery: React.FC<ImmersiveGalleryProps> = ({
         };
     }, [isOpen]);
 
+    // Physics Animation Loop
+    const animateTo = useCallback((target: number, onComplete?: () => void) => {
+        const start = dragOffsetRef.current;
+        const distance = target - start;
+        const startTime = Date.now();
+        const duration = 300; // ms
+
+        const loop = () => {
+            const elapsed = Date.now() - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            // Cubic ease out
+            const ease = 1 - Math.pow(1 - progress, 3);
+
+            dragOffsetRef.current = start + (distance * ease);
+            updateDOM(dragOffsetRef.current);
+
+            if (progress < 1) {
+                animationFrameRef.current = requestAnimationFrame(loop);
+            } else {
+                if (onComplete) onComplete();
+            }
+        };
+        if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+        loop();
+    }, [updateDOM]);
+
+    const nextImage = useCallback(() => {
+        const width = containerRef.current?.offsetWidth || window.innerWidth;
+        const GAP = 40;
+        animateTo(-(width + GAP), () => {
+            setCurrentIndex((prev) => (prev + 1) % images.length);
+            setIsZoomed(false);
+        });
+    }, [images.length, animateTo]);
+
+    const prevImage = useCallback(() => {
+        const width = containerRef.current?.offsetWidth || window.innerWidth;
+        const GAP = 40;
+        animateTo(width + GAP, () => {
+            setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
+            setIsZoomed(false);
+        });
+    }, [images.length, animateTo]);
+
     // Keyboard navigation
     useEffect(() => {
         if (!isOpen) return;
@@ -68,101 +121,98 @@ const ImmersiveGallery: React.FC<ImmersiveGalleryProps> = ({
             }
             if (e.key === 'ArrowRight') nextImage();
             if (e.key === 'ArrowLeft') prevImage();
-            if (e.key === 'z' || e.key === 'Z') toggleZoom();
+            if (e.key === 'z' || e.key === 'Z') setIsZoomed(prev => !prev);
         };
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [isOpen, currentIndex, isZoomed]);
+    }, [isOpen, nextImage, prevImage, onClose]);
 
-    // Momentum animation
-    useEffect(() => {
-        if (!isDragging && Math.abs(velocity) > 0.1) {
-            animationRef.current = requestAnimationFrame(() => {
-                const newOffset = dragOffset + velocity;
-                setDragOffset(newOffset);
-                setVelocity(velocity * 0.95); // Friction
+    // Snap Logic
+    const snapToNearest = useCallback((velocity = 0) => {
+        const width = containerRef.current?.offsetWidth || window.innerWidth;
+        const offset = dragOffsetRef.current;
+        const threshold = width * 0.2; // 20% threshold
+        const GAP = 40;
 
-                // Check if we should switch images
-                if (Math.abs(newOffset) > window.innerWidth * 0.3) {
-                    if (newOffset > 0) {
-                        prevImage();
-                    } else {
-                        nextImage();
-                    }
-                    setVelocity(0);
-                    setDragOffset(0);
-                }
+        // Determine direction based on offset and velocity
+        if (offset < -threshold || (offset < 0 && velocity < -10)) {
+            // Go Next
+            animateTo(-(width + GAP), () => {
+                nextImage();
             });
+        } else if (offset > threshold || (offset > 0 && velocity > 10)) {
+            // Go Prev
+            animateTo(width + GAP, () => {
+                prevImage();
+            });
+        } else {
+            // Snap Back
+            animateTo(0);
         }
+    }, [animateTo, nextImage, prevImage]);
 
-        return () => {
-            if (animationRef.current) {
-                cancelAnimationFrame(animationRef.current);
-            }
+    // Trackpad / Wheel Support
+    useEffect(() => {
+        const container = containerRef.current;
+        if (!container || !isOpen) return;
+
+        let wheelTimeout: NodeJS.Timeout;
+
+        const handleWheel = (e: WheelEvent) => {
+            if (isZoomed) return;
+            e.preventDefault();
+
+            // Accumulate offset (scrolling right/down moves content left)
+            // Use deltaX for horizontal, fallback to deltaY if shiftKey is pressed or for single-axis mice
+            const delta = e.deltaX !== 0 ? e.deltaX : e.deltaY;
+
+            dragOffsetRef.current -= delta;
+            updateDOM(dragOffsetRef.current);
+
+            // Debounce snap
+            clearTimeout(wheelTimeout);
+            wheelTimeout = setTimeout(() => {
+                snapToNearest(0);
+            }, 60); // Short pause triggers snap
         };
-    }, [velocity, dragOffset, isDragging]);
 
-    const nextImage = () => {
-        if (isTransitioning) return;
-        setIsTransitioning(true);
-        setCurrentIndex((prev) => (prev + 1) % images.length);
-        setIsZoomed(false);
-        setDragOffset(0);
-        setVelocity(0);
-        setTimeout(() => setIsTransitioning(false), 400);
-    };
+        container.addEventListener('wheel', handleWheel, { passive: false });
+        return () => {
+            container.removeEventListener('wheel', handleWheel);
+            clearTimeout(wheelTimeout);
+        };
+    }, [isOpen, isZoomed, updateDOM, snapToNearest]);
 
-    const prevImage = () => {
-        if (isTransitioning) return;
-        setIsTransitioning(true);
-        setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
-        setIsZoomed(false);
-        setDragOffset(0);
-        setVelocity(0);
-        setTimeout(() => setIsTransitioning(false), 400);
-    };
-
-    const toggleZoom = () => {
-        setIsZoomed(!isZoomed);
-    };
-
-    // Enhanced drag handlers with velocity tracking
+    // Drag Handlers
     const handleDragStart = (clientX: number) => {
-        setDragStart({ x: clientX, time: Date.now() });
+        if (isZoomed) return;
+        if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+
+        dragStartRef.current = { x: clientX, time: Date.now() };
         setIsDragging(true);
-        setVelocity(0);
     };
 
     const handleDragMove = (clientX: number) => {
-        if (dragStart === null || isZoomed) return;
-        const offset = clientX - dragStart.x;
-        setDragOffset(offset);
+        if (!dragStartRef.current || isZoomed) return;
+
+        const delta = clientX - dragStartRef.current.x;
+        dragOffsetRef.current = delta;
+        updateDOM(delta);
     };
 
     const handleDragEnd = (clientX: number) => {
-        if (dragStart === null) return;
+        if (!dragStartRef.current) return;
 
-        const timeDelta = Date.now() - dragStart.time;
-        const distance = clientX - dragStart.x;
-        const calculatedVelocity = distance / timeDelta * 10; // Pixels per frame
-
-        // Immediate switch if dragged far enough
-        if (Math.abs(dragOffset) > window.innerWidth * 0.25) {
-            if (dragOffset > 0) {
-                prevImage();
-            } else {
-                nextImage();
-            }
-            setDragOffset(0);
-            setVelocity(0);
-        } else {
-            // Apply momentum
-            setVelocity(calculatedVelocity);
-        }
-
-        setDragStart(null);
         setIsDragging(false);
+        const startX = dragStartRef.current.x;
+        const timeDelta = Date.now() - dragStartRef.current.time;
+        dragStartRef.current = null;
+
+        const distance = clientX - startX;
+        const velocity = distance / timeDelta * 10; // Pixels per frame
+
+        snapToNearest(velocity);
     };
 
     // Mouse events
@@ -201,7 +251,7 @@ const ImmersiveGallery: React.FC<ImmersiveGalleryProps> = ({
 
     return (
         <div
-            className="fixed inset-0 z-10000 bg-black flex items-center justify-center"
+            className="fixed inset-0 z-10000 bg-black flex items-center justify-center touch-none"
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
@@ -213,7 +263,7 @@ const ImmersiveGallery: React.FC<ImmersiveGalleryProps> = ({
                 </div>
                 <div className="flex items-center gap-2 pointer-events-auto">
                     <button
-                        onClick={toggleZoom}
+                        onClick={() => setIsZoomed(!isZoomed)}
                         className="p-2 sm:p-2.5 text-white hover:bg-white/10 rounded-full transition-all duration-200 hover:scale-110 active:scale-95 backdrop-blur-sm bg-white/5"
                         title={isZoomed ? 'Zoom Out (Z)' : 'Zoom In (Z)'}
                     >
@@ -229,7 +279,7 @@ const ImmersiveGallery: React.FC<ImmersiveGalleryProps> = ({
                 </div>
             </div>
 
-            {/* Main Image Container with Continuous Scroll */}
+            {/* Main Image Container */}
             <div
                 ref={containerRef}
                 className={`relative w-full h-full flex items-center justify-center overflow-hidden select-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
@@ -241,7 +291,8 @@ const ImmersiveGallery: React.FC<ImmersiveGalleryProps> = ({
                 {/* Previous Image (left) */}
                 <div
                     ref={prevImageRef}
-                    className="absolute inset-0 flex items-center justify-center transition-opacity duration-300 pointer-events-none"
+                    className="absolute inset-0 flex items-center justify-center pointer-events-none"
+                    style={{ transform: 'translateX(calc(-100% - 40px))' }}
                 >
                     <img
                         src={images[getPrevIndex()]}
@@ -254,17 +305,16 @@ const ImmersiveGallery: React.FC<ImmersiveGalleryProps> = ({
                 {/* Current Image (center) */}
                 <div
                     ref={currImageRef}
-                    className={`absolute inset-0 flex items-center justify-center ${isDragging ? 'transition-none' : 'transition-transform duration-500 ease-in-out'}`}
+                    className="absolute inset-0 flex items-center justify-center"
                 >
                     <img
                         src={images[currentIndex]}
                         alt={`Image ${currentIndex + 1}`}
-                        className={`max-w-full max-h-full object-contain select-none transition-transform duration-500 ${isZoomed ? 'scale-150 cursor-move' : 'scale-100'
-                            }`}
+                        className={`max-w-full max-h-full object-contain select-none transition-transform duration-500 ${isZoomed ? 'scale-150 cursor-move' : 'scale-100'}`}
                         draggable={false}
                         onClick={() => {
-                            if (!isDragging && Math.abs(dragOffset) < 10) {
-                                toggleZoom();
+                            if (!isDragging && Math.abs(dragOffsetRef.current) < 5) {
+                                setIsZoomed(!isZoomed);
                             }
                         }}
                     />
@@ -273,7 +323,8 @@ const ImmersiveGallery: React.FC<ImmersiveGalleryProps> = ({
                 {/* Next Image (right) */}
                 <div
                     ref={nextImageRef}
-                    className="absolute inset-0 flex items-center justify-center transition-opacity duration-300 pointer-events-none"
+                    className="absolute inset-0 flex items-center justify-center pointer-events-none"
+                    style={{ transform: 'translateX(calc(100% + 40px))' }}
                 >
                     <img
                         src={images[getNextIndex()]}
@@ -313,12 +364,11 @@ const ImmersiveGallery: React.FC<ImmersiveGalleryProps> = ({
                             onClick={() => {
                                 setCurrentIndex(index);
                                 setIsZoomed(false);
-                                setDragOffset(0);
-                                setVelocity(0);
+                                dragOffsetRef.current = 0;
                             }}
                             className={`shrink-0 w-14 h-14 sm:w-16 sm:h-16 rounded-lg overflow-hidden border-2 transition-all duration-300 ${index === currentIndex
-                                    ? 'border-white shadow-lg shadow-white/20 scale-110 ring-2 ring-white/30'
-                                    : 'border-white/20 opacity-50 hover:opacity-100 hover:scale-105 hover:border-white/40'
+                                ? 'border-white shadow-lg shadow-white/20 scale-110 ring-2 ring-white/30'
+                                : 'border-white/20 opacity-50 hover:opacity-100 hover:scale-105 hover:border-white/40'
                                 }`}
                             title={`View image ${index + 1}`}
                         >
@@ -333,7 +383,7 @@ const ImmersiveGallery: React.FC<ImmersiveGalleryProps> = ({
             </div>
 
             {/* Drag Hint */}
-            {!isDragging && dragOffset === 0 && currentIndex === 0 && !isZoomed && (
+            {!isDragging && currentIndex === 0 && !isZoomed && (
                 <div className="absolute bottom-28 sm:bottom-32 left-1/2 -translate-x-1/2 text-white/50 text-xs sm:text-sm font-medium animate-pulse pointer-events-none backdrop-blur-sm bg-black/20 px-4 py-2 rounded-full">
                     ← Drag to explore →
                 </div>
