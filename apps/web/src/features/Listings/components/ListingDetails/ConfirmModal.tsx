@@ -44,101 +44,9 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
       <div className="bg-white rounded-3xl max-w-5xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[92vh] animate-in zoom-in-95 duration-300 border border-white/20">
 
         {/* Scrollable Content Wrapper */}
-        <div className="flex-1 overflow-y-auto md:overflow-hidden flex flex-col-reverse md:flex-row" id="confirm-scroll-container">
+        <div className="flex-1 overflow-y-auto md:overflow-hidden flex flex-col md:flex-row-reverse" id="confirm-scroll-container">
 
-          {/* Left Column: Trip Details (Bottom on Mobile) */}
-          <div className="w-full md:w-2/5 bg-gradient-to-br from-gray-50 to-gray-100/50 p-6 md:p-8 border-r border-gray-200/50 md:overflow-y-auto backdrop-blur-sm pb-32 md:pb-8">
-            <h2 className="hidden md:block text-xl font-bold text-gray-900 mb-6 font-display">Your Trip</h2>
-
-            {/* Listing Preview (Desktop Only) */}
-            <div className="hidden md:block bg-white rounded-2xl p-4 mb-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-              <div className="flex gap-4">
-                <img
-                  src={listing.images[0]}
-                  className="w-24 h-24 rounded-xl object-cover border border-gray-200"
-                  alt="Space"
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="text-xs font-semibold text-brand-600 mb-1 uppercase tracking-wide">{listing.type}</div>
-                  <div className="font-bold text-sm line-clamp-2 text-gray-900 mb-2">{listing.title}</div>
-                  <div className="flex items-center text-xs text-gray-600">
-                    <Star size={12} className="text-yellow-500 mr-1 fill-yellow-500" />
-                    <span className="font-semibold">
-                      {getReviews(listing.id).length > 0
-                        ? getAverageRating(listing.id).toFixed(1)
-                        : 'New'
-                      }
-                    </span>
-                    {getReviews(listing.id).length > 0 && (
-                      <span className="ml-1 text-gray-400">({getReviews(listing.id).length})</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Trip Details */}
-            <div className="space-y-4">
-              <div className="bg-white rounded-xl p-4 border border-gray-100">
-                <div className="font-bold text-sm text-gray-700 mb-2 flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-brand-500"></div>
-                  Dates
-                </div>
-                <div className="text-sm text-gray-900 font-medium">
-                  {new Date(pendingBooking.dates[0]).toLocaleDateString('en-US', {
-                    weekday: 'short',
-                    month: 'short',
-                    day: 'numeric'
-                  })}
-                  {pendingBooking.dates.length > 1 && (
-                    <span className="ml-2 text-brand-600 font-semibold">
-                      + {pendingBooking.dates.length - 1} more
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl p-4 border border-gray-100">
-                <div className="font-bold text-sm text-gray-700 mb-2 flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-brand-500"></div>
-                  Guests
-                </div>
-                <div className="text-sm text-gray-900 font-medium">
-                  {pendingBooking.guestCount} {pendingBooking.guestCount === 1 ? 'Guest' : 'Guests'}
-                </div>
-              </div>
-            </div>
-
-            {/* Price Breakdown */}
-            <div className="mt-6 pt-6 border-t border-gray-200" id="price-breakdown-confirm">
-              <h3 className="font-bold text-sm text-gray-900 mb-4 uppercase tracking-wide">Price Details</h3>
-              <div className="space-y-3 text-sm">
-                <div className="flex justify-between text-gray-600">
-                  <span>Subtotal</span>
-                  <span className="font-semibold text-gray-900">{formatCurrency(pendingBooking.fees.subtotal)}</span>
-                </div>
-                <div className="flex justify-between text-gray-600">
-                  <span>Service Fee</span>
-                  <span className="font-semibold text-gray-900">{formatCurrency(pendingBooking.fees.serviceFee)}</span>
-                </div>
-                {pendingBooking.fees.cautionFee > 0 && (
-                  <div className="flex justify-between items-center text-amber-700 bg-amber-50 -mx-2 px-2 py-2 rounded-lg">
-                    <div className="flex items-center gap-1">
-                      <span className="font-medium">Caution Deposit</span>
-                      <Info size={12} className="text-amber-600" />
-                    </div>
-                    <span className="font-semibold">{formatCurrency(pendingBooking.fees.cautionFee)}</span>
-                  </div>
-                )}
-                <div className="flex justify-between font-bold text-gray-900 border-t border-gray-200 pt-3 mt-3 text-base">
-                  <span>Total (USD)</span>
-                  <span className="text-brand-600">{formatCurrency(pendingBooking.fees.total)}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Right Column: Review & Payment (Top on Mobile) */}
+          {/* Right Column: Review & Payment (Now First in DOM for Mobile Scroll Fix) */}
           <div className="w-full md:w-3/5 p-6 md:p-8 md:overflow-y-auto relative bg-white pb-6 md:pb-8">
             <button
               type="button"
@@ -340,6 +248,98 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
                 </div>
               </div>
 
+            </div>
+          </div>
+
+          {/* Left Column: Trip Details (Now Second in DOM) */}
+          <div className="w-full md:w-2/5 bg-gradient-to-br from-gray-50 to-gray-100/50 p-6 md:p-8 border-r border-gray-200/50 md:overflow-y-auto backdrop-blur-sm pb-32 md:pb-8">
+            <h2 className="hidden md:block text-xl font-bold text-gray-900 mb-6 font-display">Your Trip</h2>
+
+            {/* Listing Preview (Desktop Only) */}
+            <div className="hidden md:block bg-white rounded-2xl p-4 mb-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+              <div className="flex gap-4">
+                <img
+                  src={listing.images[0]}
+                  className="w-24 h-24 rounded-xl object-cover border border-gray-200"
+                  alt="Space"
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-semibold text-brand-600 mb-1 uppercase tracking-wide">{listing.type}</div>
+                  <div className="font-bold text-sm line-clamp-2 text-gray-900 mb-2">{listing.title}</div>
+                  <div className="flex items-center text-xs text-gray-600">
+                    <Star size={12} className="text-yellow-500 mr-1 fill-yellow-500" />
+                    <span className="font-semibold">
+                      {getReviews(listing.id).length > 0
+                        ? getAverageRating(listing.id).toFixed(1)
+                        : 'New'
+                      }
+                    </span>
+                    {getReviews(listing.id).length > 0 && (
+                      <span className="ml-1 text-gray-400">({getReviews(listing.id).length})</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Trip Details */}
+            <div className="space-y-4">
+              <div className="bg-white rounded-xl p-4 border border-gray-100">
+                <div className="font-bold text-sm text-gray-700 mb-2 flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-brand-500"></div>
+                  Dates
+                </div>
+                <div className="text-sm text-gray-900 font-medium">
+                  {new Date(pendingBooking.dates[0]).toLocaleDateString('en-US', {
+                    weekday: 'short',
+                    month: 'short',
+                    day: 'numeric'
+                  })}
+                  {pendingBooking.dates.length > 1 && (
+                    <span className="ml-2 text-brand-600 font-semibold">
+                      + {pendingBooking.dates.length - 1} more
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="bg-white rounded-xl p-4 border border-gray-100">
+                <div className="font-bold text-sm text-gray-700 mb-2 flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-brand-500"></div>
+                  Guests
+                </div>
+                <div className="text-sm text-gray-900 font-medium">
+                  {pendingBooking.guestCount} {pendingBooking.guestCount === 1 ? 'Guest' : 'Guests'}
+                </div>
+              </div>
+            </div>
+
+            {/* Price Breakdown */}
+            <div className="mt-6 pt-6 border-t border-gray-200" id="price-breakdown-confirm">
+              <h3 className="font-bold text-sm text-gray-900 mb-4 uppercase tracking-wide">Price Details</h3>
+              <div className="space-y-3 text-sm">
+                <div className="flex justify-between text-gray-600">
+                  <span>Subtotal</span>
+                  <span className="font-semibold text-gray-900">{formatCurrency(pendingBooking.fees.subtotal)}</span>
+                </div>
+                <div className="flex justify-between text-gray-600">
+                  <span>Service Fee</span>
+                  <span className="font-semibold text-gray-900">{formatCurrency(pendingBooking.fees.serviceFee)}</span>
+                </div>
+                {pendingBooking.fees.cautionFee > 0 && (
+                  <div className="flex justify-between items-center text-amber-700 bg-amber-50 -mx-2 px-2 py-2 rounded-lg">
+                    <div className="flex items-center gap-1">
+                      <span className="font-medium">Caution Deposit</span>
+                      <Info size={12} className="text-amber-600" />
+                    </div>
+                    <span className="font-semibold">{formatCurrency(pendingBooking.fees.cautionFee)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between font-bold text-gray-900 border-t border-gray-200 pt-3 mt-3 text-base">
+                  <span>Total (USD)</span>
+                  <span className="text-brand-600">{formatCurrency(pendingBooking.fees.total)}</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
