@@ -123,25 +123,25 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
       )}>
         <button
           onClick={onBack}
-          className="pointer-events-auto p-2.5 bg-white/90 backdrop-blur-md rounded-full shadow-sm hover:bg-white transition-all hover:scale-105 border border-gray-200/50"
+          className="pointer-events-auto p-2.5 rounded-full hover:bg-white/20 transition-all hover:scale-105"
           aria-label="Go back"
         >
-          <ArrowLeft size={20} className="text-gray-700" />
+          <ArrowLeft size={20} className="text-white" />
         </button>
         <div className="flex items-center gap-3 pointer-events-auto">
           <button
             onClick={handleShare}
-            className="p-2.5 bg-white/90 backdrop-blur-md rounded-full shadow-sm hover:bg-white transition-all hover:scale-105 border border-gray-200/50"
+            className="p-2.5 rounded-full hover:bg-white/20 transition-all hover:scale-105"
             aria-label="Share"
           >
-            <Share size={20} className="text-gray-700" />
+            <Share size={20} className="text-white" />
           </button>
           <button
             onClick={handleToggleFavorite}
-            className="p-2.5 bg-white/90 backdrop-blur-md rounded-full shadow-sm hover:bg-white transition-all hover:scale-105 border border-gray-200/50"
+            className="p-2.5 rounded-full hover:bg-white/20 transition-all hover:scale-105"
             aria-label="Save"
           >
-            <Heart size={20} className={isFavorite ? "fill-red-500 text-red-500" : "text-gray-700"} />
+            <Heart size={20} className={isFavorite ? "fill-red-500 text-red-500" : "text-white"} />
           </button>
         </div>
       </div>
