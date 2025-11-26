@@ -17,7 +17,7 @@ import { ListingAmenities } from '../components/ListingDetails/ListingAmenities'
 import { ListingReviews } from '../components/ListingDetails/ListingReviews';
 import { ListingPolicies } from '../components/ListingDetails/ListingPolicies';
 import { BookingModal } from '../components/ListingDetails/BookingModal';
-import { HostSidebarCard } from '../components/ListingDetails/HostSidebarCard';
+import { HostSidebarCard, HostProfileCard, LocationPreviewCard } from '../components/ListingDetails/HostSidebarCard';
 import { ReviewsModal } from '../components/ListingDetails/ReviewsModal';
 import { SuccessModal } from '../components/ListingDetails/SuccessModal';
 import { VerificationModal } from '../components/ListingDetails/VerificationModal';
@@ -119,7 +119,7 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBook, 
       {/* Top Navigation (Floating) */}
       <div className={cn(
         "fixed top-0 left-0 w-full z-50 p-4 sm:p-6 flex justify-between items-start pointer-events-none transition-opacity duration-300",
-        showTopNav ? "opacity-100" : "opacity-0"
+        (showTopNav && !showMobileBookingModal) ? "opacity-100" : "opacity-0"
       )}>
         <button
           onClick={() => window.history.back()}
@@ -146,8 +146,38 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBook, 
         </div>
       </div>
 
+      {/* Mobile Sticky Header (Appears on scroll) */}
+      <div className={cn(
+        "fixed top-0 left-0 w-full z-[60] bg-white/95 backdrop-blur-md border-b border-gray-200 px-4 py-3 flex items-center justify-between transition-all duration-300 lg:hidden shadow-sm",
+        (!showTopNav && !showMobileBookingModal) ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0"
+      )}>
+        <div className="flex items-center gap-3 overflow-hidden">
+          <button
+            onClick={() => window.history.back()}
+            className="p-2 -ml-2 hover:bg-gray-100 rounded-full transition-colors"
+          >
+            <ArrowLeft size={20} className="text-gray-700" />
+          </button>
+          <h1 className="text-sm font-bold text-gray-900 truncate pr-2">{listing.title}</h1>
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            onClick={handleShare}
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+          >
+            <Share size={18} className="text-gray-700" />
+          </button>
+          <button
+            onClick={handleToggleFavorite}
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+          >
+            <Heart size={18} className={isFavorite ? "fill-red-500 text-red-500" : "text-gray-700"} />
+          </button>
+        </div>
+      </div>
+
       {/* Floating Action Bar (Desktop - Minimal) */}
-      <div className="hidden lg:flex fixed bottom-8 left-1/2 -translate-x-1/2 z-40 bg-white/80 backdrop-blur-md border border-gray-200/50 p-2 pl-6 rounded-full shadow-2xl items-center gap-6 animate-in slide-in-from-bottom-4 duration-700">
+      <div className={`hidden lg:flex fixed bottom-8 left-1/2 -translate-x-1/2 z-40 bg-white/80 backdrop-blur-md border border-gray-200/50 p-2 pl-6 rounded-full shadow-2xl items-center gap-6 animate-in slide-in-from-bottom-4 duration-700 transition-all ${showMobileBookingModal ? 'translate-y-32 opacity-0 pointer-events-none' : 'translate-y-0 opacity-100'}`}>
         <div className="flex flex-col items-start">
           <p className="text-lg font-bold text-gray-900">
             {formatCurrency(listing.price)}
@@ -199,6 +229,11 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBook, 
                 <ListingDescription listing={listing} />
               </div>
 
+              {/* Mobile Host Section - Top */}
+              <div id="host-mobile" className="lg:hidden border-b border-gray-100 pb-10">
+                <HostProfileCard listing={listing} host={host} handleContactHost={handleContactHost} />
+              </div>
+
               <div id="amenities" className="border-b border-gray-100 pb-10">
                 <ListingAmenities listing={listing} />
               </div>
@@ -210,6 +245,11 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBook, 
               <div id="policies">
                 <ListingPolicies listing={listing} />
               </div>
+
+              {/* Mobile Location Section - Bottom */}
+              <div id="location-mobile" className="lg:hidden pt-8 border-t border-gray-100">
+                <LocationPreviewCard />
+              </div>
             </div>
 
             {/* Right Column: Context Sidebar (33%) */}
@@ -220,7 +260,7 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBook, 
         </div>
 
         {/* Floating Action Bar (Mobile Only) */}
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 lg:hidden z-40 flex justify-between items-center shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+        <div className={`fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 pb-safe lg:hidden z-40 flex justify-between items-center shadow-[0_-4px_20px_rgba(0,0,0,0.05)] transition-transform duration-300 ${showMobileBookingModal ? 'translate-y-full' : 'translate-y-0'}`}>
           <div className="flex flex-col">
             <div className="flex items-baseline gap-1">
               <span className="text-xl font-bold text-gray-900">{formatCurrency(listing.price)}</span>
@@ -275,16 +315,16 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBook, 
           bookingSeries={bookingSeries}
           isHourly={isHourly}
           selectedHours={selectedHours}
-          handleHourToggle={handleHourToggle}
+          _handleHourToggle={handleHourToggle}
           hostOpenHours={hostOpenHours}
           isSlotBooked={isSlotBooked}
           selectedDays={selectedDays}
-          setSelectedDays={setSelectedDays}
+          _setSelectedDays={setSelectedDays}
           fees={fees}
           isBookingLoading={isBookingLoading}
           handleBookClick={handleBookClick}
-          isSavedForLater={isSavedForLater}
-          handleSaveToReserveList={handleSaveToReserveList}
+          _isSavedForLater={isSavedForLater}
+          _handleSaveToReserveList={handleSaveToReserveList}
           currentMonth={currentMonth}
           setCurrentMonth={setCurrentMonth}
           checkDateAvailability={checkDateAvailability}

@@ -1,4 +1,4 @@
-import { Listing, Review } from '@fiilar/types';
+import { Listing, Review, BookingType } from '@fiilar/types';
 import { STORAGE_KEYS } from '../constants';
 
 /**
@@ -15,10 +15,26 @@ export const getListings = (): Listing[] => {
         const listingReviews = allReviews.filter(review => review.listingId === listing.id);
         const reviewCount = listingReviews.length;
 
+        // Ensure default properties are present, especially for mock data or new listings
+        const listingWithDefaults = {
+            ...listing,
+            priceUnit: listing.priceUnit || BookingType.HOURLY,
+            location: listing.location || 'Lekki Phase 1, Lagos',
+            address: listing.address || 'Plot 5, Admiralty Way, Lekki Phase 1, Lagos',
+            coordinates: listing.coordinates || {
+                lat: 6.4500,
+                lng: 3.5000
+            },
+            images: listing.images && listing.images.length > 0 ? listing.images : [
+                'https://via.placeholder.com/300x200?text=Listing+Image+1',
+                'https://via.placeholder.com/300x200?text=Listing+Image+2'
+            ]
+        };
+
         if (reviewCount > 0) {
             const rating = Math.round((listingReviews.reduce((acc, r) => acc + r.rating, 0) / reviewCount) * 10) / 10;
             return {
-                ...listing,
+                ...listingWithDefaults,
                 rating,
                 reviewCount
             };

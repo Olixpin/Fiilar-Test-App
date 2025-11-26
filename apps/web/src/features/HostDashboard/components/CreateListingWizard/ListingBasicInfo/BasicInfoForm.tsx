@@ -52,17 +52,30 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({ newListing, setNewListing
                     </Select>
 
                     <Input
-                        label="Location"
-                        placeholder="Area or Address"
+                        label="Public Location (Area)"
+                        placeholder="e.g. Lekki Phase 1, Lagos"
                         value={newListing.location || ''}
                         onChange={(e) => setNewListing({ ...newListing, location: e.target.value })}
                         icon={MapPin}
                         iconPosition="left"
                         variant="glass"
-                        helperText="City, neighborhood, or full address"
+                        helperText="Publicly visible. General area only."
                         fullWidth
                     />
                 </div>
+
+                {/* Private Address */}
+                <Input
+                    label="Exact Address (Private)"
+                    placeholder="e.g. 123 Admiralty Way, Lekki Phase 1"
+                    value={newListing.address || ''}
+                    onChange={(e) => setNewListing({ ...newListing, address: e.target.value })}
+                    icon={Home}
+                    iconPosition="left"
+                    variant="glass"
+                    helperText="Only shared with guests after booking is confirmed."
+                    fullWidth
+                />
 
                 {/* Price & Unit */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

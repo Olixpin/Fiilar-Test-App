@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Listing } from '@fiilar/types';
-import { Wifi, Wind, Utensils, Car, Dumbbell, Waves, Briefcase, Tv, Shirt, Scissors, Zap, Coffee, Music, Video, Shield, Sun, Star, CheckCircle, Plus } from 'lucide-react';
+import { Wifi, Wind, Utensils, Car, Dumbbell, Waves, Briefcase, Tv, Shirt, Scissors, Zap, Coffee, Music, Video, Shield, Sun, Star, CheckCircle } from 'lucide-react';
 
 interface ListingAmenitiesProps {
   listing: Listing;

@@ -65,8 +65,10 @@ export const SectionNav: React.FC = () => {
         <div
             id="section-nav"
             className={cn(
-                "sticky top-0 z-40 bg-white transition-all duration-300 border-b border-gray-100",
-                isSticky ? "shadow-sm" : ""
+                "sticky top-[52px] lg:top-0 z-40 transition-all duration-300 border-b",
+                isSticky
+                    ? "bg-white/95 backdrop-blur-md shadow-md border-gray-200"
+                    : "bg-white border-gray-100"
             )}
         >
             <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-8">
@@ -76,15 +78,15 @@ export const SectionNav: React.FC = () => {
                             key={section.id}
                             onClick={() => scrollToSection(section.id)}
                             className={cn(
-                                "text-sm font-semibold whitespace-nowrap transition-colors relative py-1",
+                                "text-sm font-semibold whitespace-nowrap transition-all relative py-1 px-2 rounded-lg",
                                 activeSection === section.id
-                                    ? "text-gray-900"
-                                    : "text-gray-500 hover:text-gray-800"
+                                    ? "text-gray-900 bg-gray-100"
+                                    : "text-gray-500 hover:text-gray-800 hover:bg-gray-50"
                             )}
                         >
                             {section.label}
                             {activeSection === section.id && (
-                                <span className="absolute bottom-0 left-0 w-full h-0.5 bg-gray-900 rounded-full" />
+                                <span className="absolute bottom-0 left-0 w-full h-0.5 bg-brand-600 rounded-full animate-in slide-in-from-left duration-200" />
                             )}
                         </button>
                     ))}

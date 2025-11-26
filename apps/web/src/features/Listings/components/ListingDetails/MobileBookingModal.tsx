@@ -80,12 +80,22 @@ export const MobileBookingModal: React.FC<MobileBookingModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="lg:hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm">
-      <div className="absolute inset-x-0 bottom-0 bg-white rounded-t-2xl max-h-[90vh] overflow-hidden flex flex-col animate-in slide-in-from-bottom duration-300">
-        <div className="flex items-center justify-between p-4 border-b border-gray-200">
-          <h2 className="text-lg font-bold">Booking Options</h2>
-          <button onClick={onClose} aria-label="Close booking options" title="Close booking options" className="p-2 hover:bg-gray-100 rounded-full">
-            <X size={20} />
+    <div className="lg:hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="absolute inset-x-0 bottom-0 bg-white rounded-t-3xl max-h-[92vh] overflow-hidden flex flex-col animate-in slide-in-from-bottom duration-300 shadow-2xl">
+        {/* Drag Handle */}
+        <div className="flex justify-center pt-3 pb-2">
+          <div className="w-12 h-1.5 bg-gray-300 rounded-full"></div>
+        </div>
+
+        <div className="flex items-center justify-between px-6 py-3 border-b border-gray-100">
+          <h2 className="text-xl font-bold text-gray-900">Booking Options</h2>
+          <button
+            onClick={onClose}
+            aria-label="Close booking options"
+            title="Close booking options"
+            className="p-2 hover:bg-gray-100 rounded-full transition-all active:scale-95"
+          >
+            <X size={22} className="text-gray-600" />
           </button>
         </div>
         <div className="flex-1 overflow-y-auto p-4 space-y-4">

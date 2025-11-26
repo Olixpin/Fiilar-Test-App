@@ -71,6 +71,8 @@ export interface User {
   identityDocument?: string;
   bankDetails?: BankDetails;
   favorites?: string[]; // List of Listing IDs
+  rating?: number;
+  reviewCount?: number;
 }
 
 export interface BankDetails {
@@ -109,7 +111,12 @@ export interface Listing {
   price: number;
   priceUnit: BookingType;
   images: string[];
-  location: string;
+  location: string; // Public (e.g. "Lekki Phase 1")
+  address?: string; // Private (e.g. "123 Admiralty Way")
+  coordinates?: {
+    lat: number;
+    lng: number;
+  };
   status: ListingStatus;
   tags: string[];
   availability?: Record<string, number[]>; // Format: "YYYY-MM-DD": [9, 10, 11] (hours)
