@@ -36,7 +36,7 @@ interface ListingDetailsProps {
   onRefreshUser?: () => void;
 }
 
-const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBook, onVerify, onLogin, onRefreshUser }) => {
+const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, onBook, onVerify, onLogin, onRefreshUser }) => {
   const {
     host,
     paymentMethod, setPaymentMethod,
@@ -122,7 +122,7 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBook, 
         (showTopNav && !showMobileBookingModal) ? "opacity-100" : "opacity-0"
       )}>
         <button
-          onClick={() => window.history.back()}
+          onClick={onBack}
           className="pointer-events-auto p-2.5 bg-white/90 backdrop-blur-md rounded-full shadow-sm hover:bg-white transition-all hover:scale-105 border border-gray-200/50"
           aria-label="Go back"
         >
@@ -153,7 +153,7 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBook, 
       )}>
         <div className="flex items-center gap-3 overflow-hidden">
           <button
-            onClick={() => window.history.back()}
+            onClick={onBack}
             className="p-2 -ml-2 hover:bg-gray-100 rounded-full transition-colors"
           >
             <ArrowLeft size={20} className="text-gray-700" />

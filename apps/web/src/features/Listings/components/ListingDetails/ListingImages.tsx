@@ -62,8 +62,9 @@ export const ListingImages: React.FC<ListingImagesProps> = ({
 
         {/* Main Image (Always present) */}
         <div
-          className={`relative overflow-hidden cursor-pointer min-w-[90vw] md:min-w-0 ${count === 1 ? 'md:col-span-4 md:row-span-2' : 'md:col-span-2 md:row-span-2'} hover:z-10 group/image snap-center rounded-xl md:rounded-none`}
+          className={`relative overflow-hidden cursor-pointer min-w-[90vw] md:min-w-0 ${count === 1 ? 'md:col-span-4 md:row-span-2' : 'md:col-span-2 md:row-span-2'} hover:z-10 group/image snap-center rounded-xl rounded-tl-none md:rounded-none`}
           onClick={() => openGallery(0)}
+          style={{ WebkitMaskImage: '-webkit-radial-gradient(white, black)' }}
         >
           <img
             src={images[0]}
@@ -83,7 +84,7 @@ export const ListingImages: React.FC<ListingImagesProps> = ({
         {count > 1 && (
           <>
             {/* Image 2 */}
-            <div className="relative overflow-hidden cursor-pointer min-w-[90vw] md:min-w-0 snap-center rounded-xl md:rounded-none hover:z-10 group/image md:block md:col-span-1 md:row-span-1" onClick={() => openGallery(1)}>
+            <div className="relative overflow-hidden cursor-pointer min-w-[90vw] md:min-w-0 snap-center rounded-xl md:rounded-none hover:z-10 group/image md:block md:col-span-1 md:row-span-1" onClick={() => openGallery(1)} style={{ WebkitMaskImage: '-webkit-radial-gradient(white, black)' }}>
               <img
                 src={images[1]}
                 loading="lazy"
@@ -95,7 +96,7 @@ export const ListingImages: React.FC<ListingImagesProps> = ({
 
             {/* Image 3 (Only if count > 2) */}
             {count > 2 ? (
-              <div className="relative overflow-hidden cursor-pointer min-w-[90vw] md:min-w-0 snap-center rounded-xl md:rounded-none hover:z-10 group/image md:block md:col-span-1 md:row-span-1" onClick={() => openGallery(2)}>
+              <div className="relative overflow-hidden cursor-pointer min-w-[90vw] md:min-w-0 snap-center rounded-xl md:rounded-none hover:z-10 group/image md:block md:col-span-1 md:row-span-1" onClick={() => openGallery(2)} style={{ WebkitMaskImage: '-webkit-radial-gradient(white, black)' }}>
                 <img
                   src={images[2]}
                   loading="lazy"
@@ -110,7 +111,7 @@ export const ListingImages: React.FC<ListingImagesProps> = ({
 
             {/* Image 4 (Only if count > 3) */}
             {count > 3 ? (
-              <div className="relative overflow-hidden cursor-pointer min-w-[90vw] md:min-w-0 snap-center rounded-xl md:rounded-none hover:z-10 group/image md:block md:col-span-1 md:row-span-1" onClick={() => openGallery(3)}>
+              <div className="relative overflow-hidden cursor-pointer min-w-[90vw] md:min-w-0 snap-center rounded-xl md:rounded-none hover:z-10 group/image md:block md:col-span-1 md:row-span-1" onClick={() => openGallery(3)} style={{ WebkitMaskImage: '-webkit-radial-gradient(white, black)' }}>
                 <img
                   src={images[3]}
                   loading="lazy"
@@ -125,7 +126,7 @@ export const ListingImages: React.FC<ListingImagesProps> = ({
 
             {/* Image 5 (Only if count > 4) - Contains "Show All" button */}
             {count > 4 ? (
-              <div className="relative overflow-hidden cursor-pointer min-w-[90vw] md:min-w-0 snap-center rounded-xl md:rounded-none hover:z-10 group/image md:block md:col-span-1 md:row-span-1" onClick={() => openGallery(4)}>
+              <div className="relative overflow-hidden cursor-pointer min-w-[90vw] md:min-w-0 snap-center rounded-xl rounded-tr-none md:rounded-none hover:z-10 group/image md:block md:col-span-1 md:row-span-1" onClick={() => openGallery(4)} style={{ WebkitMaskImage: '-webkit-radial-gradient(white, black)' }}>
                 <img
                   src={images[4]}
                   loading="lazy"
