@@ -199,7 +199,7 @@ export const BookingWidget: React.FC<BookingWidgetProps> = ({
           {/* Recurrence Toggle */}
           {listing.settings?.allowRecurring && (
             <div className="bg-gray-50 p-3 rounded-lg border border-gray-200 transition-colors">
-              <div className="flex items-center justify-between mb-2 cursor-pointer select-none" onClick={() => setIsRecurring(!isRecurring)}>
+              <div className="flex items-center justify-between cursor-pointer select-none" onClick={() => setIsRecurring(!isRecurring)}>
                 <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
                   <Repeat size={16} className={isRecurring ? "text-brand-600" : "text-gray-400"} />
                   {isHourly ? 'Repeat Booking?' : 'Book Series?'}

@@ -136,6 +136,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
 
                     {label && (
                         <label
+                            htmlFor={props.id}
                             className={`
                 absolute left-4 transition-all duration-300 pointer-events-none
                 ${isFocused || hasValue

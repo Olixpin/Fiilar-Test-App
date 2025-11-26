@@ -1,7 +1,7 @@
 import { User, KYCStatus } from '@fiilar/types';
 
 export const STORAGE_KEYS = {
-    USERS_DB: 'fiilar_users_db',
+    USERS_DB: 'fiilar_users',
 };
 
 // Helper to get users (duplicated from storage for now to avoid circular deps, or we could pass it in)
@@ -20,8 +20,10 @@ export const updateKYC = (userId: string, status: KYCStatus, documentUrl?: strin
     const idx = users.findIndex(u => u.id === userId);
     if (idx >= 0) {
         users[idx].kycStatus = status;
+        users[idx].kycVerified = status === 'verified'; // Sync legacy boolean
         if (documentUrl) {
             users[idx].kycDocument = documentUrl;
+            users[idx].identityDocument = documentUrl; // Sync legacy field
         }
         saveUsers(users);
 
@@ -31,7 +33,11 @@ export const updateKYC = (userId: string, status: KYCStatus, documentUrl?: strin
             const parsed = JSON.parse(currentUser);
             if (parsed.id === userId) {
                 parsed.kycStatus = status;
-                if (documentUrl) parsed.kycDocument = documentUrl;
+                parsed.kycVerified = status === 'verified';
+                if (documentUrl) {
+                    parsed.kycDocument = documentUrl;
+                    parsed.identityDocument = documentUrl;
+                }
                 localStorage.setItem('fiilar_user', JSON.stringify(parsed));
             }
         }
