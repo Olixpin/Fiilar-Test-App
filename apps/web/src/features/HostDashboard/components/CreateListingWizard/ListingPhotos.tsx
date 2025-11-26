@@ -2,7 +2,7 @@ import React from 'react';
 import { Listing } from '@fiilar/types';
 import { Button } from '@fiilar/ui';
 import {
-    Sparkles, Upload, Plus, Trash2, CheckCircle, ArrowRight
+    Sparkles, Upload, Plus, Trash2, CheckCircle, ArrowRight, AlertTriangle
 } from 'lucide-react';
 
 interface ListingPhotosProps {
@@ -57,7 +57,7 @@ const ListingPhotos: React.FC<ListingPhotosProps> = ({
                             <ul className="text-xs text-blue-800 space-y-1.5">
                                 <li className="flex items-start gap-2">
                                     <CheckCircle size={14} className="shrink-0 mt-0.5 text-blue-600" />
-                                    <span>Upload at least 5 high-quality photos - listings with more photos get <strong>40% more bookings</strong></span>
+                                    <span>Upload at least 5 high-quality photos - listings with fewer will be saved as <strong>Drafts</strong></span>
                                 </li>
                                 <li className="flex items-start gap-2">
                                     <CheckCircle size={14} className="shrink-0 mt-0.5 text-blue-600" />
@@ -131,6 +131,19 @@ const ListingPhotos: React.FC<ListingPhotosProps> = ({
                             </div>
                             <span className="text-sm text-gray-600 font-semibold group-hover:text-brand-600 transition-colors">Add More</span>
                         </label>
+                    </div>
+                </div>
+            )}
+
+            {/* Warning for low image count */}
+            {newListing.images && newListing.images.length > 0 && newListing.images.length < 5 && (
+                <div className="flex items-start gap-3 bg-orange-50 p-4 rounded-xl border border-orange-100 animate-in fade-in slide-in-from-bottom-2">
+                    <AlertTriangle className="shrink-0 mt-0.5 text-orange-600" size={20} />
+                    <div>
+                        <h4 className="font-bold text-sm text-orange-900">Minimum 5 photos recommended</h4>
+                        <p className="text-sm text-orange-800 mt-0.5">
+                            You can continue, but your listing will be saved as a <strong>Draft</strong> until you upload at least 5 photos.
+                        </p>
                     </div>
                 </div>
             )}

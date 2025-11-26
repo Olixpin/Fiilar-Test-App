@@ -128,7 +128,18 @@ inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow
                 </div>
             )}
 
-            {user.kycVerified && newListing.proofOfAddress && (
+            {/* Image Count Warning */}
+            {(newListing.images?.length || 0) < 5 && (
+                <div className="flex items-start gap-3 bg-orange-50 p-4 rounded-lg text-left text-sm text-orange-800 mb-4 border border-orange-100">
+                    <ImageIcon className="shrink-0 mt-0.5" size={18} />
+                    <p>
+                        <strong>More photos needed:</strong> You have fewer than 5 photos. This listing will be saved as a
+                        <span className="font-bold"> Draft</span> until you add more photos.
+                    </p>
+                </div>
+            )}
+
+            {user.kycVerified && newListing.proofOfAddress && (newListing.images?.length || 0) >= 5 && (
                 <div className="flex items-start gap-3 bg-blue-50 p-4 rounded-lg text-left text-sm text-blue-800 mb-4 border border-blue-100">
                     <CheckCircle className="shrink-0 mt-0.5" size={18} />
                     <p>
@@ -152,7 +163,7 @@ inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow
                     className="flex-1 bg-linear-to-r from-gray-900 to-gray-800 text-white py-4 rounded-xl font-bold flex justify-center items-center hover:from-black hover:to-gray-900 transition-all shadow-xl hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed text-lg gap-2"
                 >
                     {isSubmitting ? <Loader2 className="animate-spin" size={24} /> : (
-                        user.kycVerified && newListing.proofOfAddress && newListing.price ?
+                        user.kycVerified && newListing.proofOfAddress && newListing.price && (newListing.images?.length || 0) >= 5 ?
                             ((newListing as any).id && listings.find(l => l.id === (newListing as any).id)?.status === ListingStatus.LIVE ? 'Save Changes' : 'Submit for Approval')
                             : 'Save Draft'
                     )}

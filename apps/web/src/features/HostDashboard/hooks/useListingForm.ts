@@ -268,12 +268,15 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
                 const existingId = (newListing as any).id;
                 const originalListing = listings.find(l => l.id === existingId);
                 const isReadyForApproval = user.kycVerified && newListing.proofOfAddress && newListing.price;
+                const hasMinimumImages = (newListing.images?.length || 0) >= 5;
                 const listingId = existingId || Math.random().toString(36).substr(2, 9);
 
                 let finalStatus = ListingStatus.DRAFT;
                 let finalRejectionReason = newListing.rejectionReason;
 
-                if (originalListing && originalListing.status === ListingStatus.LIVE) {
+                if (!hasMinimumImages) {
+                    finalStatus = ListingStatus.DRAFT;
+                } else if (originalListing && originalListing.status === ListingStatus.LIVE) {
                     finalStatus = ListingStatus.LIVE;
                     finalRejectionReason = undefined;
                 } else if (originalListing && originalListing.status === ListingStatus.REJECTED) {
