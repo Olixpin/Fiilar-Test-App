@@ -1,8 +1,105 @@
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@fiilar/ui';
-import { Listing, ListingStatus, SpaceType, BookingType, ListingAddOn, CancellationPolicy, User, Booking } from '@fiilar/types';
+import { Listing, ListingStatus, SpaceType, BookingType, ListingAddOn, CancellationPolicy, User, Booking, PricingModel } from '@fiilar/types';
 import { saveListing } from '@fiilar/storage';
 import { parseListingDescription } from '../../../services/geminiService';
+
+/**
+ * Safely saves data to localStorage with error handling for quota exceeded
+ * Excludes large data like images to prevent quota issues
+ */
+const safeLocalStorageSave = (key: string, data: Partial<Listing> & { step?: number; savedAt?: string }): boolean => {
+    try {
+        // Create a lightweight version without images (they're too large for localStorage)
+        const lightData = {
+            ...data,
+            // Store image count instead of actual images to indicate they exist
+            images: undefined,
+            imageCount: data.images?.length || 0,
+            // Also exclude proof of address document (can be large base64)
+            proofOfAddress: data.proofOfAddress ? '[document_uploaded]' : undefined,
+        };
+        
+        localStorage.setItem(key, JSON.stringify(lightData));
+        return true;
+    } catch (error) {
+        if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+            console.warn('localStorage quota exceeded, attempting cleanup...');
+            // Try to clean up old drafts
+            cleanupOldDrafts();
+            // Try once more with minimal data
+            try {
+                const minimalData = {
+                    title: data.title,
+                    description: data.description,
+                    type: data.type,
+                    price: data.price,
+                    location: data.location,
+                    step: data.step,
+                    savedAt: data.savedAt,
+                };
+                localStorage.setItem(key, JSON.stringify(minimalData));
+                return true;
+            } catch {
+                console.error('Failed to save draft even after cleanup');
+                return false;
+            }
+        }
+        console.error('Failed to save to localStorage:', error);
+        return false;
+    }
+};
+
+/**
+ * Cleans up old listing drafts from localStorage
+ */
+const cleanupOldDrafts = () => {
+    const keysToRemove: string[] = [];
+    const now = Date.now();
+    const ONE_WEEK = 7 * 24 * 60 * 60 * 1000;
+    
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('listing_draft_')) {
+            try {
+                const data = JSON.parse(localStorage.getItem(key) || '{}');
+                const savedAt = data.savedAt ? new Date(data.savedAt).getTime() : 0;
+                // Remove drafts older than a week
+                if (now - savedAt > ONE_WEEK) {
+                    keysToRemove.push(key);
+                }
+            } catch {
+                // Invalid JSON, remove it
+                keysToRemove.push(key);
+            }
+        }
+    }
+    
+    keysToRemove.forEach(key => {
+        localStorage.removeItem(key);
+        console.log(`Cleaned up old draft: ${key}`);
+    });
+    
+    // If still need more space, remove the oldest drafts
+    if (keysToRemove.length === 0) {
+        const drafts: { key: string; savedAt: number }[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('listing_draft_')) {
+                try {
+                    const data = JSON.parse(localStorage.getItem(key) || '{}');
+                    drafts.push({ key, savedAt: data.savedAt ? new Date(data.savedAt).getTime() : 0 });
+                } catch {
+                    localStorage.removeItem(key!);
+                }
+            }
+        }
+        // Sort by date and remove oldest half
+        drafts.sort((a, b) => a.savedAt - b.savedAt);
+        const toRemove = drafts.slice(0, Math.ceil(drafts.length / 2));
+        toRemove.forEach(d => localStorage.removeItem(d.key));
+    }
+};
 
 export const useListingForm = (user: User | null, listings: Listing[], activeBookings: Booking[], editingListing: Listing | null, refreshData: () => void, setView: (view: any) => void, onCreateListing?: (l: Listing) => void, onUpdateListing?: (l: Listing) => void) => {
     const toast = useToast();
@@ -10,6 +107,7 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
     const [newListing, setNewListing] = useState<Partial<Listing>>({
         type: SpaceType.APARTMENT,
         priceUnit: BookingType.DAILY,
+        pricingModel: PricingModel.DAILY, // Default pricing model
         tags: [],
         images: [],
         availability: {},
@@ -95,19 +193,39 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
         }
     }, [editingListing, user]);
 
-    // Auto-save draft (only if not editing an existing listing, or maybe we want to save drafts of edits too? For now let's keep it simple and only draft new listings to avoid overwriting)
+    // Auto-save draft with debounce (saves 2 seconds after last change)
     useEffect(() => {
         if (!user || editingListing) return; // Don't auto-save draft if editing existing listing
         // Skip if listing is completely empty
-        if (!newListing.title && !newListing.description && !newListing.location) return;
+        if (!newListing.title && !newListing.description && !newListing.location && (!newListing.images || newListing.images.length === 0)) return;
+
+        const draftKey = `listing_draft_${user.id}_temp`;
+        
+        // Debounced save - saves 2 seconds after the last change
+        const debounceTimer = setTimeout(() => {
+            const saved = safeLocalStorageSave(draftKey, { ...newListing, step, savedAt: new Date().toISOString() });
+            if (saved) {
+                setLastSaved(new Date());
+                setShowSaveToast(true);
+                setTimeout(() => setShowSaveToast(false), 2000);
+            }
+        }, 2000);
+
+        return () => clearTimeout(debounceTimer);
+    }, [newListing, step, user, editingListing]);
+
+    // Periodic backup save every 10 seconds (in case debounce missed something)
+    useEffect(() => {
+        if (!user || editingListing) return;
+        if (!newListing.title && !newListing.description && !newListing.location && (!newListing.images || newListing.images.length === 0)) return;
 
         const interval = setInterval(() => {
             const draftKey = `listing_draft_${user.id}_temp`;
-            localStorage.setItem(draftKey, JSON.stringify({ ...newListing, step }));
-            setLastSaved(new Date());
-            setShowSaveToast(true);
-            setTimeout(() => setShowSaveToast(false), 3000);
-        }, 30000);
+            const saved = safeLocalStorageSave(draftKey, { ...newListing, step, savedAt: new Date().toISOString() });
+            if (saved) {
+                setLastSaved(new Date());
+            }
+        }, 10000);
 
         return () => clearInterval(interval);
     }, [newListing, step, user, editingListing]);
@@ -122,6 +240,12 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
         }
         setNewListing({
             ...listing,
+            // Explicitly preserve images - this is critical for editing drafts
+            images: listing.images || [],
+            // Preserve pricing model and related fields
+            pricingModel: listing.pricingModel || PricingModel.DAILY,
+            priceUnit: listing.priceUnit || BookingType.DAILY,
+            bookingConfig: listing.bookingConfig,
             settings: listing.settings || { allowRecurring: true, minDuration: 1, instantBook: false },
             capacity: listing.capacity || 1,
             includedGuests: listing.includedGuests || 1,
@@ -252,10 +376,61 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
         return map;
     };
 
+    // Validation rules - based on industry standards (Airbnb, Peerspace)
+    const VALIDATION_RULES = {
+        CAUTION_FEE_MAX_RATIO: 2, // Security deposit up to 2x base price
+        EXTRA_GUEST_MAX_RATIO: 1, // Extra guest cost should not exceed base price
+        MIN_PRICE: 1,
+        MIN_CAPACITY: 1,
+        MAX_TITLE_LENGTH: 100,
+    };
+
     const handleCreateListing = () => {
         if (!user) return;
         if (!newListing.title) {
             toast.showToast({ message: "Please enter a title for your listing before saving.", type: "info" });
+            return;
+        }
+
+        // Validate title length
+        if (newListing.title.length > VALIDATION_RULES.MAX_TITLE_LENGTH) {
+            toast.showToast({ message: `Title cannot exceed ${VALIDATION_RULES.MAX_TITLE_LENGTH} characters.`, type: "error" });
+            return;
+        }
+        
+        // Validate pricing model is selected
+        if (!newListing.pricingModel) {
+            toast.showToast({ message: "Please select a pricing model (Overnight, Full Day, or Hourly).", type: "info" });
+            return;
+        }
+        
+        // Validate minimum price (must be greater than 0 for non-drafts)
+        if (newListing.price !== undefined && newListing.price < VALIDATION_RULES.MIN_PRICE) {
+            toast.showToast({ message: `Price must be at least ${VALIDATION_RULES.MIN_PRICE}.`, type: "error" });
+            return;
+        }
+
+        // Validate caution fee - max 2x base price (industry standard for high-value properties)
+        if (newListing.cautionFee && newListing.price && newListing.cautionFee > newListing.price * VALIDATION_RULES.CAUTION_FEE_MAX_RATIO) {
+            toast.showToast({ message: `Security deposit cannot exceed 2x the base price.`, type: "error" });
+            return;
+        }
+
+        // Validate extra guest cost - cannot exceed base price
+        if (newListing.pricePerExtraGuest && newListing.price && newListing.pricePerExtraGuest > newListing.price * VALIDATION_RULES.EXTRA_GUEST_MAX_RATIO) {
+            toast.showToast({ message: "Extra guest fee cannot exceed the base price.", type: "error" });
+            return;
+        }
+
+        // Validate capacity
+        if (newListing.capacity !== undefined && newListing.capacity < VALIDATION_RULES.MIN_CAPACITY) {
+            toast.showToast({ message: "Capacity must be at least 1 guest.", type: "error" });
+            return;
+        }
+
+        // Validate included guests doesn't exceed capacity
+        if (newListing.includedGuests && newListing.capacity && newListing.includedGuests > newListing.capacity) {
+            toast.showToast({ message: "Included guests cannot exceed maximum capacity.", type: "error" });
             return;
         }
 
@@ -298,7 +473,10 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
                     type: newListing.type || SpaceType.APARTMENT,
                     price: newListing.price || 0,
                     priceUnit: newListing.priceUnit || BookingType.DAILY,
+                    pricingModel: newListing.pricingModel || PricingModel.DAILY,
+                    bookingConfig: newListing.bookingConfig,
                     location: newListing.location || 'No Location',
+                    address: newListing.address,
                     status: finalStatus,
                     images: newListing.images?.length ? newListing.images : [`https://picsum.photos/800/600?random=${Math.random()}`],
                     tags: newListing.tags || ['modern', 'spacious'],
@@ -306,6 +484,7 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
                     requiresIdentityVerification: !!newListing.requiresIdentityVerification,
                     proofOfAddress: newListing.proofOfAddress,
                     rejectionReason: finalRejectionReason,
+                    approvalTime: newListing.approvalTime,
                     settings: newListing.settings || {
                         allowRecurring: true,
                         minDuration: 1,
@@ -352,6 +531,7 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
                 setNewListing({
                     type: SpaceType.APARTMENT,
                     priceUnit: BookingType.DAILY,
+                    pricingModel: PricingModel.DAILY,
                     tags: [],
                     images: [],
                     availability: {},
@@ -381,10 +561,31 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
         }, 1500);
     };
 
+    const MAX_IMAGE_SIZE_MB = 10;
+    const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024;
+
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
         if (files && files.length > 0) {
             Array.from(files).forEach((file: File) => {
+                // Validate image size
+                if (file.size > MAX_IMAGE_SIZE_BYTES) {
+                    toast.showToast({ 
+                        message: `Image "${file.name}" exceeds ${MAX_IMAGE_SIZE_MB}MB limit. Please use a smaller image.`, 
+                        type: "info" 
+                    });
+                    return;
+                }
+                
+                // Validate image type
+                if (!file.type.startsWith('image/')) {
+                    toast.showToast({ 
+                        message: `File "${file.name}" is not a valid image.`, 
+                        type: "info" 
+                    });
+                    return;
+                }
+                
                 const reader = new FileReader();
                 reader.onloadend = () => {
                     setNewListing(prev => ({
@@ -515,7 +716,16 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
 
     const handleRestoreDraft = () => {
         if (draftRestoreDialog.draftData && user) {
-            setNewListing(draftRestoreDialog.draftData);
+            // Ensure all required fields have defaults when restoring draft
+            const restoredData = {
+                ...draftRestoreDialog.draftData,
+                // Ensure pricingModel is set (for drafts saved before this field was added)
+                pricingModel: draftRestoreDialog.draftData.pricingModel || PricingModel.DAILY,
+                priceUnit: draftRestoreDialog.draftData.priceUnit || BookingType.DAILY,
+                images: draftRestoreDialog.draftData.images || [],
+                settings: draftRestoreDialog.draftData.settings || { allowRecurring: true, minDuration: 1, instantBook: false },
+            };
+            setNewListing(restoredData);
             setStep(draftRestoreDialog.draftData.step || 1);
             setShowAiInput(false);
         }

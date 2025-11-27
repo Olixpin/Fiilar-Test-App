@@ -1,6 +1,6 @@
 import React from 'react';
 import { Listing, BookingType, Booking, CancellationPolicy, PricingModel, NightlyConfig, DailyConfig, HourlyConfig } from '@fiilar/types';
-import { Button } from '@fiilar/ui';
+import { Button, useLocale } from '@fiilar/ui';
 import {
     ArrowRight, Briefcase, X, Plus, FileText, PackagePlus, Settings, Repeat, Zap, Shield, Image, Clock
 } from 'lucide-react';
@@ -49,6 +49,8 @@ const ListingAvailability: React.FC<ListingAvailabilityProps> = ({
     tempAddOn, setTempAddOn, handleAddAddOn, handleRemoveAddOn,
     customSafety, setCustomSafety, handleAddCustomSafety, toggleSafetyItem
 }) => {
+    const { locale } = useLocale();
+    
     return (
         <div className="space-y-8 max-w-4xl mx-auto animate-in slide-in-from-right duration-300">
             {/* Modern Pill Tabs */}
@@ -291,6 +293,66 @@ inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow
 `}
                                         />
                                     </button>
+                                </div>
+
+                                {/* Minimum Duration */}
+                                <div className="pt-4 border-t border-gray-100">
+                                    <label className="text-sm font-medium text-gray-900 mb-2 flex items-center gap-2">
+                                        <Clock size={16} className="text-gray-400" /> Minimum Booking Duration
+                                    </label>
+                                    <div className="relative">
+                                        <select
+                                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none appearance-none bg-white transition-all hover:border-gray-300 cursor-pointer text-sm"
+                                            value={newListing.settings?.minDuration || 1}
+                                            onChange={(e) => setNewListing({
+                                                ...newListing,
+                                                settings: {
+                                                    ...newListing.settings,
+                                                    minDuration: parseInt(e.target.value),
+                                                    allowRecurring: newListing.settings?.allowRecurring || false,
+                                                    instantBook: newListing.settings?.instantBook || false
+                                                }
+                                            })}
+                                            title="Minimum Booking Duration"
+                                        >
+                                            {newListing.pricingModel === PricingModel.HOURLY ? (
+                                                <>
+                                                    <option value="1">1 hour</option>
+                                                    <option value="2">2 hours</option>
+                                                    <option value="3">3 hours</option>
+                                                    <option value="4">4 hours</option>
+                                                    <option value="6">6 hours</option>
+                                                    <option value="8">8 hours</option>
+                                                </>
+                                            ) : newListing.pricingModel === PricingModel.NIGHTLY ? (
+                                                <>
+                                                    <option value="1">1 night</option>
+                                                    <option value="2">2 nights</option>
+                                                    <option value="3">3 nights</option>
+                                                    <option value="5">5 nights</option>
+                                                    <option value="7">7 nights (1 week)</option>
+                                                    <option value="14">14 nights (2 weeks)</option>
+                                                    <option value="30">30 nights (1 month)</option>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <option value="1">1 day</option>
+                                                    <option value="2">2 days</option>
+                                                    <option value="3">3 days</option>
+                                                    <option value="5">5 days</option>
+                                                    <option value="7">7 days (1 week)</option>
+                                                </>
+                                            )}
+                                        </select>
+                                        <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none">
+                                            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                            </svg>
+                                        </div>
+                                    </div>
+                                    <p className="text-xs text-gray-500 mt-1.5">
+                                        Set the minimum booking length guests must book.
+                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -690,7 +752,7 @@ inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow
                             <div className="flex gap-3">
                                 {/* Price Input */}
                                 <div className="relative flex-1">
-                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-sm">$</span>
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-sm">{locale.currencySymbol}</span>
                                     <input
                                         type="number"
                                         className="w-full pl-8 pr-3 py-3 text-sm border-2 border-gray-200 rounded-xl outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-all"
@@ -720,7 +782,7 @@ inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow
                                         )}
                                         <div>
                                             <span className="font-semibold text-gray-900 block">{addon.name}</span>
-                                            <span className="text-green-700 font-bold">${addon.price}</span>
+                                            <span className="text-green-700 font-bold">{locale.currencySymbol}{addon.price}</span>
                                         </div>
                                     </div>
                                     <Button

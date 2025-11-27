@@ -15,4 +15,6 @@ export * from './ConfirmDialog';
 export * from './UserAvatar';
 export * from './CompleteProfileModal';
 export * from './ProfileStrengthWidget';
+export * from './utils';
+export * from './hooks/useLocationWeather';
 

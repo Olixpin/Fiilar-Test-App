@@ -1,6 +1,6 @@
 import React from 'react';
 import { Listing, ListingStatus, BookingType } from '@fiilar/types';
-import { Button } from '@fiilar/ui';
+import { Button, useLocale } from '@fiilar/ui';
 import { Home, UserCheck, MapPin, DollarSign, Users, Briefcase, AlertTriangle, Edit3, Trash2 } from 'lucide-react';
 
 interface HostListingsProps {
@@ -11,6 +11,7 @@ interface HostListingsProps {
 }
 
 const HostListings: React.FC<HostListingsProps> = ({ listings, onEdit, onDelete, onCreate }) => {
+    const { locale } = useLocale();
     return (
         <div className="space-y-4 animate-in fade-in">
             {listings.length === 0 ? (
@@ -46,7 +47,7 @@ const HostListings: React.FC<HostListingsProps> = ({ listings, onEdit, onDelete,
                             </div>
                             <p className="text-sm text-gray-500 truncate mb-2 flex items-center gap-1"><MapPin size={12} /> {listing.location}</p>
                             <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-medium text-gray-600">
-                                <span className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded"><DollarSign size={12} /> ${listing.price}/{listing.priceUnit === BookingType.HOURLY ? 'hr' : 'day'}</span>
+                                <span className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded"><DollarSign size={12} /> {locale.currencySymbol}{listing.price}/{listing.priceUnit === BookingType.HOURLY ? 'hr' : 'day'}</span>
                                 <span className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded"><Users size={12} /> Max {listing.capacity || 1}</span>
                                 <span className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded"><Briefcase size={12} /> {listing.type}</span>
                             </div>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { paymentService } from '@fiilar/escrow';
 import { PaymentMethod } from '@fiilar/types';
+import { CreditCard, Trash2, Plus } from 'lucide-react';
 
 export const PaymentMethods: React.FC = () => {
     const [methods, setMethods] = useState<PaymentMethod[]>([]);
@@ -37,9 +38,14 @@ export const PaymentMethods: React.FC = () => {
             const last4 = cardNumber.slice(-4) || '4242';
             const [month, year] = expiry.split('/').map(Number);
 
+            // Simple brand detection simulation
+            let brand = 'Visa';
+            if (cardNumber.startsWith('5')) brand = 'MasterCard';
+            if (cardNumber.startsWith('3')) brand = 'Amex';
+
             await paymentService.addPaymentMethod({
                 last4,
-                brand: 'Visa', // Mock brand
+                brand,
                 expiryMonth: month || 12,
                 expiryYear: year || 2025
             });
@@ -66,6 +72,37 @@ export const PaymentMethods: React.FC = () => {
         }
     };
 
+    const getBrandVisual = (brand: string) => {
+        const b = brand.toLowerCase();
+        if (b.includes('visa')) {
+            return (
+                <div className="w-10 h-7 bg-blue-900 rounded flex items-center justify-center text-[10px] font-bold text-white italic tracking-tighter">
+                    VISA
+                </div>
+            );
+        }
+        if (b.includes('master')) {
+            return (
+                <div className="w-10 h-7 bg-gray-800 rounded flex items-center justify-center relative overflow-hidden">
+                    <div className="w-4 h-4 rounded-full bg-red-500/90 absolute left-1.5"></div>
+                    <div className="w-4 h-4 rounded-full bg-yellow-500/90 absolute right-1.5"></div>
+                </div>
+            );
+        }
+        if (b.includes('amex')) {
+            return (
+                <div className="w-10 h-7 bg-blue-400 rounded flex items-center justify-center text-[8px] font-bold text-white tracking-tighter border border-blue-300">
+                    AMEX
+                </div>
+            );
+        }
+        return (
+            <div className="w-10 h-7 bg-gray-200 rounded flex items-center justify-center text-gray-500">
+                <CreditCard size={16} />
+            </div>
+        );
+    };
+
     if (loading) return <div className="h-32 bg-gray-100 rounded-lg animate-pulse"></div>;
 
     return (
@@ -74,9 +111,9 @@ export const PaymentMethods: React.FC = () => {
                 <h3 className="text-lg font-semibold text-gray-900">Saved Cards</h3>
                 <button
                     onClick={() => setShowAddForm(!showAddForm)}
-                    className="text-sm text-indigo-600 font-medium hover:text-indigo-700 bg-indigo-50 px-3 py-1.5 rounded-lg transition-colors"
+                    className="text-sm text-indigo-600 font-medium hover:text-indigo-700 bg-indigo-50 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
                 >
-                    {showAddForm ? 'Cancel' : '+ Add New'}
+                    {showAddForm ? 'Cancel' : <><Plus size={14} /> Add New</>}
                 </button>
             </div>
 
@@ -94,9 +131,7 @@ export const PaymentMethods: React.FC = () => {
                                 maxLength={19}
                                 required
                             />
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                            </svg>
+                            <CreditCard className="h-5 w-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
                         </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
@@ -145,10 +180,8 @@ export const PaymentMethods: React.FC = () => {
                 {methods.map((method) => (
                     <div key={method.id} className="group flex items-center justify-between p-4 bg-white border border-gray-100 rounded-xl shadow-sm hover:shadow-md transition-all hover:border-indigo-100">
                         <div className="flex items-center gap-4">
-                            <div className="bg-indigo-50 p-3 rounded-lg text-indigo-600 group-hover:bg-indigo-100 transition-colors">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                                </svg>
+                            <div className="p-1">
+                                {getBrandVisual(method.brand)}
                             </div>
                             <div>
                                 <p className="font-bold text-gray-900 flex items-center gap-2">
@@ -163,9 +196,7 @@ export const PaymentMethods: React.FC = () => {
                             className="text-gray-400 hover:text-red-500 p-2 rounded-full hover:bg-red-50 transition-all opacity-0 group-hover:opacity-100"
                             title="Remove card"
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                            </svg>
+                            <Trash2 size={18} />
                         </button>
                     </div>
                 ))}

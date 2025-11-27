@@ -1,9 +1,9 @@
 import React from 'react';
-import { User, Listing, Booking, CancellationPolicy } from '@fiilar/types';
+import { User, Listing, Booking, CancellationPolicy, BookingType } from '@fiilar/types';
 import { getBookings } from '@fiilar/storage';
-
 import { getReviews } from '@fiilar/reviews';
-import { Calendar, MessageSquare, XCircle, Star, Key, CheckCircle, Clock, Edit, ShieldCheck } from 'lucide-react';
+import { Calendar, MessageSquare, XCircle, Star, Key, CheckCircle, Clock, Edit, ShieldCheck, Filter, List, Grid, Map, CalendarPlus } from 'lucide-react';
+import { cn, useLocale } from '@fiilar/ui';
 
 interface UserBookingsTabProps {
   user: User;
@@ -29,6 +29,37 @@ const formatTimeRange = (hours?: number[]) => {
   return `${formatHour(start)} - ${formatHour(end)}`;
 };
 
+const getGoogleMapsUrl = (location: string) => {
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`;
+};
+
+const getGoogleCalendarUrl = (booking: Booking, listing: Listing) => {
+  const startDate = new Date(booking.date);
+  const endDate = new Date(booking.date);
+
+  // Set times based on booking type
+  if (booking.bookingType === BookingType.HOURLY && booking.hours && booking.hours.length > 0) {
+    const sortedHours = [...booking.hours].sort((a, b) => a - b);
+    startDate.setHours(sortedHours[0], 0, 0);
+    endDate.setHours(sortedHours[sortedHours.length - 1] + 1, 0, 0);
+  } else {
+    // Default to Check-in 3PM, Check-out 11AM next day (or same day + duration)
+    startDate.setHours(15, 0, 0);
+    endDate.setDate(endDate.getDate() + (booking.duration || 1));
+    endDate.setHours(11, 0, 0);
+  }
+
+  const formatDate = (date: Date) => date.toISOString().replace(/-|:|\.\d\d\d/g, "");
+
+  const text = encodeURIComponent(`Stay at ${listing.title}`);
+  const details = encodeURIComponent(`Booking Ref: ${booking.id}\nLocation: ${listing.location}\n\nBooked via Fiilar`);
+  const location = encodeURIComponent(listing.location);
+
+  return `https://www.google.com/calendar/render?action=TEMPLATE&text=${text}&dates=${formatDate(startDate)}/${formatDate(endDate)}&details=${details}&location=${location}`;
+};
+
+type BookingFilter = 'all' | 'upcoming' | 'pending' | 'completed' | 'cancelled';
+
 export const UserBookingsTab: React.FC<UserBookingsTabProps> = ({
   user,
   listings,
@@ -37,7 +68,22 @@ export const UserBookingsTab: React.FC<UserBookingsTabProps> = ({
   onReviewBooking,
   onModifyBooking
 }) => {
-  const userBookings = getBookings().filter(b => b.userId === user.id);
+  const { locale } = useLocale();
+  const [userBookings, setUserBookings] = React.useState<Booking[]>([]);
+  const [activeFilter, setActiveFilter] = React.useState<BookingFilter>('all');
+  const [viewMode, setViewMode] = React.useState<'list' | 'calendar'>('list');
+
+  React.useEffect(() => {
+    const fetchBookings = () => {
+      setUserBookings(getBookings().filter(b => b.userId === user.id));
+    };
+
+    fetchBookings();
+
+    const handler = () => fetchBookings();
+    window.addEventListener('fiilar:bookings-updated', handler);
+    return () => window.removeEventListener('fiilar:bookings-updated', handler);
+  }, [user.id]);
 
   // Group bookings by groupId
   const displayItems = React.useMemo(() => {
@@ -68,147 +114,319 @@ export const UserBookingsTab: React.FC<UserBookingsTabProps> = ({
       }
     });
 
-    // Sort all items by date
-    return items.sort((a, b) => new Date(a.booking.date).getTime() - new Date(b.booking.date).getTime());
-  }, [userBookings]);
+    // Sort all items by date (descending for completed/cancelled, ascending for upcoming)
+    return items.sort((a, b) => {
+      const dateA = new Date(a.booking.date).getTime();
+      const dateB = new Date(b.booking.date).getTime();
+      // If viewing past bookings, show most recent first
+      if (activeFilter === 'completed' || activeFilter === 'cancelled') {
+        return dateB - dateA;
+      }
+      // Otherwise show nearest upcoming first
+      return dateA - dateB;
+    });
+  }, [userBookings, activeFilter]);
+
+  const filteredItems = displayItems.filter(({ booking: b }) => {
+    const isPast = new Date(b.date) < new Date();
+
+    switch (activeFilter) {
+      case 'upcoming':
+        return (b.status === 'Confirmed' || b.status === 'Started') && !isPast;
+      case 'pending':
+        return b.status === 'Pending';
+      case 'completed':
+        return b.status === 'Completed' || (b.status === 'Confirmed' && isPast);
+      case 'cancelled':
+        return b.status === 'Cancelled';
+      default:
+        return true;
+    }
+  });
+
+  const filters: { id: BookingFilter; label: string }[] = [
+    { id: 'all', label: 'All Bookings' },
+    { id: 'upcoming', label: 'Upcoming' },
+    { id: 'pending', label: 'Pending' },
+    { id: 'completed', label: 'Completed' },
+    { id: 'cancelled', label: 'Cancelled' },
+  ];
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">Your Bookings</h2>
-      {displayItems.length === 0 ? (
-        <div className="text-center py-20 bg-gray-50 rounded-2xl border border-dashed border-gray-300">
-          <Calendar size={48} className="mx-auto text-gray-300 mb-4" />
-          <p className="text-gray-500">No bookings found.</p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-brand-50 rounded-full border border-brand-100 flex items-center justify-center text-brand-600 shadow-sm">
+            <Calendar size={24} className="fill-brand-600/10" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Your Bookings</h2>
+            <p className="text-sm font-medium text-gray-500">Manage your reservations</p>
+          </div>
         </div>
-      ) : (
-        <div className="space-y-4">
-          {displayItems.map(({ booking: b, group }) => {
-            const listing = listings.find(l => l.id === b.listingId);
-            const timeRange = formatTimeRange(b.hours);
-            const isGroup = group && group.length > 1;
-            const totalPrice = isGroup ? group.reduce((sum, item) => sum + item.totalPrice, 0) : b.totalPrice;
 
-            return (
-              <div key={b.id} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col md:flex-row gap-6">
-                {listing && (
-                  <img src={listing.images[0]} alt={listing.title} className="w-full md:w-48 h-32 object-cover rounded-lg" />
-                )}
-                <div className="flex-1">
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <h3 className="text-lg font-bold text-gray-900">{listing?.title || 'Unknown Space'}</h3>
-                      {isGroup && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-700 mt-1">
-                          <Clock size={12} /> Recurring Booking ({group.length} sessions)
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex flex-col items-end gap-1">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${b.status === 'Confirmed' ? 'bg-green-100 text-green-700' :
-                        b.status === 'Pending' ? 'bg-yellow-100 text-yellow-700' :
-                          b.status === 'Started' ? 'bg-blue-100 text-blue-700' :
-                            'bg-gray-100 text-gray-700'
-                        }`}>
-                        {b.status}
-                      </span>
-                      {/* Payment Status Badge */}
-                      {b.paymentStatus === 'Paid - Escrow' && (
-                        <span className="flex items-center gap-1 text-[10px] font-bold text-brand-700 bg-brand-50 px-2 py-0.5 rounded border border-brand-100">
-                          <ShieldCheck size={10} /> Funds in Escrow
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <p className="text-gray-500 text-sm mb-4">{listing?.location}</p>
+        <div className="flex p-1 bg-gray-100 rounded-xl overflow-x-auto no-scrollbar">
+          {filters.map(filter => (
+            <button
+              key={filter.id}
+              onClick={() => setActiveFilter(filter.id)}
+              className={cn(
+                "px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all",
+                activeFilter === filter.id
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
+              )}
+            >
+              {filter.label}
+            </button>
+          ))}
+        </div>
+      </div>
 
-                  {/* Date & Price Section */}
-                  <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-4">
-                    {isGroup ? (
-                      <div className="w-full bg-gray-50 p-3 rounded-lg border border-gray-100">
-                        <p className="text-xs font-bold text-gray-500 uppercase mb-2">Session Dates</p>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                          {group.map(session => (
-                            <div key={session.id} className="flex items-center gap-2 text-xs bg-white px-2 py-1 rounded border border-gray-200">
-                              <Calendar size={12} className="text-gray-400" />
-                              <span>{new Date(session.date).toLocaleDateString()}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-1">
-                        <Calendar size={16} />
-                        {new Date(b.date).toLocaleDateString()}
-                      </div>
-                    )}
+      {/* View Toggle */}
+      <div className="flex p-1 bg-gray-100 rounded-lg">
+        <button
+          onClick={() => setViewMode('list')}
+          className={cn(
+            "p-2 rounded-md transition-all",
+            viewMode === 'list' ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+          )}
+          title="List View"
+        >
+          <List size={20} />
+        </button>
+        <button
+          onClick={() => setViewMode('calendar')}
+          className={cn(
+            "p-2 rounded-md transition-all",
+            viewMode === 'calendar' ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+          )}
+          title="Calendar View"
+        >
+          <Grid size={20} />
+        </button>
+      </div>
 
-                    {!isGroup && timeRange && (
-                      <div className="flex items-center gap-1 font-medium text-brand-600">
-                        <Clock size={16} />
-                        {timeRange}
-                      </div>
-                    )}
-                    <div className="font-medium text-gray-900 text-lg">
-                      ${totalPrice.toFixed(2)}
-                    </div>
-                  </div>
 
-                  {/* Handshake Code Display */}
-                  {(b.status === 'Confirmed' || b.status === 'Started') && b.guestCode && (
-                    <div className="mt-4 p-4 bg-brand-50 rounded-lg border border-brand-100">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="flex items-center gap-2 mb-1">
-                            <Key size={16} className="text-brand-600" />
-                            <span className="text-sm font-bold text-brand-800">Check-in Code</span>
+      {
+        viewMode === 'calendar' ? (
+          <div className="bg-white rounded-2xl border border-gray-200 p-6">
+            <div className="grid grid-cols-7 gap-2 mb-4">
+              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                <div key={day} className="text-center text-sm font-medium text-gray-500 py-2">
+                  {day}
+                </div>
+              ))}
+              {/* Simple Calendar Grid (Mock for current month) */}
+              {Array.from({ length: 35 }).map((_, i) => {
+                const day = i - 2; // Offset for start of month
+                const date = new Date();
+                date.setDate(day);
+                const isToday = new Date().getDate() === day;
+
+                // Find bookings for this day
+                const dayBookings = userBookings.filter(b => {
+                  const bDate = new Date(b.date);
+                  return bDate.getDate() === day && bDate.getMonth() === new Date().getMonth();
+                });
+
+                return (
+                  <div key={i} className={cn(
+                    "min-h-[100px] border rounded-xl p-2 flex flex-col gap-1 transition-colors",
+                    day > 0 && day <= 31 ? "bg-white border-gray-100" : "bg-gray-50 border-transparent",
+                    isToday && "ring-2 ring-brand-500 ring-offset-2"
+                  )}>
+                    {day > 0 && day <= 31 && (
+                      <>
+                        <span className={cn(
+                          "text-sm font-medium w-6 h-6 flex items-center justify-center rounded-full",
+                          isToday ? "bg-brand-600 text-white" : "text-gray-700"
+                        )}>{day}</span>
+
+                        {dayBookings.map(b => (
+                          <div key={b.id} className={cn(
+                            "text-[10px] px-1.5 py-1 rounded truncate font-medium",
+                            b.status === 'Confirmed' ? "bg-green-100 text-green-700" :
+                              b.status === 'Pending' ? "bg-yellow-100 text-yellow-700" :
+                                "bg-gray-100 text-gray-600"
+                          )}>
+                            {listings.find(l => l.id === b.listingId)?.title || 'Booking'}
                           </div>
-                          <p className="text-xs text-brand-600">Show to host upon arrival</p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <span className="text-2xl font-mono font-bold text-brand-700 tracking-widest bg-white px-3 py-1 rounded border border-brand-200">{b.guestCode}</span>
-                          {b.handshakeStatus === 'VERIFIED' && (
-                            <div className="flex flex-col items-center text-green-600">
-                              <CheckCircle size={20} />
-                              <span className="text-[10px] font-bold uppercase">Verified</span>
-                            </div>
-                          )}
-                        </div>
+                        ))}
+                      </>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <p className="text-center text-sm text-gray-400 mt-4">Showing current month</p>
+          </div>
+        ) : filteredItems.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-dashed border-gray-200 text-center">
+            <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+              <Filter size={24} className="text-gray-400" />
+            </div>
+            <p className="text-gray-900 font-medium text-lg">No {activeFilter === 'all' ? '' : activeFilter} bookings found</p>
+            <p className="text-gray-500 text-sm mt-1">
+              {activeFilter === 'all'
+                ? "You haven't made any bookings yet."
+                : `You don't have any ${activeFilter} bookings at the moment.`}
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {filteredItems.map(({ booking: b, group }) => {
+              const listing = listings.find(l => l.id === b.listingId);
+              const timeRange = formatTimeRange(b.hours);
+              const isGroup = group && group.length > 1;
+              const totalPrice = isGroup ? group.reduce((sum, item) => sum + item.totalPrice, 0) : b.totalPrice;
+
+              return (
+                <div key={b.id} className="group bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col md:flex-row gap-6">
+                  {listing && listing.images && listing.images[0] && (
+                    <div className="relative w-full md:w-56 h-40 shrink-0">
+                      <img src={listing.images[0]} alt={listing.title} className="w-full h-full object-cover rounded-xl" />
+                      <div className="absolute top-3 left-3 flex flex-col gap-2">
+                        <span className={cn(
+                          "px-3 py-1 rounded-full text-xs font-bold shadow-sm backdrop-blur-md border w-fit",
+                          b.status === 'Confirmed' ? "bg-green-100/90 text-green-700 border-green-200" :
+                            b.status === 'Pending' ? "bg-yellow-100/90 text-yellow-700 border-yellow-200" :
+                              b.status === 'Started' ? "bg-blue-100/90 text-blue-700 border-blue-200" :
+                                b.status === 'Cancelled' ? "bg-red-100/90 text-red-700 border-red-200" :
+                                  "bg-gray-100/90 text-gray-700 border-gray-200"
+                        )}>
+                          {b.status}
+                        </span>
+
+                        {/* Payment Status Badge */}
+                        {b.paymentStatus === 'Paid - Escrow' && (
+                          <span className="flex items-center gap-1 text-[10px] font-bold text-brand-700 bg-brand-50/90 backdrop-blur-md px-2 py-0.5 rounded-full border border-brand-100 shadow-sm w-fit">
+                            <ShieldCheck size={10} /> Escrow
+                          </span>
+                        )}
                       </div>
                     </div>
                   )}
 
-                  {listing && (
-                    <div className="flex gap-3 mt-4">
-                      <button
-                        onClick={() => onMessageHost(listing.hostId, listing.id)}
-                        className="text-sm font-medium text-brand-600 hover:text-brand-700 flex items-center gap-1"
-                      >
-                        <MessageSquare size={16} /> Message Host
-                      </button>
+                  <div className="flex-1 flex flex-col">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <h3 className="text-lg font-bold text-gray-900 group-hover:text-brand-600 transition-colors">{listing?.title || 'Unknown Space'}</h3>
+                        <p className="text-gray-500 text-sm flex items-center gap-1 mt-1">
+                          <span className="truncate">{listing?.location}</span>
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-bold text-gray-900 text-xl">
+                          {locale.currencySymbol}{totalPrice.toFixed(2)}
+                        </div>
+                        {isGroup && (
+                          <span className="inline-flex items-center gap-1 text-xs font-medium text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full mt-1">
+                            <Clock size={10} /> Series
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Date & Time Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4 border-y border-gray-100 my-4">
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 bg-gray-50 rounded-lg text-gray-500">
+                          <Calendar size={18} />
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium text-gray-500 uppercase">Date</p>
+                          {isGroup ? (
+                            <p className="text-sm font-medium text-gray-900 mt-0.5">{group.length} Sessions</p>
+                          ) : (
+                            <p className="text-sm font-medium text-gray-900 mt-0.5">{new Date(b.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</p>
+                          )}
+                        </div>
+                      </div>
+
+                      {!isGroup && timeRange && (
+                        <div className="flex items-start gap-3">
+                          <div className="p-2 bg-gray-50 rounded-lg text-gray-500">
+                            <Clock size={18} />
+                          </div>
+                          <div>
+                            <p className="text-xs font-medium text-gray-500 uppercase">Time</p>
+                            <p className="text-sm font-medium text-gray-900 mt-0.5">{timeRange}</p>
+                          </div>
+                        </div>
+                      )}
+
+                      {(b.status === 'Confirmed' || b.status === 'Started') && b.guestCode && (
+                        <div className="flex items-start gap-3 sm:col-span-2 bg-brand-50/50 p-2 rounded-lg border border-brand-100/50">
+                          <div className="p-2 bg-brand-100 rounded-lg text-brand-600">
+                            <Key size={18} />
+                          </div>
+                          <div className="flex-1 flex justify-between items-center">
+                            <div>
+                              <p className="text-xs font-bold text-brand-800 uppercase">Check-in Code</p>
+                              <p className="text-xs text-brand-600">Show to host</p>
+                            </div>
+                            <span className="text-xl font-mono font-bold text-brand-700 tracking-widest bg-white px-3 py-1 rounded border border-brand-200 shadow-sm">
+                              {b.guestCode}
+                            </span>
+                            {b.handshakeStatus === 'VERIFIED' && (
+                              <div className="flex flex-col items-center text-green-600 ml-2">
+                                <CheckCircle size={20} />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Actions Footer */}
+                    <div className="mt-auto flex flex-wrap gap-3 justify-end">
+                      {listing && (
+                        <button
+                          onClick={() => onMessageHost(listing.hostId, listing.id)}
+                          className="px-4 py-2 bg-gray-50 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-100 transition-colors flex items-center gap-2"
+                        >
+                          <MessageSquare size={16} /> Message
+                        </button>
+                      )}
+
+                      {/* Confirmed Booking Actions: Directions & Calendar */}
+                      {(b.status === 'Confirmed' || b.status === 'Started') && listing && (
+                        <>
+                          <a
+                            href={getGoogleMapsUrl(listing.location)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-4 py-2 bg-white border border-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 hover:text-brand-600 hover:border-brand-200 transition-colors flex items-center gap-2"
+                          >
+                            <Map size={16} /> Directions
+                          </a>
+                          <a
+                            href={getGoogleCalendarUrl(b, listing)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-4 py-2 bg-white border border-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 hover:text-brand-600 hover:border-brand-200 transition-colors flex items-center gap-2"
+                          >
+                            <CalendarPlus size={16} /> Add to Calendar
+                          </a>
+                        </>
+                      )}
 
                       {b.status === 'Pending' && (
                         <>
                           {b.modificationAllowed && (
                             <button
-                              type="button"
-                              onClick={() => {
-                                console.log('Modify Request clicked for booking:', b.id);
-                                if (onModifyBooking) {
-                                  onModifyBooking(b);
-                                } else {
-                                  console.error('onModifyBooking prop is undefined');
-                                }
-                              }}
-                              className="text-sm font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1 cursor-pointer z-10 relative"
+                              onClick={() => onModifyBooking && onModifyBooking(b)}
+                              className="px-4 py-2 bg-blue-50 text-blue-600 text-sm font-medium rounded-lg hover:bg-blue-100 transition-colors flex items-center gap-2"
                             >
-                              <Edit size={16} /> Modify Request
+                              <Edit size={16} /> Modify
                             </button>
                           )}
                           <button
                             onClick={() => onCancelBooking(b, CancellationPolicy.FLEXIBLE)}
-                            className="text-sm font-medium text-gray-500 hover:text-red-600 flex items-center gap-1"
+                            className="px-4 py-2 bg-white border border-gray-200 text-gray-600 text-sm font-medium rounded-lg hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors flex items-center gap-2"
                           >
-                            <XCircle size={16} /> Cancel Request
+                            <XCircle size={16} /> Cancel
                           </button>
                         </>
                       )}
@@ -216,40 +434,39 @@ export const UserBookingsTab: React.FC<UserBookingsTabProps> = ({
                       {b.status === 'Confirmed' && (
                         <button
                           onClick={() => {
-                            // Default to Flexible if not set (mock data)
-                            const policy = listing.cancellationPolicy || CancellationPolicy.FLEXIBLE;
+                            const policy = listing?.cancellationPolicy || CancellationPolicy.FLEXIBLE;
                             onCancelBooking(b, policy);
                           }}
-                          className="text-sm font-medium text-red-600 hover:text-red-700 flex items-center gap-1"
+                          className="px-4 py-2 bg-white border border-gray-200 text-gray-600 text-sm font-medium rounded-lg hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors flex items-center gap-2"
                         >
-                          <XCircle size={16} /> Cancel {isGroup ? 'Series' : 'Booking'}
+                          <XCircle size={16} /> Cancel
                         </button>
                       )}
 
-                      {(b.status === 'Confirmed' || b.status === 'Started' || b.status === 'Completed') && (() => {
+                      {(b.status === 'Confirmed' || b.status === 'Started' || b.status === 'Completed') && listing && (() => {
                         const reviews = getReviews(listing.id);
                         const hasReviewed = reviews.some(r => r.bookingId === b.id);
                         return !hasReviewed ? (
                           <button
                             onClick={() => onReviewBooking(b.id, listing.id, listing.title)}
-                            className="text-sm font-medium text-green-600 hover:text-green-700 flex items-center gap-1"
+                            className="px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 transition-colors flex items-center gap-2 shadow-sm shadow-brand-500/20"
                           >
                             <Star size={16} /> Leave Review
                           </button>
                         ) : (
-                          <span className="text-sm text-gray-500 flex items-center gap-1">
-                            <Star size={16} className="fill-yellow-400 text-yellow-400" /> Reviewed
+                          <span className="px-4 py-2 bg-yellow-50 text-yellow-700 text-sm font-medium rounded-lg flex items-center gap-2 border border-yellow-100">
+                            <Star size={16} className="fill-yellow-500 text-yellow-500" /> Reviewed
                           </span>
                         );
                       })()}
                     </div>
-                  )}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
+              );
+            })}
+          </div>
+        )
+      }
+    </div >
   );
 };

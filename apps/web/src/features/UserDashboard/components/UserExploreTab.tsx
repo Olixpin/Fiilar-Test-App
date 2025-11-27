@@ -1,11 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Listing, ListingStatus } from '@fiilar/types';
 import { getSpaceRecommendations } from '../../../services/geminiService';
+import { getTrendingListings, getMostViewedListings, generateMockAnalytics, getAllListingAnalytics } from '@fiilar/storage';
 import ListingCard from '../../Listings/components/ListingCard';
-import { Sparkles, Search, ArrowRight, Briefcase, Camera, Music, Users, Coffee, Building2, X } from 'lucide-react';
+import { Sparkles, Search, ArrowRight, Briefcase, Camera, Music, Users, Coffee, Building2, X, TrendingUp, Eye, Flame } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface UserExploreTabProps {
   listings: Listing[];
+  initialSearchQuery?: string;
 }
 
 const categories = [
@@ -38,20 +41,54 @@ const ListingSkeleton = () => (
   </div>
 );
 
-export const UserExploreTab: React.FC<UserExploreTabProps> = ({ listings }) => {
-  const [preference, setPreference] = useState('');
+export const UserExploreTab: React.FC<UserExploreTabProps> = ({ listings, initialSearchQuery }) => {
+  const navigate = useNavigate();
+  const [preference, setPreference] = useState(initialSearchQuery || '');
   const [recommendations, setRecommendations] = useState<{ listing: Listing, reason: string }[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const [trendingSpaces, setTrendingSpaces] = useState<Listing[]>([]);
+  const [mostViewed, setMostViewed] = useState<Listing[]>([]);
+  const [activeSection, setActiveSection] = useState<'trending' | 'popular'>('trending');
 
-  const activeListings = listings.filter(l => l.status === ListingStatus.LIVE);
+  // Memoize active listings to prevent infinite loop in useEffect
+  const activeListings = useMemo(
+    () => listings.filter(l => l.status === ListingStatus.LIVE),
+    [listings]
+  );
+
+  // Initialize trending data
+  useEffect(() => {
+    if (activeListings.length === 0) return;
+
+    const analytics = getAllListingAnalytics();
+
+    // If no analytics exist, generate mock data for demo
+    if (Object.keys(analytics).length === 0) {
+      generateMockAnalytics(activeListings);
+    }
+
+    // Get trending and most viewed
+    const trending = getTrendingListings(activeListings, 6);
+    const viewed = getMostViewedListings(activeListings, 6);
+
+    setTrendingSpaces(trending);
+    setMostViewed(viewed);
+  }, [activeListings]);
+
+  // Trigger search if initialSearchQuery is provided
+  useEffect(() => {
+    if (initialSearchQuery) {
+      handleSearch(initialSearchQuery);
+    }
+  }, [initialSearchQuery]);
 
   const handleSearch = async (query?: string) => {
     const searchText = query || preference;
     if (!searchText.trim()) return;
-    
+
     if (query) setPreference(query);
-    
+
     setIsLoading(true);
     setHasSearched(true);
     try {
@@ -107,7 +144,7 @@ export const UserExploreTab: React.FC<UserExploreTabProps> = ({ listings }) => {
                   className="w-full h-full bg-transparent text-gray-900 placeholder-gray-400 px-4 py-3 sm:py-0 text-base sm:text-lg outline-none rounded-xl"
                 />
                 {preference && (
-                  <button 
+                  <button
                     onClick={() => setPreference('')}
                     aria-label="Clear search"
                     className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors"
@@ -155,7 +192,7 @@ export const UserExploreTab: React.FC<UserExploreTabProps> = ({ listings }) => {
       {/* Categories Section */}
       {!recommendations.length && !isLoading && !hasSearched && (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
-          <h3 className="text-xl font-bold text-gray-900 mb-6">Browse by Category</h3>
+
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
             {categories.map((cat) => (
               <button
@@ -196,7 +233,7 @@ export const UserExploreTab: React.FC<UserExploreTabProps> = ({ listings }) => {
               <Sparkles className="text-brand-600" size={24} />
               <h3 className="text-2xl font-bold text-gray-900">Recommended for you</h3>
             </div>
-            <button 
+            <button
               onClick={clearSearch}
               className="text-sm text-gray-500 hover:text-gray-900 flex items-center gap-1"
             >
@@ -204,10 +241,10 @@ export const UserExploreTab: React.FC<UserExploreTabProps> = ({ listings }) => {
             </button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {recommendations.map((item) => (
+            {recommendations.map((item, index) => (
               <div key={item.listing.id} className="flex flex-col h-full group">
                 <div className="relative">
-                  <ListingCard listing={item.listing} />
+                  <ListingCard listing={item.listing} priority={true} batchReady={true} index={index} />
                   <div className="absolute -bottom-4 left-4 right-4 bg-white/95 backdrop-blur-sm p-4 rounded-xl border border-brand-100 shadow-lg transform transition-all group-hover:-translate-y-1">
                     <div className="flex items-start gap-2">
                       <Sparkles size={16} className="text-brand-600 mt-1 shrink-0" />
@@ -232,7 +269,7 @@ export const UserExploreTab: React.FC<UserExploreTabProps> = ({ listings }) => {
           </div>
           <h3 className="text-lg font-bold text-gray-900 mb-2">No matches found</h3>
           <p className="text-gray-500 mb-6">We couldn't find any spaces matching your description.</p>
-          <button 
+          <button
             onClick={clearSearch}
             className="text-brand-600 font-semibold hover:text-brand-700"
           >
@@ -244,17 +281,93 @@ export const UserExploreTab: React.FC<UserExploreTabProps> = ({ listings }) => {
       {/* Standard Listing Grid (Fallback or Browse) */}
       {!isLoading && !hasSearched && (
         <div className="animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-2xl font-bold text-gray-900">Trending Spaces</h3>
-            <button className="text-brand-600 font-semibold hover:text-brand-700 flex items-center gap-1">
+          {/* Section Toggle */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+            <div className="flex items-center gap-2 p-1 bg-gray-100 rounded-xl w-fit">
+              <button
+                onClick={() => setActiveSection('trending')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeSection === 'trending'
+                  ? 'bg-white text-brand-600 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+                  }`}
+              >
+                <Flame size={16} className={activeSection === 'trending' ? 'text-orange-500' : ''} />
+                Trending
+              </button>
+              <button
+                onClick={() => setActiveSection('popular')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeSection === 'popular'
+                  ? 'bg-white text-brand-600 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+                  }`}
+              >
+                <Eye size={16} className={activeSection === 'popular' ? 'text-blue-500' : ''} />
+                Most Viewed
+              </button>
+            </div>
+            <button
+              onClick={() => navigate('/')}
+              className="text-brand-600 font-semibold hover:text-brand-700 flex items-center gap-1 text-sm"
+            >
               View all <ArrowRight size={16} />
             </button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {activeListings.slice(0, 6).map(l => (
-              <ListingCard key={l.id} listing={l} />
-            ))}
-          </div>
+
+          {/* Trending Spaces */}
+          {activeSection === 'trending' && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <TrendingUp size={14} className="text-orange-500" />
+                <span>Based on recent bookings, views & favorites</span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {trendingSpaces.length > 0 ? (
+                  trendingSpaces.map((listing, index) => (
+                    <div key={listing.id} className="relative">
+                      {index < 3 && (
+                        <div className="absolute -top-2 -left-2 z-10 w-8 h-8 bg-gradient-to-br from-orange-400 to-red-500 rounded-full flex items-center justify-center shadow-lg">
+                          <span className="text-white text-xs font-bold">#{index + 1}</span>
+                        </div>
+                      )}
+                      <ListingCard listing={listing} priority={true} batchReady={true} index={index} />
+                    </div>
+                  ))
+                ) : (
+                  activeListings.slice(0, 6).map(l => (
+                    <ListingCard key={l.id} listing={l} />
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Most Viewed */}
+          {activeSection === 'popular' && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <Eye size={14} className="text-blue-500" />
+                <span>Spaces getting the most attention right now</span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {mostViewed.length > 0 ? (
+                  mostViewed.map((listing, index) => (
+                    <div key={listing.id} className="relative">
+                      {index < 3 && (
+                        <div className="absolute -top-2 -left-2 z-10 w-8 h-8 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-full flex items-center justify-center shadow-lg">
+                          <Eye size={14} className="text-white" />
+                        </div>
+                      )}
+                      <ListingCard listing={listing} priority={true} batchReady={true} index={index} />
+                    </div>
+                  ))
+                ) : (
+                  activeListings.slice(0, 6).map((l, index) => (
+                    <ListingCard key={l.id} listing={l} priority={true} batchReady={true} index={index} />
+                  ))
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

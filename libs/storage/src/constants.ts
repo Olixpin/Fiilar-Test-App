@@ -10,6 +10,8 @@ export const STORAGE_KEYS = {
   BOOKINGS: 'fiilar_bookings',
   REVIEWS: 'fiilar_reviews',
   DAMAGE_REPORTS: 'fiilar_damage_reports',
+  ANALYTICS_EVENTS: 'fiilar_analytics_events',
+  LISTING_ANALYTICS: 'fiilar_listing_analytics',
 };
 
 

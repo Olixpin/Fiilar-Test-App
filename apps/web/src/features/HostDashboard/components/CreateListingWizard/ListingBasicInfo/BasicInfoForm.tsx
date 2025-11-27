@@ -1,14 +1,89 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { Listing, SpaceType, BookingType, PricingModel } from '@fiilar/types';
-import { Input, Select, TextArea } from '@fiilar/ui';
-import { Home, MapPin, DollarSign, Users, Moon, Calendar, Clock } from 'lucide-react';
+import { Input, Select, TextArea, useLocale } from '@fiilar/ui';
+import { Home, Moon, Calendar, Clock, Users, UserPlus, ChevronDown, ChevronUp, Settings2, Shield } from 'lucide-react';
 
 interface BasicInfoFormProps {
     newListing: Partial<Listing>;
     setNewListing: React.Dispatch<React.SetStateAction<Partial<Listing>>>;
 }
 
+// Validation rules configuration - based on industry standards (Airbnb, Peerspace)
+const VALIDATION_RULES = {
+    CAUTION_FEE_MAX_RATIO: 2,
+    EXTRA_GUEST_MAX_RATIO: 1,
+    MIN_PRICE: 1,
+    MIN_CAPACITY: 1,
+    MAX_TITLE_LENGTH: 100,
+};
+
 const BasicInfoForm: React.FC<BasicInfoFormProps> = ({ newListing, setNewListing }) => {
+    const { locale } = useLocale();
+    
+    // Track pricing mode with explicit state
+    const [pricingMode, setPricingMode] = useState<'flat' | 'tiered'>(() => {
+        if ((newListing.pricePerExtraGuest !== undefined && newListing.pricePerExtraGuest > 0) ||
+            (newListing.includedGuests !== undefined && newListing.capacity !== undefined && 
+             newListing.includedGuests < newListing.capacity)) {
+            return 'tiered';
+        }
+        return 'flat';
+    });
+
+    // Collapsible sections state - start closed unless there's existing data
+    const [showAdvancedPricing, setShowAdvancedPricing] = useState(() => {
+        return (newListing.pricePerExtraGuest !== undefined && newListing.pricePerExtraGuest > 0) ||
+               (newListing.cautionFee !== undefined && newListing.cautionFee > 0) ||
+               (newListing.includedGuests !== undefined && newListing.capacity !== undefined && 
+                newListing.includedGuests < newListing.capacity);
+    });
+
+    // Real-time validation for all pricing fields
+    const validationErrors = useMemo(() => {
+        const errors: Record<string, string> = {};
+        const price = newListing.price;
+        const cautionFee = newListing.cautionFee;
+        const pricePerExtraGuest = newListing.pricePerExtraGuest;
+        const capacity = newListing.capacity;
+        const includedGuests = newListing.includedGuests;
+
+        if (price !== undefined && price < VALIDATION_RULES.MIN_PRICE) {
+            errors.price = `Price must be at least ${locale.currencySymbol}${VALIDATION_RULES.MIN_PRICE}`;
+        }
+
+        if (cautionFee !== undefined && cautionFee > 0 && price !== undefined && price > 0) {
+            const maxCautionFee = price * VALIDATION_RULES.CAUTION_FEE_MAX_RATIO;
+            if (cautionFee > maxCautionFee) {
+                errors.cautionFee = `Security deposit seems too high. Maximum recommended: ${locale.currencySymbol}${maxCautionFee.toLocaleString()}`;
+            }
+        }
+
+        if (pricePerExtraGuest !== undefined && pricePerExtraGuest > 0 && price !== undefined && price > 0) {
+            if (pricePerExtraGuest > price) {
+                errors.pricePerExtraGuest = `Extra guest fee cannot exceed the base price (${locale.currencySymbol}${price.toLocaleString()})`;
+            }
+        }
+
+        if (capacity !== undefined && capacity < VALIDATION_RULES.MIN_CAPACITY) {
+            errors.capacity = `Capacity must be at least ${VALIDATION_RULES.MIN_CAPACITY} guest`;
+        }
+
+        if (includedGuests !== undefined && capacity !== undefined) {
+            if (includedGuests > capacity) {
+                errors.includedGuests = `Cannot exceed maximum capacity (${capacity} guests)`;
+            }
+            if (includedGuests < 1) {
+                errors.includedGuests = 'At least 1 guest must be included in base price';
+            }
+        }
+
+        if (newListing.title && newListing.title.length > VALIDATION_RULES.MAX_TITLE_LENGTH) {
+            errors.title = `Title cannot exceed ${VALIDATION_RULES.MAX_TITLE_LENGTH} characters`;
+        }
+
+        return errors;
+    }, [newListing.price, newListing.cautionFee, newListing.pricePerExtraGuest, newListing.capacity, newListing.includedGuests, newListing.title, locale.currencySymbol]);
+
     return (
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
             <div className="bg-linear-to-r from-gray-50 to-gray-100 px-6 py-4 border-b border-gray-200">
@@ -27,13 +102,16 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({ newListing, setNewListing
                         placeholder="e.g. Modern Studio in Lekki Phase 1"
                         value={newListing.title || ''}
                         onChange={(e) => setNewListing({ ...newListing, title: e.target.value })}
-                        helperText="Make it catchy and descriptive"
+                        helperText={!validationErrors.title ? "Make it catchy and descriptive" : undefined}
+                        error={validationErrors.title}
                         variant="glass"
                         inputSize="md"
                         fullWidth
                     />
                     {newListing.title && (
-                        <p className="text-xs text-gray-400 text-right mt-1">{newListing.title.length}/100</p>
+                        <p className={`text-xs text-right mt-1 ${validationErrors.title ? 'text-red-500' : 'text-gray-400'}`}>
+                            {newListing.title.length}/{VALIDATION_RULES.MAX_TITLE_LENGTH}
+                        </p>
                     )}
                 </div>
 
@@ -43,8 +121,6 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({ newListing, setNewListing
                         label="Space Type"
                         value={newListing.type}
                         onChange={(e) => setNewListing({ ...newListing, type: e.target.value as SpaceType })}
-                        icon={Home}
-                        iconPosition="left"
                         variant="glass"
                         helperText="What type of space are you listing?"
                     >
@@ -56,8 +132,6 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({ newListing, setNewListing
                         placeholder="e.g. Lekki Phase 1, Lagos"
                         value={newListing.location || ''}
                         onChange={(e) => setNewListing({ ...newListing, location: e.target.value })}
-                        icon={MapPin}
-                        iconPosition="left"
                         variant="glass"
                         helperText="Publicly visible. General area only."
                         fullWidth
@@ -70,8 +144,6 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({ newListing, setNewListing
                     placeholder="e.g. 123 Admiralty Way, Lekki Phase 1"
                     value={newListing.address || ''}
                     onChange={(e) => setNewListing({ ...newListing, address: e.target.value })}
-                    icon={Home}
-                    iconPosition="left"
                     variant="glass"
                     helperText="Only shared with guests after booking is confirmed."
                     fullWidth
@@ -79,15 +151,14 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({ newListing, setNewListing
 
                 {/* Pricing Model Selection */}
                 <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-3">How do guests book your space?</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-3">How do guests book your space? <span className="text-red-500">*</span></label>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {/* NIGHTLY */}
                         <button
                             type="button"
                             onClick={() => setNewListing({
                                 ...newListing,
                                 pricingModel: PricingModel.NIGHTLY,
-                                priceUnit: BookingType.DAILY // For backward compatibility
+                                priceUnit: BookingType.DAILY
                             })}
                             className={`p-4 rounded-xl border-2 transition-all text-left ${newListing.pricingModel === PricingModel.NIGHTLY
                                     ? 'border-brand-500 bg-brand-50'
@@ -102,13 +173,12 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({ newListing, setNewListing
                             <p className="text-xs text-gray-500 mt-1">Guests book by the night</p>
                         </button>
 
-                        {/* DAILY */}
                         <button
                             type="button"
                             onClick={() => setNewListing({
                                 ...newListing,
                                 pricingModel: PricingModel.DAILY,
-                                priceUnit: BookingType.DAILY // For backward compatibility
+                                priceUnit: BookingType.DAILY
                             })}
                             className={`p-4 rounded-xl border-2 transition-all text-left ${newListing.pricingModel === PricingModel.DAILY
                                     ? 'border-brand-500 bg-brand-50'
@@ -123,13 +193,12 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({ newListing, setNewListing
                             <p className="text-xs text-gray-500 mt-1">Guests book the entire day</p>
                         </button>
 
-                        {/* HOURLY */}
                         <button
                             type="button"
                             onClick={() => setNewListing({
                                 ...newListing,
                                 pricingModel: PricingModel.HOURLY,
-                                priceUnit: BookingType.HOURLY // For backward compatibility
+                                priceUnit: BookingType.HOURLY
                             })}
                             className={`p-4 rounded-xl border-2 transition-all text-left ${newListing.pricingModel === PricingModel.HOURLY
                                     ? 'border-brand-500 bg-brand-50'
@@ -146,106 +215,200 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({ newListing, setNewListing
                     </div>
                 </div>
 
-                {/* Price Input */}
-                <div>
+                {/* Price & Capacity Row */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <Input
-                        label="Price"
+                        label={`Price (${locale.currencySymbol})`}
                         type="number"
                         placeholder="0.00"
+                        min="1"
                         value={newListing.price ?? ''}
                         onChange={(e) => {
                             const val = parseFloat(e.target.value);
                             setNewListing({ ...newListing, price: isNaN(val) ? undefined : val });
                         }}
-                        icon={DollarSign}
-                        iconPosition="left"
                         variant="glass"
-                        helperText={`Set your base rate per ${newListing.pricingModel === PricingModel.NIGHTLY ? 'night' : newListing.pricingModel === PricingModel.DAILY ? 'day' : 'hour'}`}
+                        helperText={!validationErrors.price ? `Per ${newListing.pricingModel === PricingModel.NIGHTLY ? 'night' : newListing.pricingModel === PricingModel.DAILY ? 'day' : 'hour'}` : undefined}
+                        error={validationErrors.price}
                         fullWidth
                     />
-                </div>
 
-                {/* Capacity & Included Guests */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <Input
                         label="Maximum Capacity"
                         type="number"
                         min="1"
+                        placeholder="1"
                         value={newListing.capacity ?? ''}
                         onChange={(e) => {
                             const val = parseInt(e.target.value);
-                            setNewListing({ ...newListing, capacity: isNaN(val) ? undefined : val });
-                        }}
-                        icon={Users}
-                        iconPosition="left"
-                        variant="glass"
-                        helperText="Maximum number of guests"
-                        fullWidth
-                    />
-
-                    <Input
-                        label="Base Price Covers"
-                        type="number"
-                        min="1"
-                        value={newListing.includedGuests ?? ''}
-                        onChange={(e) => {
-                            const val = parseInt(e.target.value);
-                            setNewListing({ ...newListing, includedGuests: isNaN(val) ? undefined : val });
+                            const updates: Partial<Listing> = { capacity: isNaN(val) ? undefined : val };
+                            if (pricingMode === 'flat' && !isNaN(val)) {
+                                updates.includedGuests = val;
+                            }
+                            setNewListing({ ...newListing, ...updates });
                         }}
                         variant="glass"
-                        helperText="Number of guests included in base price"
+                        helperText={!validationErrors.capacity ? "Maximum guests allowed" : undefined}
+                        error={validationErrors.capacity}
                         fullWidth
                     />
                 </div>
-
-                {/* Extra Cost Per Guest */}
-                <Input
-                    label="Extra Cost Per Guest"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    placeholder="0"
-                    value={newListing.pricePerExtraGuest ?? ''}
-                    onChange={(e) => {
-                        const val = parseFloat(e.target.value);
-                        setNewListing({ ...newListing, pricePerExtraGuest: isNaN(val) ? undefined : val });
-                    }}
-                    variant="glass"
-                    helperText="Charge per additional guest beyond base price coverage"
-                    fullWidth
-                />
-
-                {/* Caution Fee / Security Deposit */}
-                <Input
-                    label="Caution Fee / Security Deposit"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    placeholder="0.00"
-                    value={newListing.cautionFee ?? ''}
-                    onChange={(e) => {
-                        const val = parseFloat(e.target.value);
-                        setNewListing({ ...newListing, cautionFee: isNaN(val) ? undefined : val });
-                    }}
-                    variant="glass"
-                    helperText="This amount will be added to the total but is refundable if no damages occur."
-                    fullWidth
-                />
 
                 {/* Description */}
                 <div>
                     <TextArea
                         label="Description"
-                        placeholder="Describe your space in detail... What makes it special? What amenities do you offer? What's the neighborhood like?"
+                        placeholder="Describe what makes your space special..."
                         value={newListing.description || ''}
                         onChange={(e) => setNewListing({ ...newListing, description: e.target.value })}
                         variant="glass"
                         resize="none"
                         helperText="Help guests imagine staying at your place"
-                        rows={5}
+                        rows={4}
                     />
                     {newListing.description && (
                         <p className="text-xs text-gray-400 text-right mt-1">{newListing.description.length} characters</p>
+                    )}
+                </div>
+
+                {/* Advanced Pricing Options - Collapsible */}
+                <div className="border border-gray-200 rounded-xl overflow-hidden">
+                    <button
+                        type="button"
+                        onClick={() => setShowAdvancedPricing(!showAdvancedPricing)}
+                        className="w-full px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors flex items-center justify-between"
+                    >
+                        <div className="flex items-center gap-2">
+                            <Settings2 size={16} className="text-gray-500" />
+                            <span className="text-sm font-medium text-gray-700">Advanced Pricing Options</span>
+                            <span className="text-xs text-gray-400 font-normal">(Optional)</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            {(pricingMode === 'tiered' || (newListing.cautionFee && newListing.cautionFee > 0)) && (
+                                <span className="text-xs bg-brand-100 text-brand-700 px-2 py-0.5 rounded-full">
+                                    {pricingMode === 'tiered' && newListing.cautionFee && newListing.cautionFee > 0 
+                                        ? '2 set' 
+                                        : '1 set'}
+                                </span>
+                            )}
+                            {showAdvancedPricing ? <ChevronUp size={18} className="text-gray-400" /> : <ChevronDown size={18} className="text-gray-400" />}
+                        </div>
+                    </button>
+                    
+                    {showAdvancedPricing && (
+                        <div className="p-4 space-y-5 border-t border-gray-200 bg-white">
+                            {/* Guest Pricing Mode Toggle */}
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-3">Guest Pricing</label>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setPricingMode('flat');
+                                            setNewListing({
+                                                ...newListing,
+                                                includedGuests: newListing.capacity || 1,
+                                                pricePerExtraGuest: 0
+                                            });
+                                        }}
+                                        className={`p-3 rounded-xl border-2 transition-all text-left ${pricingMode === 'flat'
+                                            ? 'border-brand-500 bg-brand-50'
+                                            : 'border-gray-200 hover:border-gray-300'
+                                        }`}
+                                    >
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <Users size={18} className={pricingMode === 'flat' ? 'text-brand-600' : 'text-gray-400'} />
+                                            <span className="font-semibold text-gray-900 text-sm">Flat Rate</span>
+                                        </div>
+                                        <p className="text-xs text-gray-500">Same price for all guests</p>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setPricingMode('tiered');
+                                            setNewListing({
+                                                ...newListing,
+                                                includedGuests: Math.min(newListing.includedGuests || 1, (newListing.capacity || 1) - 1) || 1,
+                                                pricePerExtraGuest: newListing.pricePerExtraGuest || undefined
+                                            });
+                                        }}
+                                        className={`p-3 rounded-xl border-2 transition-all text-left ${pricingMode === 'tiered'
+                                            ? 'border-brand-500 bg-brand-50'
+                                            : 'border-gray-200 hover:border-gray-300'
+                                        }`}
+                                    >
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <UserPlus size={18} className={pricingMode === 'tiered' ? 'text-brand-600' : 'text-gray-400'} />
+                                            <span className="font-semibold text-gray-900 text-sm">Per Guest</span>
+                                        </div>
+                                        <p className="text-xs text-gray-500">Charge extra per guest</p>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Tiered Pricing Fields */}
+                            {pricingMode === 'tiered' && (
+                                <div className="grid grid-cols-2 gap-4 p-3 bg-gray-50 rounded-xl">
+                                    <Input
+                                        label="Base Price Covers"
+                                        type="number"
+                                        min="1"
+                                        placeholder="1"
+                                        value={newListing.includedGuests ?? ''}
+                                        onChange={(e) => {
+                                            const val = parseInt(e.target.value);
+                                            setNewListing({ ...newListing, includedGuests: isNaN(val) ? undefined : val });
+                                        }}
+                                        variant="glass"
+                                        helperText={!validationErrors.includedGuests ? "Guests included" : undefined}
+                                        error={validationErrors.includedGuests}
+                                        fullWidth
+                                    />
+
+                                    <Input
+                                        label={`Extra Guest Fee (${locale.currencySymbol})`}
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        placeholder="0"
+                                        value={newListing.pricePerExtraGuest ?? ''}
+                                        onChange={(e) => {
+                                            const val = parseFloat(e.target.value);
+                                            setNewListing({ ...newListing, pricePerExtraGuest: isNaN(val) ? undefined : val });
+                                        }}
+                                        variant="glass"
+                                        helperText={!validationErrors.pricePerExtraGuest ? "Per extra guest" : undefined}
+                                        error={validationErrors.pricePerExtraGuest}
+                                        fullWidth
+                                    />
+                                </div>
+                            )}
+
+                            {/* Security Deposit */}
+                            <div>
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Shield size={14} className="text-gray-400" />
+                                    <label className="text-sm font-medium text-gray-700">Security Deposit</label>
+                                </div>
+                                <Input
+                                    label={`Amount (${locale.currencySymbol})`}
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    placeholder="0.00"
+                                    value={newListing.cautionFee ?? ''}
+                                    onChange={(e) => {
+                                        const val = parseFloat(e.target.value);
+                                        setNewListing({ ...newListing, cautionFee: isNaN(val) ? undefined : val });
+                                    }}
+                                    variant="glass"
+                                    helperText={!validationErrors.cautionFee ? "Refundable deposit held during booking" : undefined}
+                                    error={validationErrors.cautionFee}
+                                    fullWidth
+                                />
+                            </div>
+                        </div>
                     )}
                 </div>
             </div>

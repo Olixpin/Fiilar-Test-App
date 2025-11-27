@@ -4,7 +4,6 @@ import { X, ShieldCheck, CreditCard, Wallet, AlertCircle, Loader2, Star, Info, C
 import { useScrollLock } from '../../../../hooks/useScrollLock';
 import { formatCurrency } from '../../../../utils/currency';
 import { getAverageRating, getReviews } from '@fiilar/reviews';
-import { useNavigate } from 'react-router-dom';
 import { Button } from '@fiilar/ui';
 
 interface ConfirmModalProps {
@@ -34,7 +33,6 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   isBookingLoading,
   handleConfirmBooking
 }) => {
-  const navigate = useNavigate();
   useScrollLock(isOpen);
 
   if (!isOpen || !pendingBooking) return null;
@@ -200,21 +198,25 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
                   </div>
                   <span className="text-sm text-gray-700 group-hover:text-gray-900 transition-colors select-none">
                     I agree to the{' '}
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); navigate('/terms'); }}
+                    <a
+                      href="/terms"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
                       className="text-brand-600 hover:text-brand-700 font-semibold underline decoration-brand-600/30 hover:decoration-brand-700 underline-offset-2"
                     >
                       Host's House Rules
-                    </button>
+                    </a>
                     , Ground rules for guests, and Fiilar's{' '}
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); navigate('/terms'); }}
+                    <a
+                      href="/terms"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
                       className="text-brand-600 hover:text-brand-700 font-semibold underline decoration-brand-600/30 hover:decoration-brand-700 underline-offset-2"
                     >
                       Rebooking and Refund Policy
-                    </button>
+                    </a>
                     .
                   </span>
                 </div>

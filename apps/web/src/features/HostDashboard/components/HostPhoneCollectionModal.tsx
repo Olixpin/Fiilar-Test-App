@@ -120,6 +120,7 @@ const HostPhoneCollectionModal: React.FC<HostPhoneCollectionModalProps> = ({ use
             <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-300 relative border border-white/20">
                 <button
                     onClick={onClose}
+                    aria-label="Close modal"
                     className="absolute top-6 right-6 p-2 hover:bg-gray-50 rounded-full transition-colors text-gray-400 hover:text-gray-900 z-10"
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>

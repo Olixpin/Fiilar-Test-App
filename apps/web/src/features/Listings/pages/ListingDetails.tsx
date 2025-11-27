@@ -7,6 +7,7 @@ import { SectionNav } from '../components/ListingDetails/SectionNav';
 import ShareModal from '../components/ShareModal';
 import ImmersiveGallery from '../components/ImmersiveGallery';
 import { formatCurrency } from '../../../utils/currency';
+import { ConfirmDialog } from '@fiilar/ui';
 
 // New Component Imports
 import { ListingHeader } from '../components/ListingDetails/ListingHeader';
@@ -82,7 +83,12 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
     handleContactHost,
     handleConfirmBooking,
     handleVerificationComplete,
-    handleShare
+    handleShare,
+    // Booking Draft
+    draftRestoreDialog,
+    handleRestoreBookingDraft,
+    handleDiscardBookingDraft,
+    formatDraftAge
   } = useListingDetails({ listing, user, onBook, onVerify, onLogin, onRefreshUser });
 
   const [showPriceBreakdownModal, setShowPriceBreakdownModal] = useState(false);
@@ -376,6 +382,18 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
           setAgreedToTerms={setAgreedToTerms}
           isBookingLoading={isBookingLoading}
           handleConfirmBooking={handleConfirmBooking}
+        />
+
+        {/* Booking Draft Restore Dialog */}
+        <ConfirmDialog
+          isOpen={draftRestoreDialog.isOpen}
+          title="Continue where you left off?"
+          message={`You have an unfinished booking${draftRestoreDialog.draft?.listingTitle ? ` for "${draftRestoreDialog.draft.listingTitle}"` : ''}${draftRestoreDialog.draft?.savedAt ? ` (${formatDraftAge(draftRestoreDialog.draft.savedAt)})` : ''}. Would you like to restore your selections?`}
+          confirmText="Restore Booking"
+          cancelText="Start Fresh"
+          variant="info"
+          onConfirm={handleRestoreBookingDraft}
+          onCancel={handleDiscardBookingDraft}
         />
       </div>
     </div>

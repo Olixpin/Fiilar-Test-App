@@ -9,6 +9,7 @@ import {
     logSecurityEvent 
 } from '../security/bookingSecurity';
 import { logAuditEvent } from '../security/authSecurity';
+import { authorizeBookingModification, getAuthenticatedUser } from '../security/authorization';
 
 // Types for booking results
 export interface BookingResult {
@@ -94,6 +95,23 @@ export const createBooking = (booking: Booking): Booking => {
 
     bookings.push(newBooking);
     localStorage.setItem(STORAGE_KEYS.BOOKINGS, JSON.stringify(bookings));
+
+    // Dispatch event to notify app of booking update
+    if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('fiilar:bookings-updated', { detail: { booking: newBooking } }));
+    }
+
+    // Track booking for analytics (only for confirmed bookings)
+    if (booking.status === 'Confirmed' || booking.status === 'Pending') {
+        try {
+            // Dynamic import to avoid circular dependency
+            import('../analytics').then(({ trackBooking }) => {
+                trackBooking(booking.listingId, booking.userId, newBooking.id);
+            });
+        } catch (e) {
+            // Analytics tracking is non-critical
+        }
+    }
 
     console.log('✅ API RESPONSE: Booking created', {
         bookingId: newBooking.id,
@@ -300,9 +318,20 @@ export const isValidStatusTransition = (from: string, to: string): boolean => {
 
 /**
  * Update an existing booking with status transition validation
+ * SECURITY: Validates that the current user is authorized to modify this booking
  * Returns void for backward compatibility, but logs violations
  */
 export const updateBooking = (booking: Booking): void => {
+    // SECURITY CHECK: Verify user is authorized to modify this booking
+    const authCheck = authorizeBookingModification(booking.id);
+    if (!authCheck.authorized) {
+        console.error('🚨 SECURITY: Unauthorized booking modification attempt', {
+            bookingId: booking.id,
+            error: authCheck.error
+        });
+        return;
+    }
+
     const bookings = getBookings();
     const idx = bookings.findIndex(b => b.id === booking.id);
     if (idx < 0) {
@@ -338,13 +367,25 @@ export const updateBooking = (booking: Booking): void => {
     
     bookings[idx] = booking;
     localStorage.setItem(STORAGE_KEYS.BOOKINGS, JSON.stringify(bookings));
+
+    // Dispatch event to notify app of booking update
+    if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('fiilar:bookings-updated', { detail: { booking } }));
+    }
 };
 
 /**
  * Update an existing booking with validation - returns result object
+ * SECURITY: Validates that the current user is authorized to modify this booking
  * Use this for new code that needs to handle validation errors
  */
 export const updateBookingSecure = (booking: Booking): { success: boolean; error?: string } => {
+    // SECURITY CHECK: Verify user is authorized to modify this booking
+    const authCheck = authorizeBookingModification(booking.id);
+    if (!authCheck.authorized) {
+        return { success: false, error: authCheck.error };
+    }
+
     const bookings = getBookings();
     const idx = bookings.findIndex(b => b.id === booking.id);
     if (idx < 0) {
@@ -376,26 +417,63 @@ export const updateBookingSecure = (booking: Booking): { success: boolean; error
     
     bookings[idx] = booking;
     localStorage.setItem(STORAGE_KEYS.BOOKINGS, JSON.stringify(bookings));
+
+    // Dispatch event to notify app of booking update
+    if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('fiilar:bookings-updated', { detail: { booking } }));
+    }
+
     return { success: true };
 };
 
 /**
  * Set whether a booking can be modified
+ * SECURITY: Validates that the current user is authorized to modify this booking
  */
-export const setModificationAllowed = (bookingId: string, allowed: boolean) => {
+export const setModificationAllowed = (bookingId: string, allowed: boolean): boolean => {
+    // SECURITY CHECK: Verify user is authorized to modify this booking
+    const authCheck = authorizeBookingModification(bookingId);
+    if (!authCheck.authorized) {
+        console.error('🚨 SECURITY: Unauthorized setModificationAllowed attempt', {
+            bookingId,
+            error: authCheck.error
+        });
+        return false;
+    }
+
     const bookings = getBookings();
     const idx = bookings.findIndex(b => b.id === bookingId);
     if (idx >= 0) {
         bookings[idx].modificationAllowed = allowed;
         localStorage.setItem(STORAGE_KEYS.BOOKINGS, JSON.stringify(bookings));
+        return true;
     }
+    return false;
 };
 
 /**
  * Delete a booking by ID
+ * SECURITY: Validates that the current user is authorized to delete this booking
  */
-export const deleteBooking = (id: string) => {
+export const deleteBooking = (id: string): boolean => {
+    // SECURITY CHECK: Verify user is authorized to delete this booking
+    const authCheck = authorizeBookingModification(id);
+    if (!authCheck.authorized) {
+        console.error('🚨 SECURITY: Unauthorized booking deletion attempt', {
+            bookingId: id,
+            error: authCheck.error
+        });
+        return false;
+    }
+
     const bookings = getBookings();
     const updatedBookings = bookings.filter(b => b.id !== id);
     localStorage.setItem(STORAGE_KEYS.BOOKINGS, JSON.stringify(updatedBookings));
+
+    // Dispatch event to notify app of booking update
+    if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('fiilar:bookings-updated', { detail: { deletedId: id } }));
+    }
+    
+    return true;
 };

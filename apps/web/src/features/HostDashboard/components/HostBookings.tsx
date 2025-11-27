@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Booking, Listing } from '@fiilar/types';
 import { Briefcase, FileText, MapPin, Calendar as CalendarIcon, CheckCircle, X, DollarSign, ShieldCheck, MessageCircle, Edit } from 'lucide-react';
-import { Button, Input } from '@fiilar/ui';
+import { Button, Input, useLocale } from '@fiilar/ui';
 
 interface HostBookingsProps {
     bookings: Booking[];
@@ -19,22 +19,23 @@ interface HostBookingsProps {
 }
 
 const formatTimeRange = (hours?: number[]) => {
-  if (!hours || hours.length === 0) return null;
-  const sorted = [...hours].sort((a, b) => a - b);
-  const start = sorted[0];
-  const end = sorted[sorted.length - 1] + 1;
-  
-  const formatHour = (h: number) => {
-    const ampm = h >= 12 ? 'PM' : 'AM';
-    const hour12 = h % 12 || 12;
-    return `${hour12}:00 ${ampm}`;
-  };
+    if (!hours || hours.length === 0) return null;
+    const sorted = [...hours].sort((a, b) => a - b);
+    const start = sorted[0];
+    const end = sorted[sorted.length - 1] + 1;
 
-  return `${formatHour(start)} - ${formatHour(end)}`;
+    const formatHour = (h: number) => {
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        const hour12 = h % 12 || 12;
+        return `${hour12}:00 ${ampm}`;
+    };
+
+    return `${formatHour(start)} - ${formatHour(end)}`;
 };
 
 const HostBookings: React.FC<HostBookingsProps> = ({ bookings, listings, filter, setFilter, view, setView, onAccept, onReject, onRelease, onVerify, onAllowModification }) => {
     const navigate = useNavigate();
+    const { locale } = useLocale();
     const [verifyingId, setVerifyingId] = useState<string | null>(null);
     const [verificationCode, setVerificationCode] = useState('');
     const [verificationError, setVerificationError] = useState(false);
@@ -146,49 +147,51 @@ const HostBookings: React.FC<HostBookingsProps> = ({ bookings, listings, filter,
             )}
 
             {/* Header with Filters */}
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                    <div>
-                        <h2 className="text-xl font-bold text-gray-900">Bookings</h2>
-                        <p className="text-sm text-gray-500 mt-1">Manage your space bookings and payouts</p>
-                    </div>
-                    <div className="flex items-center gap-2">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+                <div>
+                    <h2 className="text-2xl font-bold text-gray-900">Bookings</h2>
+                    <p className="text-sm text-gray-500 mt-1">Manage your space bookings and payouts</p>
+                </div>
+
+                <div className="flex items-center gap-4">
+                    {/* View Toggle */}
+                    <div className="flex p-1 bg-gray-100 rounded-lg">
                         <button
                             onClick={() => setView('cards')}
-                            className={`p-2 rounded-lg transition-colors ${view === 'cards' ? 'bg-brand-100 text-brand-700' : 'text-gray-400 hover:bg-gray-100'}`}
+                            className={`p-2 rounded-md transition-all ${view === 'cards' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                             title="Card view"
                         >
-                            <Briefcase size={18} />
+                            <Briefcase size={20} />
                         </button>
                         <button
                             onClick={() => setView('table')}
-                            className={`p-2 rounded-lg transition-colors ${view === 'table' ? 'bg-brand-100 text-brand-700' : 'text-gray-400 hover:bg-gray-100'}`}
+                            className={`p-2 rounded-md transition-all ${view === 'table' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                             title="Table view"
                         >
-                            <FileText size={18} />
+                            <FileText size={20} />
                         </button>
                     </div>
-                </div>
 
-                {/* Filter Tabs */}
-                <div className="flex gap-2 mt-4 overflow-x-auto pb-2">
-                    {[
-                        { key: 'all', label: 'All', count: bookings.length },
-                        { key: 'pending', label: 'Pending', count: bookings.filter(b => b.status === 'Pending').length },
-                        { key: 'confirmed', label: 'Confirmed', count: bookings.filter(b => b.status === 'Confirmed').length },
-                        { key: 'completed', label: 'Completed', count: bookings.filter(b => b.status === 'Completed').length }
-                    ].map(f => (
-                        <button
-                            key={f.key}
-                            onClick={() => setFilter(f.key as any)}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${filter === f.key
-                                ? 'bg-brand-600 text-white'
-                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                }`}
-                        >
-                            {f.label} {f.count > 0 && `(${f.count})`}
-                        </button>
-                    ))}
+                    {/* Filter Tabs */}
+                    <div className="flex p-1 bg-gray-100 rounded-xl overflow-x-auto no-scrollbar">
+                        {[
+                            { key: 'all', label: 'All', count: bookings.length },
+                            { key: 'pending', label: 'Pending', count: bookings.filter(b => b.status === 'Pending').length },
+                            { key: 'confirmed', label: 'Confirmed', count: bookings.filter(b => b.status === 'Confirmed').length },
+                            { key: 'completed', label: 'Completed', count: bookings.filter(b => b.status === 'Completed').length }
+                        ].map(f => (
+                            <button
+                                key={f.key}
+                                onClick={() => setFilter(f.key as any)}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${filter === f.key
+                                    ? 'bg-white text-gray-900 shadow-sm'
+                                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
+                                    }`}
+                            >
+                                {f.label} {f.count > 0 && `(${f.count})`}
+                            </button>
+                        ))}
+                    </div>
                 </div>
             </div>
 
@@ -236,7 +239,7 @@ const HostBookings: React.FC<HostBookingsProps> = ({ bookings, listings, filter,
                                                     <p className="text-xs text-gray-500 mb-1 flex items-center gap-1">
                                                         <MapPin size={10} /> {listing?.location}
                                                     </p>
-                                                    
+
                                                     {isGroup ? (
                                                         <div className="mb-2">
                                                             <p className="text-xs text-gray-600 font-medium mb-1">Session Dates:</p>
@@ -260,7 +263,7 @@ const HostBookings: React.FC<HostBookingsProps> = ({ bookings, listings, filter,
                                                     )}
 
                                                     <div className="flex items-center gap-3 text-xs">
-                                                        <span className="font-bold text-gray-900">${totalPrice.toFixed(2)}</span>
+                                                        <span className="font-bold text-gray-900">{locale.currencySymbol}{totalPrice.toFixed(2)}</span>
                                                         <span className={`px-2 py-0.5 rounded-full font-semibold ${booking.paymentStatus === 'Released' ? 'bg-green-100 text-green-700' :
                                                             booking.paymentStatus === 'Refunded' ? 'bg-red-100 text-red-700' :
                                                                 'bg-blue-100 text-blue-700'
@@ -387,7 +390,7 @@ const HostBookings: React.FC<HostBookingsProps> = ({ bookings, listings, filter,
                                                             )}
                                                         </td>
                                                         <td className="px-6 py-4 whitespace-nowrap">
-                                                            <div className="text-sm font-bold text-gray-900">${totalPrice.toFixed(2)}</div>
+                                                            <div className="text-sm font-bold text-gray-900">{locale.currencySymbol}{totalPrice.toFixed(2)}</div>
                                                         </td>
                                                         <td className="px-6 py-4 whitespace-nowrap">
                                                             <span className={`px-2 py-1 text-xs font-bold rounded-full ${booking.status === 'Confirmed' ? 'bg-green-100 text-green-800' :

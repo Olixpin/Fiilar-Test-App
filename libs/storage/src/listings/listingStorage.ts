@@ -1,5 +1,7 @@
-import { Listing, Review, BookingType } from '@fiilar/types';
+import { Listing, Review, BookingType, Role } from '@fiilar/types';
 import { STORAGE_KEYS } from '../constants';
+import { authorizeListingModification, getAuthenticatedUser, authorizeAdminOperation } from '../security/authorization';
+import { logAuditEvent } from '../security/authSecurity';
 
 /**
  * Get all listings with aggregated review data
@@ -40,7 +42,7 @@ export const getListings = (): Listing[] => {
             };
         }
 
-        return listing;
+        return listingWithDefaults;
     });
 };
 
@@ -54,23 +56,127 @@ export const getListingById = (id: string): Listing | undefined => {
 
 /**
  * Save a listing (create or update)
+ * SECURITY: For updates, validates that the current user owns the listing or is an admin
+ * For new listings, validates that user is a host
  */
-export const saveListing = (listing: Listing) => {
+export const saveListing = (listing: Listing): { success: boolean; error?: string } => {
     const listings = getListings();
     const idx = listings.findIndex(l => l.id === listing.id);
-    if (idx >= 0) {
+    const isUpdate = idx >= 0;
+    
+    if (isUpdate) {
+        // SECURITY CHECK: Verify user is authorized to modify this listing
+        const authCheck = authorizeListingModification(listing.id);
+        if (!authCheck.authorized) {
+            console.error('🚨 SECURITY: Unauthorized listing modification attempt', {
+                listingId: listing.id,
+                error: authCheck.error
+            });
+            return { success: false, error: authCheck.error };
+        }
         listings[idx] = listing;
     } else {
+        // For new listings, verify user is a host or admin
+        const currentUser = getAuthenticatedUser();
+        if (!currentUser) {
+            logAuditEvent({
+                action: 'SECURITY_VIOLATION',
+                success: false,
+                metadata: { type: 'UNAUTHENTICATED_LISTING_CREATE' }
+            });
+            return { success: false, error: 'Not authenticated' };
+        }
+        
+        if (currentUser.role !== Role.HOST && currentUser.role !== Role.ADMIN) {
+            logAuditEvent({
+                action: 'SECURITY_VIOLATION',
+                userId: currentUser.id,
+                success: false,
+                metadata: { 
+                    type: 'UNAUTHORIZED_LISTING_CREATE',
+                    role: currentUser.role
+                }
+            });
+            return { success: false, error: 'Only hosts can create listings' };
+        }
+        
+        // Ensure the listing hostId matches the current user (except for admins)
+        if (currentUser.role !== Role.ADMIN && listing.hostId !== currentUser.id) {
+            logAuditEvent({
+                action: 'SECURITY_VIOLATION',
+                userId: currentUser.id,
+                success: false,
+                metadata: { 
+                    type: 'LISTING_HOST_MISMATCH',
+                    listingHostId: listing.hostId,
+                    currentUserId: currentUser.id
+                }
+            });
+            return { success: false, error: 'Cannot create listing for another user' };
+        }
+        
         listings.push(listing);
     }
-    localStorage.setItem(STORAGE_KEYS.LISTINGS, JSON.stringify(listings));
+    
+    try {
+        localStorage.setItem(STORAGE_KEYS.LISTINGS, JSON.stringify(listings));
+        return { success: true };
+    } catch (error) {
+        if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+            console.error('🚨 Storage quota exceeded when saving listing');
+            // Try to clean up and retry
+            cleanupStorageSpace();
+            try {
+                localStorage.setItem(STORAGE_KEYS.LISTINGS, JSON.stringify(listings));
+                return { success: true };
+            } catch {
+                return { success: false, error: 'Storage quota exceeded. Please clear some browser data or remove old listings.' };
+            }
+        }
+        console.error('Failed to save listing:', error);
+        return { success: false, error: 'Failed to save listing' };
+    }
+};
+
+/**
+ * Clean up storage space by removing old drafts and analytics data
+ */
+const cleanupStorageSpace = () => {
+    // Remove old listing drafts
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith('listing_draft_') || key.startsWith('fiilar_analytics'))) {
+            keysToRemove.push(key);
+        }
+    }
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+    console.log(`Cleaned up ${keysToRemove.length} items to free storage space`);
 };
 
 /**
  * Delete a listing by ID
+ * SECURITY: Validates that the current user owns the listing or is an admin
  */
-export const deleteListing = (id: string) => {
+export const deleteListing = (id: string): { success: boolean; error?: string } => {
+    // SECURITY CHECK: Verify user is authorized to delete this listing
+    const authCheck = authorizeListingModification(id);
+    if (!authCheck.authorized) {
+        console.error('🚨 SECURITY: Unauthorized listing deletion attempt', {
+            listingId: id,
+            error: authCheck.error
+        });
+        return { success: false, error: authCheck.error };
+    }
+
     const listings = getListings();
     const updatedListings = listings.filter(l => l.id !== id);
-    localStorage.setItem(STORAGE_KEYS.LISTINGS, JSON.stringify(updatedListings));
+    
+    try {
+        localStorage.setItem(STORAGE_KEYS.LISTINGS, JSON.stringify(updatedListings));
+        return { success: true };
+    } catch (error) {
+        console.error('Failed to delete listing:', error);
+        return { success: false, error: 'Failed to delete listing' };
+    }
 };

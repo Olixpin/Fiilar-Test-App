@@ -34,6 +34,7 @@ interface AccountSettingsProps {
     setDeleteConfirmText: (text: string) => void;
     isDeleting: boolean;
     handleDeleteAccount: () => void;
+    onUserUpdate?: () => void;
 }
 
 export const AccountSettings: React.FC<AccountSettingsProps> = ({
@@ -51,28 +52,31 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
     deleteConfirmText,
     setDeleteConfirmText,
     isDeleting,
-    handleDeleteAccount
+    handleDeleteAccount,
+    onUserUpdate
 }) => {
     return (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 space-y-6">
-            <div className="flex justify-between items-start">
+        <div className="space-y-8">
+            <div className="flex justify-between items-start border-b border-gray-100 pb-6">
                 <div>
-                    <h2 className="text-xl font-bold text-gray-900 mb-1">Account Settings</h2>
-                    <p className="text-gray-600 text-sm">Manage your account information and preferences</p>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-1">Account Settings</h2>
+                    <p className="text-gray-500">Manage your personal information and security preferences.</p>
                 </div>
                 {!isEditing ? (
                     <Button
                         onClick={() => setIsEditing(true)}
-                        variant="ghost"
+                        variant="outline"
+                        className="rounded-xl"
                     >
                         Edit Profile
                     </Button>
                 ) : (
-                    <div className="flex gap-2">
+                    <div className="flex gap-3">
                         <Button
                             onClick={() => setIsEditing(false)}
                             variant="ghost"
                             disabled={isSaving}
+                            className="rounded-xl"
                         >
                             Cancel
                         </Button>
@@ -80,6 +84,7 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
                             onClick={handleSaveProfile}
                             disabled={isSaving}
                             variant="primary"
+                            className="rounded-xl"
                         >
                             {isSaving ? 'Saving...' : 'Save Changes'}
                         </Button>
@@ -92,6 +97,7 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({
                 formData={formData}
                 setFormData={setFormData}
                 isEditing={isEditing}
+                onUserUpdate={onUserUpdate}
             />
 
             <NotificationPreferences

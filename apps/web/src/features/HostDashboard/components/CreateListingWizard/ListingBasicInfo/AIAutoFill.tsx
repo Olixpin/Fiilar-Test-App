@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button } from '@fiilar/ui';
+import { Button, useLocale } from '@fiilar/ui';
 import { Sparkles, ArrowRight, X } from 'lucide-react';
 
 interface AIAutoFillProps {
@@ -19,6 +19,8 @@ const AIAutoFill: React.FC<AIAutoFillProps> = ({
     showAiInput,
     setShowAiInput
 }) => {
+    const { locale } = useLocale();
+
     if (!showAiInput) {
         return (
             <button
@@ -63,7 +65,7 @@ const AIAutoFill: React.FC<AIAutoFillProps> = ({
                         <textarea
                             value={aiPrompt}
                             onChange={(e) => setAiPrompt(e.target.value)}
-                            placeholder="e.g. A modern 2-bedroom apartment in Lekki Phase 1 with a pool, gym, and 24/7 power. Great for families, $150 per night."
+                            placeholder={`e.g. A modern 2-bedroom apartment in Lekki Phase 1 with a pool, gym, and 24/7 power. Great for families, ${locale.currencySymbol}150,000 per night.`}
                             className="w-full p-4 pr-12 rounded-xl border-2 border-brand-200 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none min-h-[100px] bg-white shadow-sm transition-all"
                         />
                         <div className="absolute bottom-3 right-3">

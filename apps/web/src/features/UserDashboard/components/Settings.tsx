@@ -12,9 +12,10 @@ import { FeedbackSection } from './Settings/FeedbackSection';
 interface SettingsProps {
     user: User | null;
     onUpdateUser?: (updates: Partial<User>) => void;
+    onLogout?: () => void;
 }
 
-const Settings: React.FC<SettingsProps> = ({ user, onUpdateUser }) => {
+const Settings: React.FC<SettingsProps> = ({ user, onUpdateUser, onLogout }) => {
     const {
         activeTab,
         setActiveTab,
@@ -44,18 +45,19 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdateUser }) => {
     } = useSettingsData({ user, onUpdateUser });
 
     return (
-        <div className="max-w-6xl mx-auto relative">
+        <div className="relative h-full">
             <SuccessToast show={showSavedToast} />
 
-            <div className="flex items-center gap-3 mb-8">
+            {/* Header - Only show on mobile since sidebar handles nav on desktop */}
+            <div className="flex md:hidden items-center gap-3 mb-6">
                 <div className="p-2 bg-brand-100 rounded-lg text-brand-600">
-                    <SettingsIcon size={32} />
+                    <SettingsIcon size={24} />
                 </div>
-                <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
+                <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
             </div>
 
-            <div className="flex flex-col md:flex-row gap-6">
-                <SettingsSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+            <div className="flex flex-col md:flex-row gap-12 h-full">
+                <SettingsSidebar activeTab={activeTab} setActiveTab={setActiveTab} onLogout={onLogout} />
 
                 <div className="flex-1">
                     {activeTab === 'account' && (
@@ -75,6 +77,7 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdateUser }) => {
                             setDeleteConfirmText={setDeleteConfirmText}
                             isDeleting={isDeleting}
                             handleDeleteAccount={handleDeleteAccount}
+                            onUserUpdate={onUpdateUser}
                         />
                     )}
 

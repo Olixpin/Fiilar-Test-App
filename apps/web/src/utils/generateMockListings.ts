@@ -182,6 +182,23 @@ const generateListing = (index: number, hostId: string): Listing => {
   const capacity = randomNumber(2, 100);
   const includedGuests = Math.min(randomNumber(1, 5), capacity);
   
+  // Generate trending/analytics data
+  const popularity = Math.random(); // 0-1 factor
+  const viewCount = Math.floor(popularity * 500 + randomNumber(10, 100));
+  const bookingCount = Math.floor(popularity * viewCount * 0.05 + randomNumber(0, 10));
+  const favoriteCount = Math.floor(popularity * 30 + randomNumber(0, 10));
+  const rating = Math.round((3.5 + Math.random() * 1.5) * 10) / 10;
+  const reviewCount = randomNumber(0, 150);
+  
+  // Calculate trending score
+  const trendingScore = Math.round(
+    (bookingCount * 10) + 
+    (viewCount * 0.1) + 
+    (favoriteCount * 2) + 
+    (rating * reviewCount * 0.5) +
+    (popularity * 20) // Random boost
+  );
+  
   return {
     id: `listing_gen_${index}_${Date.now()}`,
     hostId,
@@ -223,8 +240,16 @@ const generateListing = (index: number, hostId: string): Listing => {
       minDuration: isHourly ? randomNumber(1, 3) : 1,
       instantBook: Math.random() > 0.7,
     },
-    rating: Math.round((3.5 + Math.random() * 1.5) * 10) / 10,
-    reviewCount: randomNumber(0, 150),
+    // Ratings & Analytics
+    rating,
+    reviewCount,
+    viewCount,
+    bookingCount,
+    favoriteCount,
+    trendingScore,
+    lastBookedAt: Math.random() > 0.3 
+      ? new Date(Date.now() - randomNumber(1, 30) * 24 * 60 * 60 * 1000).toISOString()
+      : undefined,
   };
 };
 

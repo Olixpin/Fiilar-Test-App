@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Listing, BookingType, PricingModel } from '@fiilar/types';
-import { Star, Heart, ImageOff, MapPin, Gem } from 'lucide-react';
+import { Star, Heart, ImageOff, MapPin, Gem, Clock } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
-import { getCurrentUser, toggleFavorite, getAllUsers } from '@fiilar/storage';
+import { getCurrentUser, toggleFavorite, getAllUsers, hasBookingDraft } from '@fiilar/storage';
 import { Badge } from '@fiilar/ui';
 import { formatCurrency } from '../../../utils/currency';
 
@@ -45,9 +45,32 @@ const ListingCard: React.FC<ListingCardProps> = ({
   const [hasError, setHasError] = useState(false);
   const [hostBadgeVariant, setHostBadgeVariant] = useState<BadgeVariant>(badgeVariant);
   const [isVisible, setIsVisible] = useState(false);
+  const [hasDraft, setHasDraft] = useState(false);
   
   // First 8 cards (priority) show instantly, others get simple CSS fade
   const isFirstBatch = priority;
+
+  // Check if user has a draft for this listing
+  useEffect(() => {
+    const checkDraftStatus = () => {
+      const user = getCurrentUser();
+      if (user) {
+        setHasDraft(hasBookingDraft(user.id, listing.id));
+      } else {
+        setHasDraft(false);
+      }
+    };
+
+    checkDraftStatus();
+
+    // Listen for draft updates (when drafts are deleted or changed)
+    const handler = () => checkDraftStatus();
+    window.addEventListener('fiilar:drafts-updated', handler);
+    
+    return () => {
+      window.removeEventListener('fiilar:drafts-updated', handler);
+    };
+  }, [listing.id]);
 
   // Preload image via JavaScript for proper batch control
   useEffect(() => {
@@ -106,9 +129,20 @@ const ListingCard: React.FC<ListingCardProps> = ({
   }, [listing.hostId, badgeVariant]);
 
   useEffect(() => {
-    const u = getCurrentUser();
-    if (!u) return;
-    setIsFavorite(u.favorites?.includes(listing.id) ?? false);
+    const checkFavoriteStatus = () => {
+      const u = getCurrentUser();
+      if (!u) return;
+      setIsFavorite(u.favorites?.includes(listing.id) ?? false);
+    };
+
+    checkFavoriteStatus();
+
+    const handler = () => checkFavoriteStatus();
+    window.addEventListener('fiilar:user-updated', handler);
+    
+    return () => {
+      window.removeEventListener('fiilar:user-updated', handler);
+    };
   }, [listing.id]);
 
   const handleFavoriteClick = (e: React.MouseEvent) => {
@@ -121,8 +155,11 @@ const ListingCard: React.FC<ListingCardProps> = ({
       return;
     }
 
-    toggleFavorite(user.id, listing.id);
-    setIsFavorite((prev) => !prev);
+    // toggleFavorite will update storage and dispatch the event
+    // The event listener will update isFavorite state
+    const newFavorites = toggleFavorite(user.id, listing.id);
+    // Update state immediately based on the returned value
+    setIsFavorite(newFavorites.includes(listing.id));
   };
 
   const renderBadgeContent = () => {
@@ -240,6 +277,19 @@ const ListingCard: React.FC<ListingCardProps> = ({
               className={`w-6 h-6 transition-all duration-200 ${isFavorite ? 'text-white fill-white' : 'text-white fill-transparent hover:scale-110'}`}
             />
           </button>
+
+          {/* Draft Indicator Badge - Bottom Left */}
+          {hasDraft && (
+            <div className="absolute bottom-4 left-4 z-10">
+              <Badge
+                variant="outline"
+                className="!bg-amber-500/90 !backdrop-blur-md !text-white !border-amber-400/50 rounded-full! px-2.5 py-1 flex items-center gap-1.5 text-[10px] font-bold tracking-wide uppercase shadow-lg"
+              >
+                <Clock size={12} className="animate-pulse" />
+                <span>Continue</span>
+              </Badge>
+            </div>
+          )}
         </div>
 
         <div className="mt-1 flex gap-2">

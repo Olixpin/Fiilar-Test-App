@@ -74,31 +74,31 @@ const ProfileCompletionWidget: React.FC<ProfileCompletionWidgetProps> = ({ user,
                         Complete your profile to build trust with guests and increase your booking rate.
                     </p>
                 </div>
-                <div className="flex items-center gap-3 bg-gray-50 px-4 py-2 rounded-lg border border-gray-100">
-                    <div className="text-right">
-                        <span className="block text-2xl font-bold text-brand-600">{completion.percentage}%</span>
-                        <span className="text-xs text-gray-500 font-medium uppercase tracking-wide">Completed</span>
+                <div className="flex items-center gap-4">
+                    <div className="text-right hidden sm:block">
+                        <span className="block text-3xl font-bold text-gray-900 leading-none">{completion.percentage}%</span>
+                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Completed</span>
                     </div>
-                    <div className="w-12 h-12 relative">
+                    <div className="w-14 h-14 relative flex items-center justify-center">
                         <svg className="w-full h-full transform -rotate-90">
                             <circle
-                                cx="24"
-                                cy="24"
-                                r="20"
+                                cx="28"
+                                cy="28"
+                                r="24"
                                 stroke="currentColor"
-                                strokeWidth="4"
+                                strokeWidth="3"
                                 fill="transparent"
-                                className="text-gray-200"
+                                className="text-gray-100"
                             />
                             <circle
-                                cx="24"
-                                cy="24"
-                                r="20"
+                                cx="28"
+                                cy="28"
+                                r="24"
                                 stroke="currentColor"
-                                strokeWidth="4"
+                                strokeWidth="3"
                                 fill="transparent"
-                                strokeDasharray={125.6}
-                                strokeDashoffset={125.6 - (125.6 * completion.percentage) / 100}
+                                strokeDasharray={150.8}
+                                strokeDashoffset={150.8 - (150.8 * completion.percentage) / 100}
                                 className="text-brand-600 transition-all duration-1000 ease-out"
                                 strokeLinecap="round"
                             />

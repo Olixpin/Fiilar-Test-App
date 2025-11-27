@@ -8,6 +8,40 @@
  * - Audit all configuration
  */
 
+// ===== APP INFO =====
+export const APP_INFO = {
+    /**
+     * Application name
+     */
+    NAME: 'Fiilar',
+    
+    /**
+     * Application version
+     */
+    VERSION: '1.0.0',
+    
+    /**
+     * Copyright year (uses current year dynamically)
+     */
+    get COPYRIGHT_YEAR() {
+        return new Date().getFullYear();
+    },
+    
+    /**
+     * Full copyright text
+     */
+    get COPYRIGHT_TEXT() {
+        return `© ${this.COPYRIGHT_YEAR} ${this.NAME}. All rights reserved.`;
+    },
+    
+    /**
+     * Version with copyright
+     */
+    get VERSION_WITH_COPYRIGHT() {
+        return `Version ${this.VERSION} • ${this.COPYRIGHT_TEXT}`;
+    },
+};
+
 // ===== ENVIRONMENT =====
 export const APP_CONFIG = {
     /**

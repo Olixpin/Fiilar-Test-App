@@ -1,6 +1,6 @@
-import { Listing } from '@fiilar/types';
+import { Listing, Review } from '@fiilar/types';
 import { STORAGE_KEYS, MOCK_LISTINGS } from './constants';
-import { generateMockListings } from './utils/mockListingGenerator';
+import { generateMockListings, generateMockReviews } from './utils/mockListingGenerator';
 
 // Set to true to generate 200+ listings for infinite scroll testing
 const ENABLE_BULK_LISTINGS = true;
@@ -31,7 +31,19 @@ export const initStorage = () => {
             console.log(`[initStorage] Generating ${BULK_LISTING_COUNT} mock listings for infinite scroll testing...`);
             const generatedListings = generateMockListings(BULK_LISTING_COUNT);
             storedListings = [...storedListings, ...generatedListings];
-            console.log(`[initStorage] Total listings: ${storedListings.length}`);
+            
+            // Generate reviews for the new listings
+            const generatedReviews = generateMockReviews(generatedListings);
+            
+            // Get existing reviews
+            const storedReviewsStr = localStorage.getItem(STORAGE_KEYS.REVIEWS);
+            let storedReviews: Review[] = storedReviewsStr ? JSON.parse(storedReviewsStr) : [];
+            
+            // Add new reviews
+            storedReviews = [...storedReviews, ...generatedReviews];
+            localStorage.setItem(STORAGE_KEYS.REVIEWS, JSON.stringify(storedReviews));
+            
+            console.log(`[initStorage] Total listings: ${storedListings.length}, Total reviews: ${storedReviews.length}`);
         }
     }
 

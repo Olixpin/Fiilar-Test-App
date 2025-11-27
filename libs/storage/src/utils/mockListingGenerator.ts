@@ -1,4 +1,4 @@
-import { Listing, SpaceType, ListingStatus, BookingType, CancellationPolicy, PricingModel } from '@fiilar/types';
+import { Listing, SpaceType, ListingStatus, BookingType, CancellationPolicy, PricingModel, Review } from '@fiilar/types';
 
 /**
  * Mock Listing Generator
@@ -500,9 +500,57 @@ const generateListing = (id: string, hostId: string): Listing => {
     cancellationPolicy: randomFromArray(cancellationPolicies),
     houseRules: shuffleArray(houseRules).slice(0, randomInt(2, 4)),
     safetyItems: shuffleArray(safetyItems).slice(0, randomInt(2, 4)),
-    rating: randomFloat(3.5, 5, 1),
-    reviewCount: randomInt(0, 150),
+    // rating and reviewCount are calculated dynamically from reviews in storage
+    // rating: randomFloat(3.5, 5, 1),
+    // reviewCount: randomInt(0, 150),
   };
+};
+
+const REVIEW_COMMENTS = [
+  "Great space! Would definitely book again.",
+  "The host was very accommodating and the space was exactly as described.",
+  "Perfect for our needs. Clean and spacious.",
+  "Good location but a bit noisy.",
+  "Amazing natural light! Highly recommended for photoshoots.",
+  "The equipment provided was top notch.",
+  "Easy check-in process and great communication.",
+  "A bit smaller than expected but still worked for us.",
+  "Fantastic experience. 5 stars!",
+  "Clean, modern, and professional.",
+  "The wifi was super fast, which was crucial for our meeting.",
+  "Beautiful decor and ambiance.",
+  "Had a great time hosting our event here.",
+  "Value for money is excellent.",
+  "Will be coming back for sure."
+];
+
+/**
+ * Generate mock reviews for a list of listings
+ */
+export const generateMockReviews = (listings: Listing[]): Review[] => {
+  const reviews: Review[] = [];
+  const userIds = ['user_123', 'user_456', 'user_789', 'user_abc', 'user_def'];
+  
+  listings.forEach(listing => {
+    // Generate a random number of reviews (0-50)
+    // Some listings should have 0 reviews to test that case
+    const hasReviews = Math.random() > 0.1;
+    const reviewCount = hasReviews ? randomInt(1, 50) : 0;
+    
+    for (let i = 0; i < reviewCount; i++) {
+      reviews.push({
+        id: `review-${listing.id}-${i}`,
+        listingId: listing.id,
+        userId: randomFromArray(userIds),
+        bookingId: `booking-${listing.id}-${i}`,
+        rating: randomInt(3, 5), // Mostly positive reviews
+        comment: randomFromArray(REVIEW_COMMENTS),
+        createdAt: new Date(Date.now() - randomInt(0, 30) * 86400000).toISOString() // Past 30 days
+      });
+    }
+  });
+  
+  return reviews;
 };
 
 /**
@@ -529,20 +577,30 @@ export const generateMockListings = (count: number = 200, startId: number = 100)
  * @param clearExisting If true, replaces all listings. If false, adds to existing.
  */
 export const seedListingsInStorage = (count: number = 200, clearExisting: boolean = false): void => {
-  const STORAGE_KEY = 'fiilar_listings';
+  const STORAGE_KEY_LISTINGS = 'fiilar_listings';
+  const STORAGE_KEY_REVIEWS = 'fiilar_reviews';
   
   let existingListings: Listing[] = [];
+  let existingReviews: Review[] = [];
+
   if (!clearExisting) {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    existingListings = stored ? JSON.parse(stored) : [];
+    const storedListings = localStorage.getItem(STORAGE_KEY_LISTINGS);
+    existingListings = storedListings ? JSON.parse(storedListings) : [];
+
+    const storedReviews = localStorage.getItem(STORAGE_KEY_REVIEWS);
+    existingReviews = storedReviews ? JSON.parse(storedReviews) : [];
   }
   
   const newListings = generateMockListings(count);
+  const newReviews = generateMockReviews(newListings);
+
   const allListings = [...existingListings, ...newListings];
+  const allReviews = [...existingReviews, ...newReviews];
   
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(allListings));
+  localStorage.setItem(STORAGE_KEY_LISTINGS, JSON.stringify(allListings));
+  localStorage.setItem(STORAGE_KEY_REVIEWS, JSON.stringify(allReviews));
   
-  console.log(`[MockListingGenerator] Seeded ${count} new listings. Total: ${allListings.length}`);
+  console.log(`[MockListingGenerator] Seeded ${count} new listings and ${newReviews.length} reviews. Total Listings: ${allListings.length}`);
 };
 
 /**

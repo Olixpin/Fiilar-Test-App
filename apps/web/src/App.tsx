@@ -5,7 +5,6 @@ import { initStorage, loginUser, getCurrentUser, logoutUser, getListings, getAll
 import { updateKYC, updateLiveness } from '@fiilar/kyc';
 import { escrowService } from '@fiilar/escrow';
 import { startAutoReleaseScheduler, stopAutoReleaseScheduler } from '@fiilar/escrow';
-import { AlertCircle, Clock } from 'lucide-react';
 import { Routes, Route, useNavigate, useLocation, useParams, Navigate } from 'react-router-dom';
 import Home from './features/Listings/pages/Home';
 import ErrorBoundary from './components/common/ErrorBoundary';
@@ -110,10 +109,15 @@ const App: React.FC = () => {
         const lastName = parts.slice(1).join(' ') || parts[0]; // Fallback if single name
 
         // Update profile silently
-        updateUserProfile(user.id, { firstName, lastName });
+        const result = updateUserProfile(user.id, { firstName, lastName });
 
-        // Update local state
-        setUser(prev => prev ? { ...prev, firstName, lastName } : null);
+        // Update local state if successful
+        if (result.success && result.user) {
+          setUser(result.user);
+        } else {
+          // Fallback to local update if storage update fails
+          setUser(prev => prev ? { ...prev, firstName, lastName } : null);
+        }
       }
       // Show modal only if NO name exists at all
       else if ((!user.firstName || !user.lastName) &&
@@ -168,7 +172,12 @@ const App: React.FC = () => {
     };
 
     window.addEventListener('fiilar:listings-updated', handler as EventListener);
-    return () => window.removeEventListener('fiilar:listings-updated', handler as EventListener);
+    window.addEventListener('fiilar:user-updated', handler as EventListener);
+
+    return () => {
+      window.removeEventListener('fiilar:listings-updated', handler as EventListener);
+      window.removeEventListener('fiilar:user-updated', handler as EventListener);
+    };
   }, []);
 
   // Track page views
@@ -316,8 +325,9 @@ const App: React.FC = () => {
 
     console.log('Completing profile:', { firstName, lastName, userRole: user.role, userId: user.id });
 
-    const updatedUser = updateUserProfile(user.id, { firstName, lastName });
-    if (updatedUser) {
+    const result = updateUserProfile(user.id, { firstName, lastName });
+    if (result.success && result.user) {
+      const updatedUser = result.user;
       console.log('Updated user:', { role: updatedUser.role, isHost: updatedUser.isHost });
       setUser(updatedUser);
       setShowCompleteProfile(false);
@@ -340,6 +350,8 @@ const App: React.FC = () => {
         // Regular user
         navigate('/dashboard');
       }
+    } else {
+      showToast({ message: result.error || 'Failed to update profile', type: 'error' });
     }
   };
 
@@ -400,11 +412,11 @@ const App: React.FC = () => {
       if (!bookingResult.success) {
         // Security error - log and show error to user
         console.error('Booking creation failed:', bookingResult.error);
-        showToast({ 
-          message: bookingResult.securityError 
+        showToast({
+          message: bookingResult.securityError
             ? 'Booking failed: Security validation error. Please try again.'
             : `Booking failed: ${bookingResult.error}`,
-          type: 'error' 
+          type: 'error'
         });
         return createdBookings; // Return what we've created so far
       }
@@ -425,6 +437,7 @@ const App: React.FC = () => {
 
   const validRoutes = ['/', '/kyc', '/dashboard', '/host/dashboard', '/admin', '/verify-email', '/terms', '/privacy', '/demo/glass-slider'];
   const isValidRoute = validRoutes.includes(location.pathname);
+  const isDashboardRoute = location.pathname === '/dashboard' || location.pathname === '/host/dashboard';
 
   return (
     <LocaleProvider>
@@ -436,8 +449,8 @@ const App: React.FC = () => {
         ) : (
           <div className="min-h-screen bg-gray-50">
             <ScrollToTop />
-            {/* Show navbar only on valid routes */}
-            {isValidRoute && !showCompleteProfile && (
+            {/* Show navbar only on valid routes, hide on dashboard */}
+            {isValidRoute && !showCompleteProfile && !isDashboardRoute && (
               <Navbar
                 user={user}
                 onLogin={() => navigate('/login', { state: { from: location } })}
@@ -458,37 +471,7 @@ const App: React.FC = () => {
               />
             )}
 
-            {/* Host KYC Banner */}
-            {user?.role === Role.HOST && !user.kycVerified && location.pathname !== '/kyc' && location.pathname === '/host/dashboard' && (
-              <div className={`${user.identityDocument ? 'bg-blue-50 border-blue-100' : 'bg-orange-50 border-orange-100'} border-b px-4 py-3 fixed top-16 left-0 right-0 lg:ml-64 z-50 shadow-sm`}>
-                <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className={`${user.identityDocument ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'} p-1.5 rounded-full shrink-0`}>
-                      {user.identityDocument ? <Clock size={16} /> : <AlertCircle size={16} />}
-                    </div>
-                    <div className={`text-sm ${user.identityDocument ? 'text-blue-900' : 'text-orange-900'}`}>
-                      {user.identityDocument ? (
-                        <>
-                          <span className="font-bold">Identity Verification Pending:</span> Your ID is under review by our team. You will be notified once approved.
-                        </>
-                      ) : (
-                        <>
-                          <span className="font-bold">Account Verification Needed:</span> Verify your identity to publish listings and accept bookings.
-                        </>
-                      )}
-                    </div>
-                  </div>
-                  {!user.identityDocument && (
-                    <button
-                      onClick={() => navigate('/kyc')}
-                      className="text-sm font-semibold text-orange-700 underline decoration-orange-300 hover:text-orange-900 hover:decoration-orange-900 underline-offset-2 whitespace-nowrap"
-                    >
-                      Complete Verification &rarr;
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
+
 
             <main className="grow">
               <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600"></div></div>}>
@@ -521,7 +504,11 @@ const App: React.FC = () => {
                       user.role !== Role.HOST ? <Navigate to="/complete-profile" replace /> :
                         <CompleteProfileHost user={user} onComplete={handleCompleteProfile} />
                   } />
-                  <Route path="/kyc" element={<KYCUpload onUpload={handleKYCUpload} onSkip={() => navigate('/host/dashboard')} />} />
+                  <Route path="/kyc" element={
+                    !user ? <Navigate to="/login-host" replace /> :
+                      user.role !== Role.HOST ? <Navigate to="/" replace /> :
+                        <KYCUpload onUpload={handleKYCUpload} onSkip={() => navigate('/host/dashboard')} />
+                  } />
                   <Route path="/dashboard" element={
                     !user ? <Navigate to="/login" replace /> :
                       (!user.firstName || !user.lastName) && !user.name ? <Navigate to="/complete-profile" replace /> :
@@ -529,37 +516,40 @@ const App: React.FC = () => {
                           user={user}
                           listings={listings}
                           onRefreshUser={refreshData}
+                          onLogout={handleLogout}
                         />
                   } />
                   <Route path="/host/dashboard" element={
                     !user ? <Navigate to="/login-host" replace /> :
                       user.role === Role.ADMIN ? <Navigate to="/admin" replace /> :
-                        (!user.firstName || !user.lastName) && !user.name ? <Navigate to="/complete-profile-host" replace /> :
-                          <HostDashboard
-                            user={user}
-                            listings={listings}
-                            refreshData={refreshData}
-                            hideUI={showCompleteProfile}
-                            onUpdateListing={(updated) => {
-                              const newListings = listings.map(l => l.id === updated.id ? updated : l);
-                              setListings(newListings);
-                              localStorage.setItem(STORAGE_KEYS.LISTINGS, JSON.stringify(newListings));
-                            }}
-                            onCreateListing={(newListing) => {
-                              const newListings = [...listings, newListing];
-                              setListings(newListings);
-                              localStorage.setItem(STORAGE_KEYS.LISTINGS, JSON.stringify(newListings));
-                            }}
-                          />
+                        user.role !== Role.HOST ? <Navigate to="/dashboard" replace /> :
+                          (!user.firstName || !user.lastName) && !user.name ? <Navigate to="/complete-profile-host" replace /> :
+                            <HostDashboard
+                              user={user}
+                              listings={listings}
+                              refreshData={refreshData}
+                              hideUI={showCompleteProfile}
+                              onUpdateListing={(updated) => {
+                                const newListings = listings.map(l => l.id === updated.id ? updated : l);
+                                setListings(newListings);
+                                localStorage.setItem(STORAGE_KEYS.LISTINGS, JSON.stringify(newListings));
+                              }}
+                              onCreateListing={(newListing) => {
+                                const newListings = [...listings, newListing];
+                                setListings(newListings);
+                                localStorage.setItem(STORAGE_KEYS.LISTINGS, JSON.stringify(newListings));
+                              }}
+                            />
                   } />
                   <Route path="/admin" element={
                     !user ? <Navigate to="/login" replace /> :
-                      (!user.firstName || !user.lastName) && !user.name ? <Navigate to="/complete-profile" replace /> :
-                        <AdminPanel
-                          users={allUsers}
-                          listings={listings}
-                          refreshData={refreshData}
-                        />
+                      user.role !== Role.ADMIN ? <Navigate to="/" replace /> :
+                        (!user.firstName || !user.lastName) && !user.name ? <Navigate to="/complete-profile" replace /> :
+                          <AdminPanel
+                            users={allUsers}
+                            listings={listings}
+                            refreshData={refreshData}
+                          />
                   } />
                   <Route path="/listing/:id" element={
                     <ListingDetailsRoute
@@ -575,8 +565,16 @@ const App: React.FC = () => {
                   <Route path="/terms" element={<TermsAndConditions />} />
                   <Route path="/privacy" element={<PrivacyPolicy />} />
                   <Route path="/demo/glass-slider" element={<GlassSliderDemo />} />
-                  <Route path="/health" element={<SystemHealthCheck />} />
-                  <Route path="/fix-wallet" element={<FixWallet />} />
+                  <Route path="/health" element={
+                    !user ? <Navigate to="/login" replace /> :
+                      user.role !== Role.ADMIN ? <Navigate to="/" replace /> :
+                        <SystemHealthCheck />
+                  } />
+                  <Route path="/fix-wallet" element={
+                    !user ? <Navigate to="/login" replace /> :
+                      user.role !== Role.ADMIN ? <Navigate to="/" replace /> :
+                        <FixWallet />
+                  } />
 
                   {/* 404 Catch-all Route */}
                   <Route path="*" element={<NotFound />} />

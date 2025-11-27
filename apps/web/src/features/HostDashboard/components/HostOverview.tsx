@@ -1,5 +1,6 @@
 import React from 'react';
 import { User, Listing, Booking, ListingStatus } from '@fiilar/types';
+import { useLocale } from '@fiilar/ui';
 import { DollarSign, TrendingUp, Home, Calendar as CalendarIcon, Clock, Sparkles, Plus, FileText, MessageSquare } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -16,6 +17,8 @@ interface HostOverviewProps {
 }
 
 const HostOverview: React.FC<HostOverviewProps> = ({ user, listings, hostBookings, setView, handleStartNewListing, onNavigateToBooking }) => {
+    const { locale } = useLocale();
+    
     // Calculate revenue data for chart
     const getRevenueData = () => {
         const last6Months = Array.from({ length: 6 }, (_, i) => {
@@ -57,7 +60,7 @@ const HostOverview: React.FC<HostOverviewProps> = ({ user, listings, hostBooking
                             <DollarSign size={18} />
                         </div>
                     </div>
-                    <p className="text-2xl font-bold text-gray-900">${user.walletBalance.toLocaleString()}</p>
+                    <p className="text-2xl font-bold text-gray-900">{locale.currencySymbol}{user.walletBalance.toLocaleString()}</p>
                     <p className="text-xs text-green-600 font-medium mt-1 flex items-center gap-1">
                         <TrendingUp size={12} /> +12% from last month
                     </p>
@@ -163,8 +166,8 @@ const HostOverview: React.FC<HostOverviewProps> = ({ user, listings, hostBooking
                             <option>Last 6 Months</option>
                         </select>
                     </div>
-                    <div className="h-64 w-full min-w-0">
-                        <ResponsiveContainer width="100%" height="100%">
+                    <div className="h-64 w-full min-w-0 min-h-[256px]">
+                        <ResponsiveContainer width="100%" height={256}>
                             <BarChart data={revenueData}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
                                 <XAxis
@@ -178,7 +181,7 @@ const HostOverview: React.FC<HostOverviewProps> = ({ user, listings, hostBooking
                                     axisLine={false}
                                     tickLine={false}
                                     tick={{ fontSize: 12, fill: '#6B7280' }}
-                                    tickFormatter={(value) => `$${value}`}
+                                    tickFormatter={(value) => `${locale.currencySymbol}${value}`}
                                 />
                                 <Tooltip
                                     cursor={{ fill: '#F3F4F6' }}

@@ -1,5 +1,6 @@
 import React from 'react';
 import { User, Booking, Listing } from '@fiilar/types';
+import { useLocale } from '@fiilar/ui';
 import { DollarSign, Clock, ShieldCheck, Info, CheckCircle, Loader2, Save } from 'lucide-react';
 
 interface HostFinancialsProps {
@@ -30,6 +31,7 @@ const HostFinancials: React.FC<HostFinancialsProps> = ({
     onSaveBankDetails,
     setBankDetails
 }) => {
+    const { locale } = useLocale();
     return (
         <div className="space-y-6 animate-in fade-in">
             {/* Stats Overview */}
@@ -41,7 +43,7 @@ const HostFinancials: React.FC<HostFinancialsProps> = ({
                             <DollarSign size={18} />
                         </div>
                     </div>
-                    <p className="text-2xl font-bold text-gray-900">${user.walletBalance.toLocaleString()}</p>
+                    <p className="text-2xl font-bold text-gray-900">{locale.currencySymbol}{user.walletBalance.toLocaleString()}</p>
                     <p className="text-xs text-gray-500 mt-1">Ready to withdraw</p>
                 </div>
                 <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
@@ -51,7 +53,7 @@ const HostFinancials: React.FC<HostFinancialsProps> = ({
                             <Clock size={18} />
                         </div>
                     </div>
-                    <p className="text-2xl font-bold text-gray-900">${hostBookings.filter(b => b.paymentStatus === 'Paid - Escrow').reduce((sum, b) => sum + (b.totalPrice - b.serviceFee - b.cautionFee), 0).toLocaleString()}</p>
+                    <p className="text-2xl font-bold text-gray-900">{locale.currencySymbol}{hostBookings.filter(b => b.paymentStatus === 'Paid - Escrow').reduce((sum, b) => sum + (b.totalPrice - b.serviceFee - b.cautionFee), 0).toLocaleString()}</p>
                     <p className="text-xs text-gray-500 mt-1">Pending release</p>
                 </div>
                 <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
@@ -198,7 +200,7 @@ const HostFinancials: React.FC<HostFinancialsProps> = ({
                                         <p className="text-sm text-gray-500">{new Date(booking.date).toLocaleDateString()}</p>
                                     </div>
                                     <div className="text-right">
-                                        <p className="text-lg font-bold text-gray-900">${payout.toFixed(2)}</p>
+                                        <p className="text-lg font-bold text-gray-900">{locale.currencySymbol}{payout.toFixed(2)}</p>
                                         <p className="text-xs font-medium text-brand-600">
                                             {daysUntil === 0 ? 'Today' : daysUntil === 1 ? 'Tomorrow' : `In ${daysUntil} days`}
                                         </p>
@@ -238,7 +240,7 @@ const HostFinancials: React.FC<HostFinancialsProps> = ({
                                     .map(tx => (
                                         <tr key={tx.id} className="hover:bg-gray-50">
                                             <td className="px-6 py-4 text-sm text-gray-600">{new Date(tx.timestamp).toLocaleDateString()}</td>
-                                            <td className="px-6 py-4 text-sm font-bold text-gray-900">${tx.amount.toFixed(2)}</td>
+                                            <td className="px-6 py-4 text-sm font-bold text-gray-900">{locale.currencySymbol}{tx.amount.toFixed(2)}</td>
                                             <td className="px-6 py-4">
                                                 <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-bold rounded-full">
                                                     {tx.status}

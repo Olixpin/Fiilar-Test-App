@@ -1,7 +1,9 @@
-import { Review } from '@fiilar/types';
+import { Review, User, Booking, Role } from '@fiilar/types';
 
 const STORAGE_KEYS = {
     REVIEWS: 'fiilar_reviews',
+    USER: 'fiilar_user',
+    BOOKINGS: 'fiilar_bookings',
 };
 
 // Helper to get data from localStorage
@@ -26,6 +28,14 @@ const setStorageData = <T>(key: string, data: T): void => {
     }
 };
 
+const getCurrentUser = (): User | null => {
+    return getStorageData<User | null>(STORAGE_KEYS.USER, null);
+};
+
+const getBookings = (): Booking[] => {
+    return getStorageData<Booking[]>(STORAGE_KEYS.BOOKINGS, []);
+};
+
 export const getReviews = (listingId?: string): Review[] => {
     const reviews = getStorageData<Review[]>(STORAGE_KEYS.REVIEWS, []);
     if (listingId) {
@@ -34,7 +44,54 @@ export const getReviews = (listingId?: string): Review[] => {
     return reviews;
 };
 
-export const addReview = (review: Omit<Review, 'id' | 'createdAt'>): Review => {
+/**
+ * Add a review for a listing
+ * SECURITY: Users can only review listings they have completed bookings for
+ */
+export const addReview = (review: Omit<Review, 'id' | 'createdAt'>): { success: boolean; review?: Review; error?: string } => {
+    const currentUser = getCurrentUser();
+
+    // SECURITY CHECK: Must be authenticated
+    if (!currentUser) {
+        console.error('🚨 SECURITY: Unauthenticated review attempt');
+        return { success: false, error: 'Not authenticated' };
+    }
+
+    // SECURITY CHECK: The review must be from the current user
+    if (review.userId !== currentUser.id) {
+        console.error('🚨 SECURITY: User tried to submit review as another user', {
+            currentUserId: currentUser.id,
+            reviewUserId: review.userId
+        });
+        return { success: false, error: 'Cannot submit review as another user' };
+    }
+
+    // SECURITY CHECK: User must have a completed booking for this listing
+    // (Admins are exempt for testing purposes)
+    if (currentUser.role !== Role.ADMIN) {
+        const bookings = getBookings();
+        const hasCompletedBooking = bookings.some(b =>
+            b.userId === currentUser.id &&
+            b.listingId === review.listingId &&
+            (b.status === 'Completed' || b.handshakeStatus === 'VERIFIED')
+        );
+
+        if (!hasCompletedBooking) {
+            console.error('🚨 SECURITY: User tried to review without completed booking', {
+                userId: currentUser.id,
+                listingId: review.listingId
+            });
+            return { success: false, error: 'You can only review listings you have completed bookings for' };
+        }
+    }
+
+    // Check for duplicate reviews
+    const existingReviews = getReviews(review.listingId);
+    const alreadyReviewed = existingReviews.some(r => r.userId === currentUser.id);
+    if (alreadyReviewed) {
+        return { success: false, error: 'You have already reviewed this listing' };
+    }
+
     const reviews = getReviews();
     const newReview: Review = {
         ...review,
@@ -44,7 +101,7 @@ export const addReview = (review: Omit<Review, 'id' | 'createdAt'>): Review => {
 
     reviews.push(newReview);
     setStorageData(STORAGE_KEYS.REVIEWS, reviews);
-    return newReview;
+    return { success: true, review: newReview };
 };
 
 export const getAverageRating = (listingId: string): number => {

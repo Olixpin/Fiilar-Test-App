@@ -1,7 +1,9 @@
 import React from 'react';
-import { Listing, BookingType } from '@fiilar/types';
+import { Listing, BookingType, PricingModel, CancellationPolicy } from '@fiilar/types';
+import { useLocale } from '@fiilar/ui';
 import {
-    Sparkles, CheckCircle, Clock, ImageIcon, MapPin, Users, Repeat, Shield, PackagePlus, FileText, Calendar as CalendarIcon
+    Sparkles, CheckCircle, Clock, ImageIcon, MapPin, Users, Repeat, Shield, PackagePlus, FileText, Calendar as CalendarIcon,
+    AlertCircle, TrendingUp, Zap, Moon, Home
 } from 'lucide-react';
 
 interface ListingLivePreviewProps {
@@ -14,6 +16,8 @@ interface ListingLivePreviewProps {
 const ListingLivePreview: React.FC<ListingLivePreviewProps> = ({
     newListing, lastSaved, step, setStep
 }) => {
+    const { locale } = useLocale();
+    
     return (
         <div className="hidden lg:block w-96 shrink-0">
             <div className="sticky top-24 space-y-4">
@@ -71,13 +75,58 @@ const ListingLivePreview: React.FC<ListingLivePreviewProps> = ({
 
                         {/* Price */}
                         <div className="flex items-baseline gap-2 mb-3">
-                            <span className="text-2xl font-bold text-brand-600">${newListing.price || 0}</span>
-                            <span className="text-sm text-gray-500">/ {newListing.priceUnit === BookingType.HOURLY ? 'hour' : 'day'}</span>
+                            <span className="text-2xl font-bold text-brand-600">{locale.currencySymbol}{newListing.price || 0}</span>
+                            <span className="text-sm text-gray-500">
+                                / {newListing.pricingModel === PricingModel.NIGHTLY ? 'night' : 
+                                   newListing.pricingModel === PricingModel.HOURLY ? 'hour' : 'day'}
+                            </span>
                         </div>
+
+                        {/* Pricing Model Badge */}
+                        {newListing.pricingModel && (
+                            <div className="flex items-center gap-2 mb-3">
+                                <span className={`text-xs px-2 py-1 rounded-full flex items-center gap-1 ${
+                                    newListing.pricingModel === PricingModel.NIGHTLY 
+                                        ? 'bg-indigo-100 text-indigo-700' 
+                                        : newListing.pricingModel === PricingModel.HOURLY 
+                                            ? 'bg-amber-100 text-amber-700'
+                                            : 'bg-teal-100 text-teal-700'
+                                }`}>
+                                    {newListing.pricingModel === PricingModel.NIGHTLY && <><Moon size={10} /> Overnight</>}
+                                    {newListing.pricingModel === PricingModel.DAILY && <><CalendarIcon size={10} /> Full Day</>}
+                                    {newListing.pricingModel === PricingModel.HOURLY && <><Clock size={10} /> Hourly</>}
+                                </span>
+                                {newListing.settings?.instantBook && (
+                                    <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full flex items-center gap-1">
+                                        <Zap size={10} /> Instant
+                                    </span>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Guest & Fee Info - Only show if tiered pricing (extra guest fee > 0) or has security deposit */}
+                        {(Number(newListing.pricePerExtraGuest) > 0 || Number(newListing.cautionFee) > 0) && (
+                            <div className="text-xs text-gray-600 mb-3 space-y-1">
+                                {/* Only show included guests when tiered pricing is active (has extra guest fee) */}
+                                {Number(newListing.pricePerExtraGuest) > 0 && Number(newListing.includedGuests) > 0 && (
+                                    <p>Base price includes {newListing.includedGuests} {newListing.includedGuests === 1 ? 'guest' : 'guests'}</p>
+                                )}
+                                {Number(newListing.pricePerExtraGuest) > 0 && (
+                                    <p>+{locale.currencySymbol}{newListing.pricePerExtraGuest} per extra guest</p>
+                                )}
+                                {Number(newListing.cautionFee) > 0 && (
+                                    <p className="flex items-center gap-1">
+                                        <Shield size={10} /> {locale.currencySymbol}{newListing.cautionFee} security deposit
+                                    </p>
+                                )}
+                            </div>
+                        )}
 
                         {/* Tags */}
                         <div className="flex flex-wrap gap-2 mb-3">
-                            <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full">{newListing.type}</span>
+                            <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full flex items-center gap-1">
+                                <Home size={10} /> {newListing.type}
+                            </span>
                             <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full flex items-center gap-1">
                                 <Users size={10} /> Max {newListing.capacity || 1}
                             </span>
@@ -92,6 +141,31 @@ const ListingLivePreview: React.FC<ListingLivePreviewProps> = ({
                                 </span>
                             )}
                         </div>
+
+                        {/* Amenities */}
+                        {(newListing.amenities?.length || 0) > 0 && (
+                            <div className="flex flex-wrap gap-1 mb-3">
+                                {newListing.amenities?.slice(0, 4).map((amenity, idx) => (
+                                    <span key={idx} className="text-[10px] bg-gray-50 text-gray-600 px-2 py-0.5 rounded border border-gray-200">
+                                        {amenity.name}
+                                    </span>
+                                ))}
+                                {(newListing.amenities?.length || 0) > 4 && (
+                                    <span className="text-[10px] text-gray-400">+{newListing.amenities!.length - 4} more</span>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Cancellation Policy */}
+                        {newListing.cancellationPolicy && (
+                            <div className="text-xs text-gray-500 mb-3">
+                                <span className="font-medium">Cancellation:</span> {
+                                    newListing.cancellationPolicy === CancellationPolicy.FLEXIBLE ? 'Flexible' :
+                                    newListing.cancellationPolicy === CancellationPolicy.MODERATE ? 'Moderate' :
+                                    newListing.cancellationPolicy === CancellationPolicy.STRICT ? 'Strict' : 'Non-refundable'
+                                }
+                            </div>
+                        )}
 
                         {/* Extras */}
                         {(newListing.addOns?.length || 0) > 0 && (
@@ -108,7 +182,7 @@ const ListingLivePreview: React.FC<ListingLivePreviewProps> = ({
                                                 )}
                                                 <span className="text-gray-600">{addon.name}</span>
                                             </div>
-                                            <span className="font-semibold text-gray-900">${addon.price}</span>
+                                            <span className="font-semibold text-gray-900">{locale.currencySymbol}{addon.price}</span>
                                         </div>
                                     ))}
                                     {(newListing.addOns?.length || 0) > 3 && (
@@ -138,6 +212,11 @@ const ListingLivePreview: React.FC<ListingLivePreviewProps> = ({
                                     <CheckCircle size={12} /> {newListing.houseRules?.length} house rule{newListing.houseRules?.length !== 1 ? 's' : ''}
                                 </div>
                             )}
+                            {(newListing.safetyItems?.length || 0) > 0 && (
+                                <div className="flex items-center gap-2 text-xs text-green-700">
+                                    <CheckCircle size={12} /> {newListing.safetyItems?.length} safety item{newListing.safetyItems?.length !== 1 ? 's' : ''}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -147,8 +226,8 @@ const ListingLivePreview: React.FC<ListingLivePreviewProps> = ({
                     <h4 className="text-sm font-bold text-gray-900 mb-3">Completion</h4>
                     <div className="space-y-2">
                         {[
-                            { label: 'Basic Info', done: !!(newListing.title && newListing.location && newListing.price) },
-                            { label: 'Photos', done: (newListing.images?.length || 0) > 0 },
+                            { label: 'Basic Info', done: !!(newListing.title && newListing.location && newListing.price && newListing.pricingModel) },
+                            { label: 'Photos (5+)', done: (newListing.images?.length || 0) >= 5 },
                             { label: 'Availability', done: Object.keys(newListing.availability || {}).length > 0 },
                             { label: 'Verification', done: !!newListing.proofOfAddress }
                         ].map((item, idx) => (
@@ -173,7 +252,7 @@ const ListingLivePreview: React.FC<ListingLivePreviewProps> = ({
                         <div className="space-y-1 text-xs text-gray-700">
                             <div className="flex justify-between">
                                 <span>Per booking:</span>
-                                <span className="font-bold">${newListing.price}</span>
+                                <span className="font-bold">{locale.currencySymbol}{newListing.price}</span>
                             </div>
                             <div className="flex justify-between">
                                 <span>Available days:</span>
@@ -181,7 +260,7 @@ const ListingLivePreview: React.FC<ListingLivePreviewProps> = ({
                             </div>
                             <div className="border-t border-green-200 pt-2 mt-2 flex justify-between">
                                 <span>Est. monthly:</span>
-                                <span className="font-bold text-green-700">${Math.round((newListing.price || 0) * Math.min(Object.keys(newListing.availability || {}).length, 30) * 0.3)}</span>
+                                <span className="font-bold text-green-700">{locale.currencySymbol}{Math.round((newListing.price || 0) * Math.min(Object.keys(newListing.availability || {}).length, 30) * 0.3)}</span>
                             </div>
                             <p className="text-[10px] text-gray-500 mt-1">*Based on 30% booking rate</p>
                         </div>
@@ -216,8 +295,5 @@ const ListingLivePreview: React.FC<ListingLivePreviewProps> = ({
         </div>
     );
 };
-
-// Missing imports for ListingLivePreview
-import { AlertCircle, TrendingUp } from 'lucide-react';
 
 export default ListingLivePreview;

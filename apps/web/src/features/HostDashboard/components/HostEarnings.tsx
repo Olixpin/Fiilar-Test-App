@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Booking, EscrowTransaction, Listing } from '@fiilar/types';
+import { useLocale } from '@fiilar/ui';
 import { DollarSign, TrendingUp, Clock, Calendar, Download, Filter, ChevronDown, BarChart3, PieChart } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart as RePieChart, Pie, Cell } from 'recharts';
 
@@ -11,6 +12,7 @@ interface HostEarningsProps {
 }
 
 const HostEarnings: React.FC<HostEarningsProps> = ({ hostBookings, transactions, hostId, listings = [] }) => {
+    const { locale } = useLocale();
     const [timeFilter, setTimeFilter] = useState<'7d' | '30d' | '90d' | 'all'>('30d');
     const [viewMode, setViewMode] = useState<'overview' | 'breakdown'>('overview');
     const now = new Date();
@@ -135,7 +137,7 @@ const HostEarnings: React.FC<HostEarningsProps> = ({ hostBookings, transactions,
                             <TrendingUp size={18} />
                         </div>
                     </div>
-                    <p className="text-2xl font-bold text-gray-900">${totalRevenue.toLocaleString()}</p>
+                    <p className="text-2xl font-bold text-gray-900">{locale.currencySymbol}{totalRevenue.toLocaleString()}</p>
                     <p className="text-xs text-gray-500 mt-1">{filteredBookings.filter(b => b.status === 'Confirmed' || b.status === 'Completed').length} bookings</p>
                 </div>
 
@@ -146,7 +148,7 @@ const HostEarnings: React.FC<HostEarningsProps> = ({ hostBookings, transactions,
                             <DollarSign size={18} />
                         </div>
                     </div>
-                    <p className="text-2xl font-bold text-gray-900">${releasedEarnings.toLocaleString()}</p>
+                    <p className="text-2xl font-bold text-gray-900">{locale.currencySymbol}{releasedEarnings.toLocaleString()}</p>
                     <p className="text-xs text-gray-500 mt-1">Paid out</p>
                 </div>
 
@@ -157,7 +159,7 @@ const HostEarnings: React.FC<HostEarningsProps> = ({ hostBookings, transactions,
                             <Clock size={18} />
                         </div>
                     </div>
-                    <p className="text-2xl font-bold text-gray-900">${fundsInEscrow.toLocaleString()}</p>
+                    <p className="text-2xl font-bold text-gray-900">{locale.currencySymbol}{fundsInEscrow.toLocaleString()}</p>
                     <p className="text-xs text-gray-500 mt-1">{pendingPayouts.length} pending</p>
                 </div>
 
@@ -198,16 +200,16 @@ const HostEarnings: React.FC<HostEarningsProps> = ({ hostBookings, transactions,
                     {/* Revenue Chart */}
                     <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
                         <h3 className="font-bold text-gray-900 mb-4">Revenue Trend</h3>
-                        <div className="h-64 w-full min-w-0">
-                            <ResponsiveContainer width="100%" height="100%">
+                        <div className="h-64 w-full min-w-0 min-h-[256px]">
+                            <ResponsiveContainer width="100%" height={256}>
                                 <BarChart data={chartData}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
                                     <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#9ca3af' }} />
-                                    <YAxis axisLine={false} tickLine={false} tickFormatter={(val) => `$${val}`} tick={{ fontSize: 11, fill: '#9ca3af' }} />
+                                    <YAxis axisLine={false} tickLine={false} tickFormatter={(val) => `${locale.currencySymbol}${val}`} tick={{ fontSize: 11, fill: '#9ca3af' }} />
                                     <Tooltip
                                         cursor={{ fill: '#f9fafb' }}
                                         contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                                        formatter={(val: number) => [`$${val.toFixed(2)}`, 'Revenue']}
+                                        formatter={(val: number) => [`${locale.currencySymbol}${val.toFixed(2)}`, 'Revenue']}
                                     />
                                     <Bar dataKey="revenue" fill="#111827" radius={[4, 4, 0, 0]} />
                                 </BarChart>
@@ -233,7 +235,7 @@ const HostEarnings: React.FC<HostEarningsProps> = ({ hostBookings, transactions,
                                 <div key={booking.id} className="p-4 hover:bg-gray-50 transition">
                                     <div className="flex justify-between items-start">
                                         <div>
-                                            <p className="font-medium text-gray-900">${payout.toFixed(2)}</p>
+                                            <p className="font-medium text-gray-900">{locale.currencySymbol}{payout.toFixed(2)}</p>
                                             <p className="text-sm text-gray-500">Booking {booking.id.slice(0, 8)}...</p>
                                         </div>
                                         <div className="text-right">
@@ -278,7 +280,7 @@ const HostEarnings: React.FC<HostEarningsProps> = ({ hostBookings, transactions,
                                     .map(tx => (
                                         <tr key={tx.id} className="hover:bg-gray-50">
                                             <td className="px-4 py-3 text-sm text-gray-600">{new Date(tx.timestamp).toLocaleDateString()}</td>
-                                            <td className="px-4 py-3 text-sm font-bold text-gray-900">${tx.amount.toFixed(2)}</td>
+                                            <td className="px-4 py-3 text-sm font-bold text-gray-900">{locale.currencySymbol}{tx.amount.toFixed(2)}</td>
                                             <td className="px-4 py-3">
                                                 <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-bold rounded-full">
                                                     {tx.status}
@@ -301,8 +303,8 @@ const HostEarnings: React.FC<HostEarningsProps> = ({ hostBookings, transactions,
                         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
                             <h3 className="font-bold text-gray-900 mb-4">Revenue Distribution</h3>
                             {revenueByListing.length > 0 ? (
-                                <div className="h-64 w-full min-w-0 flex items-center justify-center">
-                                    <ResponsiveContainer width="100%" height="100%">
+                                <div className="h-64 w-full min-w-0 min-h-[256px] flex items-center justify-center">
+                                    <ResponsiveContainer width="100%" height={256}>
                                         <RePieChart>
                                             <Pie
                                                 data={revenueByListing.slice(0, 5)}
@@ -311,13 +313,13 @@ const HostEarnings: React.FC<HostEarningsProps> = ({ hostBookings, transactions,
                                                 cx="50%"
                                                 cy="50%"
                                                 outerRadius={80}
-                                                label={({ value }) => `$${(value as number).toFixed(0)}`}
+                                                label={({ value }) => `${locale.currencySymbol}${(value as number).toFixed(0)}`}
                                             >
                                                 {revenueByListing.slice(0, 5).map((_, index) => (
                                                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                                 ))}
                                             </Pie>
-                                            <Tooltip formatter={(val: number) => `$${val.toFixed(2)}`} />
+                                            <Tooltip formatter={(val: number) => `${locale.currencySymbol}${val.toFixed(2)}`} />
                                         </RePieChart>
                                     </ResponsiveContainer>
                                 </div>
@@ -343,7 +345,7 @@ const HostEarnings: React.FC<HostEarningsProps> = ({ hostBookings, transactions,
                                             <p className="text-xs text-gray-500">{item.bookings} bookings</p>
                                         </div>
                                         <div className="text-right">
-                                            <p className="text-sm font-bold text-gray-900">${item.revenue.toFixed(0)}</p>
+                                            <p className="text-sm font-bold text-gray-900">{locale.currencySymbol}{item.revenue.toFixed(0)}</p>
                                         </div>
                                     </div>
                                 ))}
@@ -384,8 +386,8 @@ const HostEarnings: React.FC<HostEarningsProps> = ({ hostBookings, transactions,
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 text-sm text-gray-900">{item.bookings}</td>
-                                            <td className="px-6 py-4 text-sm font-bold text-gray-900">${item.revenue.toFixed(2)}</td>
-                                            <td className="px-6 py-4 text-sm text-gray-600">${(item.revenue / item.bookings).toFixed(2)}</td>
+                                            <td className="px-6 py-4 text-sm font-bold text-gray-900">{locale.currencySymbol}{item.revenue.toFixed(2)}</td>
+                                            <td className="px-6 py-4 text-sm text-gray-600">{locale.currencySymbol}{(item.revenue / item.bookings).toFixed(2)}</td>
                                         </tr>
                                     ))}
                                     {revenueByListing.length === 0 && (

@@ -1,5 +1,6 @@
 import React from 'react';
-import { Listing, ListingStatus, BookingType, User } from '@fiilar/types';
+import { Listing, ListingStatus, BookingType, User, PricingModel } from '@fiilar/types';
+import { useLocale } from '@fiilar/ui';
 import {
     Settings, Shield, ImageIcon, MapPin, Repeat, Users, PackagePlus, CheckCircle, AlertCircle, AlertTriangle, Loader2
 } from 'lucide-react';
@@ -17,6 +18,7 @@ interface ListingReviewProps {
 const ListingReview: React.FC<ListingReviewProps> = ({
     newListing, setNewListing, setStep, user, listings, isSubmitting, handleCreateListing
 }) => {
+    const { locale } = useLocale();
     return (
         <div className="space-y-6 max-w-3xl mx-auto animate-in fade-in duration-300">
 
@@ -79,7 +81,7 @@ inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow
                         <p className="text-xs text-gray-500 mt-0.5">{newListing.type}</p>
 
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3">
-                            <p className="text-brand-600 font-bold text-sm">${newListing.price || 0} <span className="text-gray-400 font-normal">/ {newListing.priceUnit === BookingType.HOURLY ? 'hr' : 'day'}</span></p>
+                            <p className="text-brand-600 font-bold text-sm">{locale.currencySymbol}{newListing.price || 0} <span className="text-gray-400 font-normal">/ {newListing.pricingModel === PricingModel.HOURLY ? 'hr' : newListing.pricingModel === PricingModel.NIGHTLY ? 'night' : 'day'}</span></p>
 
                             {newListing.settings?.allowRecurring && (
                                 <span className="text-[10px] bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded font-semibold flex items-center gap-1">
@@ -135,6 +137,17 @@ inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow
                     <p>
                         <strong>More photos needed:</strong> You have fewer than 5 photos. This listing will be saved as a
                         <span className="font-bold"> Draft</span> until you add more photos.
+                    </p>
+                </div>
+            )}
+
+            {/* Availability Warning */}
+            {(!newListing.availability || Object.keys(newListing.availability).length === 0) && (
+                <div className="flex items-start gap-3 bg-orange-50 p-4 rounded-lg text-left text-sm text-orange-800 mb-4 border border-orange-100">
+                    <AlertTriangle className="shrink-0 mt-0.5" size={18} />
+                    <p>
+                        <strong>No availability set:</strong> You haven't configured any available dates. 
+                        Go back to the Availability step and apply a weekly schedule.
                     </p>
                 </div>
             )}

@@ -66,14 +66,14 @@ export const useSettingsData = ({ user, onUpdateUser }: UseSettingsDataProps) =>
         try {
             // Real API call
             if (user) {
-                const updatedUser = updateUserProfile(user.id, {
+                const result = updateUserProfile(user.id, {
                     name: formData.name,
                     bio: formData.bio,
                     phone: formData.phone
                 });
 
-                if (onUpdateUser && updatedUser) {
-                    onUpdateUser(updatedUser);
+                if (result.success && result.user && onUpdateUser) {
+                    onUpdateUser(result.user);
                 }
             }
 

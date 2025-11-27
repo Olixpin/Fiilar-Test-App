@@ -22,6 +22,7 @@ const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
             disabled,
             rows = 4,
             value,
+            placeholder,
             ...props
         },
         ref
@@ -35,21 +36,21 @@ const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
         border border-gray-200/50
         shadow-sm
         hover:bg-white/80 hover:shadow-md
-        focus:bg-white focus:border-gray-300 focus:shadow-lg
+        focus-within:bg-white focus-within:border-gray-300 focus-within:shadow-lg
       `,
             minimal: `
         bg-transparent
         border-b-2 border-gray-200
         rounded-none
         hover:border-gray-400
-        focus:border-brand-500
+        focus-within:border-brand-500
       `,
             gradient: `
         bg-gradient-to-br from-gray-50 to-white
         border border-gray-200
         shadow-sm
         hover:shadow-md
-        focus:shadow-lg focus:border-gray-400
+        focus-within:shadow-lg focus-within:border-gray-400
       `,
         };
 
@@ -60,32 +61,57 @@ const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
             both: 'resize',
         };
 
-        const baseClasses = `
-      ${fullWidth ? 'w-full' : ''}
-      px-4 py-3.5
-      ${variantClasses[variant]}
-      ${resizeClasses[resize]}
-      ${variant !== 'minimal' ? 'rounded-xl' : ''}
-      outline-none
-      transition-all
-      duration-300
-      ease-out
-      text-base
-      ${error ? 'border-red-400 focus:border-red-500 bg-red-50/30' : ''}
-      ${disabled ? 'bg-gray-50 cursor-not-allowed opacity-50' : ''}
-      ${label ? 'pt-6' : ''}
-      ${className}
-    `.trim().replace(/\s+/g, ' ');
-
         return (
             <div className={`${fullWidth ? 'w-full' : ''} group`}>
-                <div className="relative">
+                {/* Container with border and styling */}
+                <div 
+                    className={`
+                        ${fullWidth ? 'w-full' : ''}
+                        ${variantClasses[variant]}
+                        ${variant !== 'minimal' ? 'rounded-xl' : ''}
+                        ${error ? 'border-red-400 focus-within:border-red-500 bg-red-50/30' : ''}
+                        ${disabled ? 'bg-gray-50 cursor-not-allowed opacity-50' : ''}
+                        transition-all duration-300 ease-out
+                        overflow-hidden
+                    `.trim().replace(/\s+/g, ' ')}
+                >
+                    {/* Fixed Label Header */}
+                    {label && (
+                        <div className="px-4 pt-3 pb-1 bg-inherit">
+                            <label
+                                className={`
+                                    text-xs font-medium transition-colors duration-300
+                                    ${isFocused
+                                        ? 'text-brand-500'
+                                        : error
+                                            ? 'text-red-500'
+                                            : 'text-gray-500'
+                                    }
+                                `}
+                            >
+                                {label}
+                            </label>
+                        </div>
+                    )}
+                    
+                    {/* Textarea */}
                     <textarea
                         ref={ref}
                         disabled={disabled}
                         rows={rows}
                         value={value}
-                        className={baseClasses}
+                        placeholder={placeholder}
+                        className={`
+                            w-full
+                            px-4 ${label ? 'pt-0 pb-3' : 'py-3.5'}
+                            ${resizeClasses[resize]}
+                            outline-none
+                            bg-transparent
+                            text-base text-gray-900
+                            placeholder:text-gray-400
+                            ${disabled ? 'cursor-not-allowed' : ''}
+                            ${className}
+                        `.trim().replace(/\s+/g, ' ')}
                         onFocus={(e) => {
                             setIsFocused(true);
                             props.onFocus?.(e);
@@ -96,30 +122,6 @@ const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
                         }}
                         {...props}
                     />
-
-                    {label && (
-                        <label
-                            className={`
-                absolute left-4 transition-all duration-300 pointer-events-none
-                ${isFocused || hasValue
-                                    ? 'top-2 text-xs font-medium'
-                                    : 'top-3.5 text-base'
-                                }
-                ${isFocused
-                                    ? 'text-brand-500'
-                                    : error
-                                        ? 'text-red-500'
-                                        : 'text-gray-500'
-                                }
-              `}
-                        >
-                            {label}
-                        </label>
-                    )}
-
-                    {isFocused && !error && variant === 'glass' && (
-                        <div className="absolute inset-0 rounded-xl bg-linear-to-r from-brand-500/5 to-transparent pointer-events-none animate-in fade-in duration-300" />
-                    )}
                 </div>
 
                 {(error || helperText) && (

@@ -180,6 +180,13 @@ export interface Listing {
   // Ratings
   rating?: number;
   reviewCount?: number;
+
+  // Analytics & Trending
+  viewCount?: number;         // Total page views
+  bookingCount?: number;      // Total confirmed bookings
+  favoriteCount?: number;     // How many users favorited this
+  trendingScore?: number;     // Calculated trending score (updated periodically)
+  lastBookedAt?: string;      // ISO timestamp of last booking
 }
 
 export interface Booking {
@@ -333,6 +340,28 @@ export interface Notification {
   };
   createdAt: string;
   expiresAt?: string;
+}
+
+// Analytics Types for Trending System
+export interface ListingAnalytics {
+  listingId: string;
+  viewCount: number;
+  bookingCount: number;
+  favoriteCount: number;
+  conversionRate: number;     // bookings / views
+  viewsLast7Days: number;
+  bookingsLast7Days: number;
+  trendingScore: number;
+  lastCalculated: string;     // ISO timestamp
+}
+
+export interface AnalyticsEvent {
+  id: string;
+  type: 'VIEW' | 'BOOKING' | 'FAVORITE' | 'UNFAVORITE' | 'SHARE' | 'INQUIRY';
+  listingId: string;
+  userId?: string;
+  timestamp: string;          // ISO string
+  metadata?: Record<string, any>;
 }
 
 export interface DamageReport {

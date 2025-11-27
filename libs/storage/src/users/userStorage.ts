@@ -1,5 +1,6 @@
-import { User } from '@fiilar/types';
+import { User, Role } from '@fiilar/types';
 import { STORAGE_KEYS } from '../constants';
+import { logAuditEvent } from '../security/authSecurity';
 
 /**
  * Get all users from the database
@@ -18,10 +19,18 @@ export const getUserById = (id: string): User | undefined => {
 };
 
 /**
- * Save a user to the database
- * Also syncs with current session if applicable
+ * Get the currently logged-in user
  */
-export const saveUser = (user: User) => {
+export const getCurrentUser = (): User | null => {
+    const u = localStorage.getItem(STORAGE_KEYS.USER);
+    return u ? JSON.parse(u) : null;
+};
+
+/**
+ * Internal function to save user without authorization check
+ * Used by auth flows and internal operations
+ */
+const saveUserInternal = (user: User) => {
     const users = getAllUsers();
     const idx = users.findIndex(u => u.id === user.id);
     if (idx >= 0) {
@@ -34,36 +43,91 @@ export const saveUser = (user: User) => {
 
     // Sync with current session if applicable
     const currentUser = getCurrentUser();
-    console.log('Current session user:', currentUser);
     if (currentUser && currentUser.id === user.id) {
         console.log('Updating session user storage');
         localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
-    } else {
-        console.log('Session user not updated. Current:', currentUser?.id, 'Target:', user.id);
+
+        // Dispatch event to notify app of user update
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('fiilar:user-updated', { detail: { user } }));
+        }
     }
 };
 
 /**
- * Get the currently logged-in user
+ * Save a user to the database
+ * SECURITY: Validates that the current user is authorized to modify the target user
+ * Users can only modify themselves, admins can modify anyone
  */
-export const getCurrentUser = (): User | null => {
-    const u = localStorage.getItem(STORAGE_KEYS.USER);
-    return u ? JSON.parse(u) : null;
+export const saveUser = (user: User): { success: boolean; error?: string } => {
+    const currentUser = getCurrentUser();
+    
+    // Allow if not logged in (during registration flow)
+    if (!currentUser) {
+        saveUserInternal(user);
+        return { success: true };
+    }
+    
+    // Users can modify their own profile
+    if (currentUser.id === user.id) {
+        saveUserInternal(user);
+        return { success: true };
+    }
+    
+    // Admins can modify any user
+    if (currentUser.role === Role.ADMIN) {
+        saveUserInternal(user);
+        return { success: true };
+    }
+    
+    // Unauthorized modification attempt
+    logAuditEvent({
+        action: 'SECURITY_VIOLATION',
+        userId: currentUser.id,
+        success: false,
+        metadata: {
+            type: 'UNAUTHORIZED_USER_MODIFICATION',
+            targetUserId: user.id,
+            attemptedBy: currentUser.id
+        }
+    });
+    
+    console.error('🚨 SECURITY: Unauthorized user modification attempt', {
+        targetUserId: user.id,
+        attemptedBy: currentUser.id
+    });
+    
+    return { success: false, error: 'Not authorized to modify this user' };
 };
 
 /**
  * Toggle a listing in user's favorites
+ * SECURITY: Users can only toggle favorites for themselves
  */
 export const toggleFavorite = (userId: string, listingId: string): string[] => {
     console.log('Toggling favorite. User:', userId, 'Listing:', listingId);
-    const users = getAllUsers();
-    const user = users.find(u => u.id === userId);
-    if (!user) {
-        console.error('User not found in DB:', userId);
-        return [];
+
+    const currentUser = getCurrentUser();
+    
+    // SECURITY CHECK: User can only toggle their own favorites
+    if (!currentUser || currentUser.id !== userId) {
+        console.error('🚨 SECURITY: Unauthorized favorites toggle attempt', {
+            targetUserId: userId,
+            currentUserId: currentUser?.id
+        });
+        logAuditEvent({
+            action: 'SECURITY_VIOLATION',
+            userId: currentUser?.id,
+            success: false,
+            metadata: {
+                type: 'UNAUTHORIZED_FAVORITES_TOGGLE',
+                targetUserId: userId
+            }
+        });
+        return currentUser?.favorites || [];
     }
 
-    const favorites = user.favorites || [];
+    const favorites = currentUser.favorites || [];
     const idx = favorites.indexOf(listingId);
 
     let newFavorites;
@@ -73,34 +137,55 @@ export const toggleFavorite = (userId: string, listingId: string): string[] => {
         newFavorites = [...favorites, listingId];
     }
 
-    user.favorites = newFavorites;
+    currentUser.favorites = newFavorites;
     console.log('New favorites list:', newFavorites);
-    saveUser(user);
-
-    // Force update session storage to ensure immediate UI reflection
-    const currentUser = getCurrentUser();
-    if (currentUser && currentUser.id === userId) {
-        console.log('Force updating session user in toggleFavorite');
-        localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
-    }
+    saveUserInternal(currentUser);
 
     return newFavorites;
 };
 
 /**
  * Update a user's wallet balance
+ * SECURITY: Only admins or system operations can modify wallet balances
+ * For regular user operations, use the payment service which validates transactions
  */
-export const updateUserWalletBalance = (userId: string, amount: number) => {
+export const updateUserWalletBalance = (userId: string, amount: number): { success: boolean; error?: string } => {
+    const currentUser = getCurrentUser();
+    
+    // Only admins can directly modify wallet balances
+    // Regular users must go through payment service
+    if (!currentUser || currentUser.role !== Role.ADMIN) {
+        console.error('🚨 SECURITY: Unauthorized wallet balance modification attempt', {
+            targetUserId: userId,
+            amount,
+            attemptedBy: currentUser?.id
+        });
+        logAuditEvent({
+            action: 'SECURITY_VIOLATION',
+            userId: currentUser?.id,
+            success: false,
+            metadata: {
+                type: 'UNAUTHORIZED_WALLET_MODIFICATION',
+                targetUserId: userId,
+                amount
+            }
+        });
+        return { success: false, error: 'Admin access required for direct wallet modifications' };
+    }
+
     const users = getAllUsers();
     const user = users.find(u => u.id === userId);
     if (user) {
         user.walletBalance = (user.walletBalance || 0) + amount;
-        saveUser(user);
+        saveUserInternal(user);
+        return { success: true };
     }
+    return { success: false, error: 'User not found' };
 };
 
 /**
  * Update a user's profile information
+ * SECURITY: Users can only update their own profile, admins can update any profile
  */
 export const updateUserProfile = (
     userId: string,
@@ -112,13 +197,37 @@ export const updateUserProfile = (
         name?: string;
         phone?: string;
     }
-): User | null => {
+): { success: boolean; user?: User; error?: string } => {
+    const currentUser = getCurrentUser();
+    
+    // SECURITY CHECK: User can only update their own profile (unless admin)
+    if (!currentUser) {
+        return { success: false, error: 'Not authenticated' };
+    }
+    
+    if (currentUser.id !== userId && currentUser.role !== Role.ADMIN) {
+        console.error('🚨 SECURITY: Unauthorized profile update attempt', {
+            targetUserId: userId,
+            attemptedBy: currentUser.id
+        });
+        logAuditEvent({
+            action: 'SECURITY_VIOLATION',
+            userId: currentUser.id,
+            success: false,
+            metadata: {
+                type: 'UNAUTHORIZED_PROFILE_UPDATE',
+                targetUserId: userId
+            }
+        });
+        return { success: false, error: 'Not authorized to update this profile' };
+    }
+
     const users = getAllUsers();
     const user = users.find(u => u.id === userId);
 
     if (!user) {
         console.error('User not found:', userId);
-        return null;
+        return { success: false, error: 'User not found' };
     }
 
     // Apply updates
@@ -131,7 +240,7 @@ export const updateUserProfile = (
         updatedUser.name = `${firstName} ${lastName}`.trim();
     }
 
-    saveUser(updatedUser);
-    return updatedUser;
+    saveUserInternal(updatedUser);
+    return { success: true, user: updatedUser };
 };
 

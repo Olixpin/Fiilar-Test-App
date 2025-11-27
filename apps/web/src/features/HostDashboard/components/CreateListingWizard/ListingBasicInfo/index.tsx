@@ -30,7 +30,7 @@ const ListingBasicInfo: React.FC<ListingBasicInfoProps> = ({
     showAiInput,
     setShowAiInput
 }) => {
-    const canContinue = !!(newListing.title && newListing.location && newListing.price);
+    const canContinue = !!(newListing.title && newListing.location && newListing.price && newListing.price >= 1 && newListing.pricingModel);
 
     return (
         <div className="space-y-8 max-w-3xl mx-auto animate-in slide-in-from-right duration-300">

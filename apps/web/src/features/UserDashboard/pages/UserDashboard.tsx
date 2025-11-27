@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect } from 'react';
-import { useToast } from '@fiilar/ui';
+import React, { useState, useEffect, useRef } from 'react';
+import { useToast, UserAvatar } from '@fiilar/ui';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { getCurrentUser, getBookings } from '@fiilar/storage';
 import { startConversation, getConversations } from '@fiilar/messaging';
@@ -8,7 +8,7 @@ import { User, Listing, Booking, CancellationPolicy } from '@fiilar/types';
 import { WalletCard } from '../components/WalletCard';
 import { TransactionHistory } from '../components/TransactionHistory';
 import { PaymentMethods } from '../components/PaymentMethods';
-import { Heart, Search, Calendar, Wallet, LayoutGrid, Sparkles, MessageSquare, Bell, CreditCard, Settings as SettingsIcon, CheckCircle, Clock } from 'lucide-react';
+import { Heart, Calendar, Wallet, LayoutGrid, Sparkles, MessageSquare, Bell, CreditCard, Settings as SettingsIcon, CheckCircle, Clock, Search, Home, ChevronLeft, ChevronRight, LogOut } from 'lucide-react';
 import CancellationModal from '../../Bookings/components/CancellationModal';
 import ModifyBookingModal from '../../Bookings/components/ModifyBookingModal';
 import { ChatList } from '../../Messaging/components/ChatList';
@@ -20,26 +20,58 @@ import { UserExploreTab } from '../components/UserExploreTab';
 import { UserFavoritesTab } from '../components/UserFavoritesTab';
 import { UserBookingsTab } from '../components/UserBookingsTab';
 import { UserReserveListTab } from '../components/UserReserveListTab';
+import { UserHomeTab } from '../components/UserHomeTab';
+import { cn } from '@fiilar/utils';
 
 interface UserDashboardProps {
   user: User | null;
   listings: Listing[];
   onRefreshUser: () => void;
+  onLogout?: () => void;
 }
 
-const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings, onRefreshUser }) => {
+const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings, onRefreshUser, onLogout }) => {
   const navigate = useNavigate();
-  const toast = useToast();
+  const { showToast } = useToast();
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
   // Hooks must be declared unconditionally and in the same order on every render.
   // Move state and router hooks to the top so an early return (when user is null)
   // doesn't change the Hooks call order.
-  const [activeTab, setActiveTab] = useState<'explore' | 'wallet' | 'favorites' | 'bookings' | 'reserve-list' | 'messages' | 'settings' | 'notifications'>('explore');
+  const [activeTab, setActiveTab] = useState<'home' | 'explore' | 'wallet' | 'favorites' | 'bookings' | 'reserve-list' | 'messages' | 'settings' | 'notifications'>('home');
+  const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const [selectedConversationId, setSelectedConversationId] = useState<string | undefined>(undefined);
   const [reviewModalBooking, setReviewModalBooking] = useState<{ bookingId: string, listingId: string, listingTitle: string } | null>(null);
   const [cancellationModalBooking, setCancellationModalBooking] = useState<{ booking: Booking, policy: CancellationPolicy } | null>(null);
   const [modifyModalBooking, setModifyModalBooking] = useState<{ booking: Booking, listing: Listing } | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const [refreshKey, setRefreshKey] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
+
+  // Poll for notifications
+  useEffect(() => {
+    if (!user) return;
+    const updateNotificationCount = () => {
+      // Assuming getUnreadCount is synchronous or we need to check its implementation. 
+      // Navbar uses it synchronously: const count = getUnreadCount(user.id);
+      // Let's verify if we need to import it first.
+      import('@fiilar/notifications').then(({ getUnreadCount }) => {
+        const count = getUnreadCount(user.id);
+        setUnreadNotifications(count);
+      });
+    };
+
+    updateNotificationCount();
+    const interval = setInterval(updateNotificationCount, 30000);
+    return () => clearInterval(interval);
+  }, [user]);
+
+  const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      setActiveTab('explore');
+    }
+  };
 
   // If user is not signed in, redirect to login (or show a short message).
   // Early-return prevents reading properties on null.
@@ -58,7 +90,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings, onRefresh
   // IMPORTANT: This must be before the early return to maintain consistent hook order
   useEffect(() => {
     const tab = searchParams.get('tab');
-    if (tab === 'wallet' || tab === 'favorites' || tab === 'bookings' || tab === 'explore' || tab === 'reserve-list' || tab === 'messages' || tab === 'settings' || tab === 'notifications') {
+    if (tab === 'home' || tab === 'wallet' || tab === 'favorites' || tab === 'bookings' || tab === 'explore' || tab === 'reserve-list' || tab === 'messages' || tab === 'settings' || tab === 'notifications') {
       setActiveTab(tab as any);
     }
 
@@ -66,6 +98,18 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings, onRefresh
     if (convId) {
       setSelectedConversationId(convId);
     }
+
+    // Close profile menu on click outside
+    const handleClickOutside = (event: MouseEvent) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
+        setIsProfileMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, [searchParams]);
 
   if (!user) {
@@ -77,7 +121,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings, onRefresh
   }
 
   // Helper to change tab and update URL so history reflects tab changes
-  const setTab = (tab: 'explore' | 'wallet' | 'favorites' | 'bookings' | 'reserve-list' | 'messages' | 'settings' | 'notifications') => {
+  const setTab = (tab: 'home' | 'explore' | 'wallet' | 'favorites' | 'bookings' | 'reserve-list' | 'messages' | 'settings' | 'notifications') => {
     setActiveTab(tab);
     // Update query param without losing other params
     const params = new URLSearchParams(searchParams);
@@ -97,83 +141,332 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings, onRefresh
 
   const userBookings = getBookings().filter(b => b.userId === user.id);
   const reservedBookings = userBookings.filter(b => b.status === 'Reserved');
+  const unreadMessages = getConversations(user.id).filter(c => c.participants.includes(user.id) && c.unreadCount && c.unreadCount > 0).length;
+
+  const tabConfig = [
+    { id: 'home' as const, icon: Home, label: 'Home' },
+    { id: 'explore' as const, icon: LayoutGrid, label: 'Explore' },
+    { id: 'favorites' as const, icon: Heart, label: 'Favorites', badge: user.favorites?.length },
+    { id: 'bookings' as const, icon: Calendar, label: 'Bookings', badge: userBookings.filter(b => b.status === 'Pending' || b.status === 'Confirmed').length },
+    { id: 'wallet' as const, icon: Wallet, label: 'Wallet' },
+    { id: 'reserve-list' as const, icon: Sparkles, label: 'Reserve List', badge: reservedBookings.length },
+    { id: 'messages' as const, icon: MessageSquare, label: 'Messages', badge: unreadMessages },
+  ];
+
+  const secondaryTabs = [
+    { id: 'settings' as const, icon: SettingsIcon, label: 'Settings' },
+    { id: 'notifications' as const, icon: Bell, label: 'Notifications' },
+  ];
+
+
 
   return (
-    <div className="bg-gray-50">
-      {/* Sidebar */}
-      <aside className="hidden lg:flex lg:flex-col w-64 bg-white border-r border-gray-200 fixed top-16 left-0 bottom-0 z-40">
-        <div className="p-6 border-b border-gray-200 shrink-0">
-          <h2 className="text-lg font-bold text-gray-900">Dashboard</h2>
-          <p className="text-xs text-gray-500 mt-1">Welcome, {user.name.split(' ')[0]}</p>
+    <div className="fixed inset-0 flex bg-white overflow-hidden">
+      {/* Gradient Background Layer */}
+      <div className="absolute inset-y-0 left-0 w-[400px] bg-gradient-to-br from-orange-100 via-rose-50 to-blue-100 opacity-60 pointer-events-none" />
+
+      {/* Desktop Collapsible Sidebar */}
+      <aside className={cn(
+        "hidden lg:flex flex-col py-6 bg-white border-r border-gray-100 z-20 transition-all duration-300 ease-in-out",
+        sidebarExpanded ? "w-[220px]" : "w-[72px]"
+      )}>
+        {/* Logo & Toggle */}
+        <div className={cn(
+          "flex items-center mb-8",
+          sidebarExpanded ? "px-5 justify-between" : "px-4 justify-center"
+        )}>
+          <button
+            onClick={() => navigate('/')}
+            className={cn(
+              "flex items-center justify-center hover:opacity-80 transition-opacity",
+              sidebarExpanded ? "h-7" : "w-8 h-8"
+            )}
+            title="Go to homepage"
+          >
+            <img
+              src={sidebarExpanded ? "/assets/logo.png" : "/assets/fiilar-icon.png"}
+              alt="Fiilar"
+              className={cn(
+                "object-contain",
+                sidebarExpanded ? "h-full w-auto" : "w-full h-full"
+              )}
+            />
+          </button>
+          <button
+            onClick={() => setSidebarExpanded(!sidebarExpanded)}
+            className={cn(
+              "w-6 h-6 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 transition-all",
+              !sidebarExpanded && "absolute left-[60px] top-6 shadow-sm border border-gray-200"
+            )}
+            title={sidebarExpanded ? "Collapse sidebar" : "Expand sidebar"}
+          >
+            {sidebarExpanded ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
+          </button>
         </div>
-        <nav className="flex-1 p-4 space-y-1 overflow-y-auto min-h-0">
-          <button data-tab="explore" onClick={() => setTab('explore')} className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === 'explore' ? 'bg-brand-50 text-brand-700' : 'text-gray-700 hover:bg-gray-50'}`}>
-            <LayoutGrid size={18} />
-            Explore
-          </button>
-          <button data-tab="favorites" onClick={() => setTab('favorites')} className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === 'favorites' ? 'bg-brand-50 text-brand-700' : 'text-gray-700 hover:bg-gray-50'}`}>
-            <Heart size={18} />
-            Favorites
-            {user.favorites && user.favorites.length > 0 && (
-              <span className="ml-auto bg-gray-100 text-gray-700 text-xs font-bold px-2 py-0.5 rounded-full">{user.favorites.length}</span>
-            )}
-          </button>
-          <button data-tab="bookings" onClick={() => setTab('bookings')} className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === 'bookings' ? 'bg-brand-50 text-brand-700' : 'text-gray-700 hover:bg-gray-50'}`}>
-            <Calendar size={18} />
-            Bookings
-            {userBookings.filter(b => b.status === 'Pending' || b.status === 'Confirmed').length > 0 && (
-              <span className="ml-auto bg-green-100 text-green-700 text-xs font-bold px-2 py-0.5 rounded-full">{userBookings.filter(b => b.status === 'Pending' || b.status === 'Confirmed').length}</span>
-            )}
-          </button>
-          <button data-tab="wallet" onClick={() => setTab('wallet')} className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === 'wallet' ? 'bg-brand-50 text-brand-700' : 'text-gray-700 hover:bg-gray-50'}`}>
-            <Wallet size={18} />
-            Wallet
-          </button>
-          <button data-tab="reserve-list" onClick={() => setTab('reserve-list')} className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === 'reserve-list' ? 'bg-brand-50 text-brand-700' : 'text-gray-700 hover:bg-gray-50'}`}>
-            <Sparkles size={18} />
-            Reserve List
-            {reservedBookings.length > 0 && (
-              <span className="ml-auto bg-blue-100 text-blue-700 text-xs font-bold px-2 py-0.5 rounded-full">{reservedBookings.length}</span>
-            )}
-          </button>
-          <button data-tab="messages" onClick={() => setTab('messages')} className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === 'messages' ? 'bg-brand-50 text-brand-700' : 'text-gray-700 hover:bg-gray-50'}`}>
-            <MessageSquare size={18} />
-            Messages
-          </button>
+
+        {/* Main Navigation */}
+        <nav className="flex-1 flex flex-col w-full px-3">
+          {tabConfig.map((tab, idx) => (
+            <React.Fragment key={tab.id}>
+              <button
+                data-tab={tab.id}
+                onClick={() => setTab(tab.id)}
+                title={tab.label}
+                className={cn(
+                  "relative flex items-center gap-3 rounded-full transition-all duration-200",
+                  sidebarExpanded ? "px-4 py-2.5" : "w-10 h-10 justify-center mx-auto rounded-xl",
+                  activeTab === tab.id
+                    ? "bg-brand-600 text-white shadow-md shadow-brand-600/20"
+                    : "text-gray-700 hover:bg-gray-50"
+                )}
+              >
+                <tab.icon size={18} strokeWidth={activeTab === tab.id ? 2 : 1.5} className="shrink-0" />
+                {sidebarExpanded && (
+                  <span className={cn(
+                    "text-sm font-medium whitespace-nowrap",
+                    activeTab === tab.id ? "text-white" : "text-gray-700"
+                  )}>
+                    {tab.label}
+                  </span>
+                )}
+                {tab.badge !== undefined && tab.badge > 0 && (
+                  <span className={cn(
+                    "min-w-[18px] h-[18px] text-[10px] font-bold rounded-full flex items-center justify-center px-1",
+                    sidebarExpanded ? "ml-auto" : "absolute -top-1 -right-1 border-2 border-white",
+                    activeTab === tab.id
+                      ? sidebarExpanded ? "bg-white/20 text-white" : "bg-white text-brand-600"
+                      : "bg-red-500 text-white"
+                  )}>
+                    {tab.badge > 99 ? '99+' : tab.badge}
+                  </span>
+                )}
+              </button>
+              {idx < tabConfig.length - 1 && (
+                <div className={cn(
+                  "w-5 h-px bg-gray-200 my-2",
+                  sidebarExpanded ? "mx-4" : "mx-auto"
+                )} />
+              )}
+            </React.Fragment>
+          ))}
+
+          {/* Divider between main and secondary tabs */}
+          <div className={cn(
+            "h-px bg-gray-200 my-4",
+            sidebarExpanded ? "mx-2" : "mx-2"
+          )} />
+
+          {secondaryTabs.map((tab, idx) => (
+            <React.Fragment key={tab.id}>
+              <button
+                data-tab={tab.id}
+                onClick={() => setTab(tab.id)}
+                title={tab.label}
+                className={cn(
+                  "relative flex items-center gap-3 rounded-full transition-all duration-200",
+                  sidebarExpanded ? "px-4 py-2.5" : "w-10 h-10 justify-center mx-auto rounded-xl",
+                  activeTab === tab.id
+                    ? "bg-brand-600 text-white shadow-md shadow-brand-600/20"
+                    : "text-gray-700 hover:bg-gray-50"
+                )}
+              >
+                <tab.icon size={18} strokeWidth={activeTab === tab.id ? 2 : 1.5} className="shrink-0" />
+                {sidebarExpanded && (
+                  <span className={cn(
+                    "text-sm font-medium whitespace-nowrap",
+                    activeTab === tab.id ? "text-white" : "text-gray-700"
+                  )}>
+                    {tab.label}
+                  </span>
+                )}
+              </button>
+              {idx < secondaryTabs.length - 1 && (
+                <div className={cn(
+                  "w-5 h-px bg-gray-200 my-2",
+                  sidebarExpanded ? "mx-4" : "mx-auto"
+                )} />
+              )}
+            </React.Fragment>
+          ))}
         </nav>
-        <div className="p-4 space-y-1 border-t border-gray-100 shrink-0">
-          <button onClick={() => navigate('/')} className="w-full bg-brand-600 text-white px-4 py-2.5 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-brand-700 transition shadow-sm mb-2">
-            <Search size={18} /> Browse Spaces
-          </button>
-          <button data-tab="settings" onClick={() => setTab('settings')} className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === 'settings' ? 'bg-brand-50 text-brand-700' : 'text-gray-700 hover:bg-gray-50'}`}>
-            <SettingsIcon size={18} />
-            Settings
-          </button>
-          <button data-tab="notifications" onClick={() => setTab('notifications')} className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === 'notifications' ? 'bg-brand-50 text-brand-700' : 'text-gray-700 hover:bg-gray-50'}`}>
-            <Bell size={18} />
-            Notifications
+
+        {/* Home Button at Bottom */}
+        <div className="px-3 mt-auto pt-4">
+          <button
+            onClick={() => navigate('/')}
+            title="Back to Home"
+            className={cn(
+              "flex items-center gap-3 rounded-full text-gray-700 hover:bg-gray-50 transition-all duration-200",
+              sidebarExpanded ? "px-4 py-2.5 w-full" : "w-10 h-10 justify-center mx-auto rounded-xl"
+            )}
+          >
+            <Home size={18} strokeWidth={1.5} className="shrink-0" />
+            {sidebarExpanded && (
+              <span className="text-sm font-medium text-gray-700">Back to Home</span>
+            )}
           </button>
         </div>
       </aside>
 
-      {/* Main Content */}
-      <div className="min-h-screen lg:ml-64">
-        {/* Mobile Header */}
-        <div className="lg:hidden bg-white border-b border-gray-200 p-4">
-          <h1 className="text-xl font-bold text-gray-900">Welcome, {user.name.split(' ')[0]}</h1>
-          <div className="flex gap-2 mt-3 overflow-x-auto no-scrollbar">
-            <button data-tab="explore" onClick={() => setTab('explore')} className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all duration-200 hover:scale-105 active:scale-95 ${activeTab === 'explore' ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-700'}`}>Explore</button>
-            <button data-tab="favorites" onClick={() => setTab('favorites')} className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all duration-200 hover:scale-105 active:scale-95 ${activeTab === 'favorites' ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-700'}`}>Favorites</button>
-            <button data-tab="bookings" onClick={() => setTab('bookings')} className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all duration-200 hover:scale-105 active:scale-95 ${activeTab === 'bookings' ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-700'}`}>Bookings</button>
-            <button data-tab="wallet" onClick={() => setTab('wallet')} className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all duration-200 hover:scale-105 active:scale-95 ${activeTab === 'wallet' ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-700'}`}>Wallet</button>
-            <button data-tab="reserve-list" onClick={() => setTab('reserve-list')} className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all duration-200 hover:scale-105 active:scale-95 ${activeTab === 'reserve-list' ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-700'}`}>Reserve</button>
-            <button data-tab="messages" onClick={() => setTab('messages')} className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all duration-200 hover:scale-105 active:scale-95 ${activeTab === 'messages' ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-700'}`}>Messages</button>
-          </div>
-        </div>
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-w-0 relative z-10 bg-[#FFFBF9]">
+        {/* Top Header */}
+        <header className="hidden lg:flex items-center justify-between px-8 py-5 bg-transparent">
+          {/* Left: Current Tab Title - Empty as requested */}
+          <div />
 
-        {/* Content Area */}
-        <main className="flex-1 overflow-y-auto">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+          {/* Right Side Actions */}
+          <div className="flex items-center gap-3">
+            {/* Search Button */}
+            {/* Search Input */}
+            <div className="relative hidden xl:block group">
+              <div className="flex items-center bg-white border border-gray-200 rounded-full shadow-sm hover:shadow-lg transition-all duration-300 w-[400px] focus-within:ring-4 focus-within:ring-brand-500/10 focus-within:border-brand-500/50">
+                <input
+                  type="text"
+                  placeholder="Search for spaces..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={handleSearch}
+                  className="flex-1 pl-6 pr-4 py-2.5 bg-transparent text-sm text-gray-900 placeholder-gray-500 focus:outline-none rounded-l-full"
+                />
+                <div className="pr-1.5">
+                  <div className="bg-brand-600 text-white p-2 rounded-full group-hover:scale-105 transition-all duration-200 cursor-pointer shadow-md shadow-brand-600/20" onClick={() => searchQuery && setActiveTab('explore')}>
+                    <Search size={16} strokeWidth={2.5} />
+                  </div>
+                </div>
+              </div>
+            </div>
+            {/* Mobile/Tablet Search Button */}
+            <button
+              onClick={() => navigate('/')}
+              className="xl:hidden flex items-center justify-center w-10 h-10 bg-white border border-gray-200 rounded-full text-gray-600 shadow-sm"
+              aria-label="Search"
+            >
+              <Search size={18} />
+            </button>
+
+            {/* Notifications */}
+            <button
+              onClick={() => setTab('notifications')}
+              className={cn(
+                "relative w-9 h-9 rounded-full flex items-center justify-center transition-all border",
+                activeTab === 'notifications'
+                  ? "bg-brand-500 text-white border-brand-500 shadow-lg shadow-brand-500/20"
+                  : "bg-white border-gray-200 text-gray-500 hover:border-gray-300"
+              )}
+              aria-label="Notifications"
+            >
+              <Bell size={16} />
+              {unreadNotifications > 0 && activeTab !== 'notifications' && (
+                <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white" />
+              )}
+            </button>
+
+            {/* User Avatar & Dropdown */}
+            <div className="relative" ref={profileMenuRef}>
+              <button
+                onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                className={cn(
+                  "flex items-center gap-2 rounded-full transition-all duration-200 p-1.5 pr-3",
+                  isProfileMenuOpen || activeTab === 'settings'
+                    ? "bg-gray-100"
+                    : "hover:bg-gray-100"
+                )}
+                aria-label={`${user.firstName || user.name.split(' ')[0]} account menu`}
+                {...{ 'aria-expanded': isProfileMenuOpen }}
+                aria-haspopup="menu"
+              >
+                <UserAvatar
+                  src={user.avatar}
+                  firstName={user.firstName || user.name.split(' ')[0]}
+                  lastName={user.lastName || user.name.split(' ')[1]}
+                  size="sm"
+                />
+                <span className="text-sm font-medium text-gray-700">
+                  {user.firstName || user.name.split(' ')[0]}
+                </span>
+              </button>
+
+              {/* Dropdown Menu */}
+              {isProfileMenuOpen && (
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50 animate-in fade-in zoom-in-95 duration-200">
+                  <div className="px-4 py-2 border-b border-gray-100 mb-1">
+                    <p className="text-sm font-semibold text-gray-900">{user.name}</p>
+                    <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      setTab('settings');
+                      setIsProfileMenuOpen(false);
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                  >
+                    <SettingsIcon size={16} />
+                    Settings
+                  </button>
+
+                  <div className="h-px bg-gray-100 my-1" />
+
+                  <button
+                    onClick={() => {
+                      setIsProfileMenuOpen(false);
+                      onLogout?.();
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                  >
+                    <LogOut size={16} />
+                    Log out
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </header>
+
+        {/* Mobile Header */}
+        <header className="lg:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-gray-100">
+          {/* Left: Tab Title - Empty as requested */}
+          <div />
+
+          {/* Right: Actions */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigate('/')}
+              className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center"
+              title="Find Spaces"
+            >
+              <Search size={18} className="text-gray-600" />
+            </button>
+            <button
+              onClick={() => setTab('notifications')}
+              className="relative w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center"
+              title="Notifications"
+            >
+              <Bell size={18} className="text-gray-600" />
+              {unreadNotifications > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                  {unreadNotifications}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => setTab('settings')}
+              className="w-9 h-9 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center overflow-hidden"
+              title="Settings"
+            >
+              {user.avatar ? (
+                <img src={user.avatar} alt={user.name} className="w-9 h-9 rounded-full object-cover" />
+              ) : (
+                <span className="text-white font-bold text-sm">{user.name.charAt(0)}</span>
+              )}
+            </button>
+          </div>
+        </header>
+
+        {/* Content Area with White Background Card */}
+        <main className="flex-1 overflow-y-auto px-4 lg:px-8 pb-24 lg:pb-8">
+          <div className="bg-white rounded-t-[32px] lg:rounded-3xl min-h-full shadow-xl shadow-gray-200/50 -mx-4 lg:mx-0 px-4 sm:px-6 lg:px-8 py-8">
 
             {activeTab === 'wallet' && (
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
@@ -212,8 +505,16 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings, onRefresh
               </div>
             )}
 
+            {activeTab === 'home' && (
+              <UserHomeTab
+                user={user}
+                listings={listings}
+                onTabChange={setTab}
+              />
+            )}
+
             {activeTab === 'explore' && (
-              <UserExploreTab listings={listings} />
+              <UserExploreTab listings={listings} initialSearchQuery={searchQuery} />
             )}
 
             {activeTab === 'favorites' && (
@@ -235,7 +536,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings, onRefresh
                     setModifyModalBooking({ booking, listing });
                   } else {
                     console.error('Listing not found for booking', booking);
-                    toast.showToast({ message: 'Error: Could not find listing details for this booking.', type: 'info' });
+                    showToast({ message: 'Error: Could not find listing details for this booking.', type: 'error' });
                   }
                 }}
               />
@@ -354,7 +655,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings, onRefresh
             {/* Settings Tab */}
             {activeTab === 'settings' && (
               <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
-                <Settings user={user} onUpdateUser={() => onRefreshUser()} />
+                <Settings user={user} onUpdateUser={() => onRefreshUser()} onLogout={onLogout} />
               </div>
             )}
 
@@ -367,6 +668,39 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings, onRefresh
 
           </div>
         </main>
+      </div>
+
+      {/* Mobile Bottom Navigation */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-xl border-t border-gray-200 pb-safe">
+        <div className="flex items-center justify-around h-[68px] px-2">
+          {tabConfig.map((tab) => (
+            <button
+              key={tab.id}
+              data-tab={tab.id}
+              onClick={() => setTab(tab.id)}
+              className={cn(
+                "relative flex flex-col items-center justify-center flex-1 py-2",
+                activeTab === tab.id ? "text-brand-600" : "text-gray-400"
+              )}
+            >
+              <div className={cn(
+                "w-12 h-12 rounded-2xl flex items-center justify-center transition-all",
+                activeTab === tab.id && "bg-brand-500 text-white shadow-lg shadow-brand-500/30"
+              )}>
+                <tab.icon
+                  size={22}
+                  strokeWidth={activeTab === tab.id ? 2 : 1.5}
+                  className={activeTab === tab.id ? "text-white" : ""}
+                />
+                {tab.badge !== undefined && tab.badge > 0 && activeTab !== tab.id && (
+                  <span className="absolute top-1 right-1/4 min-w-[16px] h-4 text-[10px] font-bold bg-red-500 text-white rounded-full flex items-center justify-center px-1">
+                    {tab.badge > 99 ? '99+' : tab.badge}
+                  </span>
+                )}
+              </div>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Review Modal */}

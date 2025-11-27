@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { User as UserIcon, Settings as SettingsIcon, HelpCircle, Info, MessageSquare, Phone, Mail, MessageCircle, Star, Check, AlertTriangle, Trash2, FileText, Shield, Upload } from 'lucide-react';
+import { User as UserIcon, HelpCircle, Info, MessageSquare, Phone, Mail, MessageCircle, Star, Check, AlertTriangle, Trash2, FileText, Shield, Upload, Globe, ChevronRight } from 'lucide-react';
 import { User } from '@fiilar/types';
-import { Button } from '@fiilar/ui';
-import { updateUserProfile } from '@fiilar/storage';
+import { Button, useLocale } from '@fiilar/ui';
+import { updateUserProfile, APP_INFO } from '@fiilar/storage';
+import { SupportedCountry, LOCALE_CONFIGS } from '@fiilar/utils';
 import { PhoneInput } from '../../../components/common/PhoneInput';
 
 interface HostSettingsProps {
@@ -13,6 +14,7 @@ interface HostSettingsProps {
 type SettingsTab = 'account' | 'support' | 'about' | 'feedback';
 
 const HostSettings: React.FC<HostSettingsProps> = ({ user, onUpdateUser }) => {
+    const { locale, country, setCountry } = useLocale();
     const [activeTab, setActiveTab] = useState<SettingsTab>('account');
 
     // Profile Form State
@@ -59,14 +61,14 @@ const HostSettings: React.FC<HostSettingsProps> = ({ user, onUpdateUser }) => {
         try {
             // Real API call
             if (user) {
-                const updatedUser = updateUserProfile(user.id, {
+                const result = updateUserProfile(user.id, {
                     name: formData.name,
                     bio: formData.bio,
                     phone: formData.phone // Allow saving phone (only editable if previously empty)
                 });
 
-                if (onUpdateUser && updatedUser) {
-                    onUpdateUser(updatedUser);
+                if (result.success && result.user && onUpdateUser) {
+                    onUpdateUser(result.user);
                 }
             }
 
@@ -128,30 +130,26 @@ const HostSettings: React.FC<HostSettingsProps> = ({ user, onUpdateUser }) => {
                 </div>
             )}
 
-            <div className="flex items-center gap-3 mb-8">
-                <div className="p-2 bg-brand-100 rounded-lg text-brand-600">
-                    <SettingsIcon size={32} />
-                </div>
-                <h1 className="text-3xl font-bold text-gray-900">Host Settings</h1>
-            </div>
-
-            <div className="flex flex-col md:flex-row gap-6">
+            <div className="flex flex-col md:flex-row gap-8">
                 {/* Sidebar Navigation */}
-                <div className="md:w-64 shrink-0">
-                    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-2">
+                <div className="md:w-72 shrink-0 space-y-8 border-r border-gray-100 pr-6 hidden md:block">
+                    <div className="space-y-2">
+                        <h3 className="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Settings</h3>
                         {tabs.map((tab) => {
                             const Icon = tab.icon;
+                            const isActive = activeTab === tab.id;
                             return (
                                 <button
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id)}
-                                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${activeTab === tab.id
-                                        ? 'bg-brand-50 text-brand-700 font-semibold'
-                                        : 'text-gray-600 hover:bg-gray-50'
+                                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all group relative ${isActive
+                                        ? 'bg-brand-50 text-brand-700'
+                                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                                         }`}
                                 >
-                                    <Icon size={20} />
-                                    {tab.label}
+                                    <Icon size={20} className={isActive ? 'text-brand-600' : 'text-gray-400 group-hover:text-gray-600'} />
+                                    <span className={`font-medium ${isActive ? 'text-brand-900' : 'text-gray-700'}`}>{tab.label}</span>
+                                    {isActive && <div className="absolute right-2 w-1.5 h-1.5 rounded-full bg-brand-500" />}
                                 </button>
                             );
                         })}
@@ -159,19 +157,41 @@ const HostSettings: React.FC<HostSettingsProps> = ({ user, onUpdateUser }) => {
                 </div>
 
                 {/* Content Area */}
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
+                    {/* Mobile Tabs (visible only on small screens) */}
+                    <div className="md:hidden flex overflow-x-auto gap-2 pb-4 mb-6 no-scrollbar">
+                        {tabs.map((tab) => {
+                            const Icon = tab.icon;
+                            const isActive = activeTab === tab.id;
+                            return (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id)}
+                                    className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap text-sm font-medium transition-colors ${isActive
+                                        ? 'bg-brand-600 text-white'
+                                        : 'bg-gray-100 text-gray-600'
+                                        }`}
+                                >
+                                    <Icon size={16} />
+                                    {tab.label}
+                                </button>
+                            );
+                        })}
+                    </div>
+
                     {/* Account Settings */}
                     {activeTab === 'account' && (
-                        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 space-y-6">
-                            <div className="flex justify-between items-start">
+                        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <div className="flex justify-between items-start border-b border-gray-100 pb-6">
                                 <div>
-                                    <h2 className="text-xl font-bold text-gray-900 mb-1">Host Profile</h2>
-                                    <p className="text-gray-600 text-sm">Manage your host profile and preferences</p>
+                                    <h2 className="text-2xl font-bold text-gray-900 mb-1">Host Profile</h2>
+                                    <p className="text-gray-500">Manage your public profile and account details</p>
                                 </div>
                                 {!isEditing ? (
                                     <Button
                                         onClick={() => setIsEditing(true)}
-                                        variant="ghost"
+                                        variant="outline"
+                                        size="sm"
                                     >
                                         Edit Profile
                                     </Button>
@@ -180,6 +200,7 @@ const HostSettings: React.FC<HostSettingsProps> = ({ user, onUpdateUser }) => {
                                         <Button
                                             onClick={() => setIsEditing(false)}
                                             variant="ghost"
+                                            size="sm"
                                             disabled={isSaving}
                                         >
                                             Cancel
@@ -188,6 +209,7 @@ const HostSettings: React.FC<HostSettingsProps> = ({ user, onUpdateUser }) => {
                                             onClick={handleSaveProfile}
                                             disabled={isSaving}
                                             variant="primary"
+                                            size="sm"
                                         >
                                             {isSaving ? 'Saving...' : 'Save Changes'}
                                         </Button>
@@ -196,13 +218,13 @@ const HostSettings: React.FC<HostSettingsProps> = ({ user, onUpdateUser }) => {
                             </div>
 
                             {/* Profile Picture */}
-                            <div className="flex items-center gap-6 pb-6 border-b border-gray-200">
+                            <div className="flex items-center gap-6 pb-8 border-b border-gray-100">
                                 <div className="relative group">
-                                    <div className="w-20 h-20 rounded-full bg-gray-200 overflow-hidden">
+                                    <div className="w-24 h-24 rounded-full bg-gray-100 overflow-hidden ring-4 ring-white shadow-lg">
                                         {user?.avatar ? (
                                             <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
                                         ) : (
-                                            <div className="w-full h-full flex items-center justify-center bg-brand-100 text-brand-600 text-2xl font-bold">
+                                            <div className="w-full h-full flex items-center justify-center bg-brand-100 text-brand-600 text-3xl font-bold">
                                                 {user?.name?.charAt(0) || 'U'}
                                             </div>
                                         )}
@@ -213,56 +235,55 @@ const HostSettings: React.FC<HostSettingsProps> = ({ user, onUpdateUser }) => {
                                             aria-label="Upload profile picture"
                                             title="Upload profile picture"
                                         >
-                                            <Upload size={20} className="text-white" />
+                                            <Upload size={24} className="text-white" />
                                         </button>
                                     )}
                                 </div>
                                 <div>
-                                    <h3 className="font-semibold text-gray-900">Profile Picture</h3>
-                                    <p className="text-xs text-gray-500 mt-1">PNG, JPG up to 5MB</p>
+                                    <h3 className="font-semibold text-gray-900 text-lg">Profile Picture</h3>
+                                    <p className="text-sm text-gray-500 mt-1">This will be displayed on your profile and listings.</p>
+                                    <p className="text-xs text-gray-400 mt-1">PNG, JPG up to 5MB</p>
                                 </div>
                             </div>
 
-                            <div className="space-y-4">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
-                                        <label htmlFor="account-name" className="block text-sm font-semibold text-gray-900 mb-2">Name</label>
+                                        <label htmlFor="account-name" className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
                                         <input
                                             id="account-name"
                                             type="text"
                                             value={isEditing ? formData.name : (user?.name || '')}
                                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                            className={`w-full border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-500 ${isEditing ? 'border-gray-300 bg-white' : 'border-transparent bg-gray-50'}`}
+                                            className={`w-full border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-colors ${isEditing ? 'border-gray-300 bg-white' : 'border-transparent bg-gray-50'}`}
                                             readOnly={!isEditing}
                                         />
                                     </div>
 
                                     <div>
-                                        <label htmlFor="account-email" className="block text-sm font-semibold text-gray-900 mb-2">
-                                            Email
-                                            <span className="ml-2 text-xs font-normal text-gray-500">(Contact support to change)</span>
+                                        <label htmlFor="account-email" className="block text-sm font-medium text-gray-700 mb-2">
+                                            Email Address
                                         </label>
                                         <input
                                             id="account-email"
                                             type="email"
                                             value={user?.email || ''}
-                                            className="w-full border border-transparent bg-gray-100 text-gray-500 rounded-xl px-4 py-3 focus:outline-none cursor-not-allowed"
+                                            className="w-full border border-transparent bg-gray-50 text-gray-500 rounded-xl px-4 py-3 focus:outline-none cursor-not-allowed"
                                             readOnly
                                             disabled
                                         />
                                     </div>
 
                                     <div>
-                                        <label htmlFor="account-phone" className="block text-sm font-semibold text-gray-900 mb-2">
-                                            Phone
-                                            {user?.phone && <span className="ml-2 text-xs font-normal text-gray-500">(Contact support to change)</span>}
+                                        <label htmlFor="account-phone" className="block text-sm font-medium text-gray-700 mb-2">
+                                            Phone Number
                                         </label>
                                         {user?.phone ? (
                                             <input
                                                 id="account-phone"
                                                 type="tel"
                                                 value={user.phone}
-                                                className="w-full border border-transparent bg-gray-100 text-gray-500 rounded-xl px-4 py-3 focus:outline-none cursor-not-allowed"
+                                                className="w-full border border-transparent bg-gray-50 text-gray-500 rounded-xl px-4 py-3 focus:outline-none cursor-not-allowed"
                                                 readOnly
                                                 disabled
                                             />
@@ -279,86 +300,97 @@ const HostSettings: React.FC<HostSettingsProps> = ({ user, onUpdateUser }) => {
                                 </div>
 
                                 <div>
-                                    <label htmlFor="account-bio" className="block text-sm font-semibold text-gray-900 mb-2">Host Bio</label>
+                                    <label htmlFor="account-bio" className="block text-sm font-medium text-gray-700 mb-2">Bio</label>
                                     <textarea
                                         id="account-bio"
                                         value={isEditing ? formData.bio : (user?.bio || '')}
                                         onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
                                         placeholder={isEditing ? "Tell guests a bit about yourself..." : "No bio yet"}
-                                        rows={3}
-                                        className={`w-full border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none ${isEditing ? 'border-gray-300 bg-white' : 'border-transparent bg-gray-50'}`}
+                                        rows={4}
+                                        className={`w-full border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none transition-colors ${isEditing ? 'border-gray-300 bg-white' : 'border-transparent bg-gray-50'}`}
                                         readOnly={!isEditing}
                                     />
                                 </div>
 
-                                <div className="pt-4 border-t border-gray-200">
-                                    <h3 className="text-sm font-semibold text-gray-900 mb-3">Notification Preferences</h3>
-                                    <div className="space-y-3">
-                                        <label className="flex items-center gap-3 cursor-pointer">
-                                            <input
-                                                type="checkbox"
-                                                className="w-4 h-4 text-brand-600 rounded"
-                                                checked={notifications.newBookings}
-                                                onChange={(e) => updateNotificationPref('newBookings', e.target.checked)}
-                                            />
-                                            <span className="text-sm text-gray-700">Email notifications for new booking requests</span>
-                                        </label>
-                                        <label className="flex items-center gap-3 cursor-pointer">
-                                            <input
-                                                type="checkbox"
-                                                className="w-4 h-4 text-brand-600 rounded"
-                                                checked={notifications.messages}
-                                                onChange={(e) => updateNotificationPref('messages', e.target.checked)}
-                                            />
-                                            <span className="text-sm text-gray-700">Email notifications for guest messages</span>
-                                        </label>
-                                        <label className="flex items-center gap-3 cursor-pointer">
-                                            <input
-                                                type="checkbox"
-                                                className="w-4 h-4 text-brand-600 rounded"
-                                                checked={notifications.reviews}
-                                                onChange={(e) => updateNotificationPref('reviews', e.target.checked)}
-                                            />
-                                            <span className="text-sm text-gray-700">Email notifications for new reviews</span>
-                                        </label>
-                                        <label className="flex items-center gap-3 cursor-pointer">
-                                            <input
-                                                type="checkbox"
-                                                className="w-4 h-4 text-brand-600 rounded"
-                                                checked={notifications.updates}
-                                                onChange={(e) => updateNotificationPref('updates', e.target.checked)}
-                                            />
-                                            <span className="text-sm text-gray-700">Platform updates and announcements</span>
-                                        </label>
-                                        <label className="flex items-center gap-3 cursor-pointer">
-                                            <input
-                                                type="checkbox"
-                                                className="w-4 h-4 text-brand-600 rounded"
-                                                checked={notifications.marketing}
-                                                onChange={(e) => updateNotificationPref('marketing', e.target.checked)}
-                                            />
-                                            <span className="text-sm text-gray-700">Marketing emails</span>
-                                        </label>
+                                {/* Currency & Region Settings */}
+                                <div className="pt-8 border-t border-gray-100 opacity-60">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <Globe size={18} className="text-gray-400" />
+                                        <h3 className="text-base font-semibold text-gray-900">Currency & Region</h3>
+                                        <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-medium border border-gray-200">Coming Soon</span>
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pointer-events-none">
+                                        {(Object.keys(LOCALE_CONFIGS) as SupportedCountry[]).map((countryCode) => {
+                                            const config = LOCALE_CONFIGS[countryCode];
+                                            const isSelected = country === countryCode;
+                                            return (
+                                                <div
+                                                    key={countryCode}
+                                                    className={`flex items-center gap-3 p-3 rounded-xl border text-left cursor-not-allowed ${isSelected
+                                                        ? 'border-gray-300 bg-gray-50'
+                                                        : 'border-gray-200 bg-white'
+                                                        }`}
+                                                >
+                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${isSelected ? 'bg-gray-400 text-white' : 'bg-gray-100 text-gray-400'
+                                                        }`}>
+                                                        {config.currencySymbol}
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className={`font-medium text-sm truncate ${isSelected ? 'text-gray-600' : 'text-gray-400'}`}>
+                                                            {config.countryName}
+                                                        </p>
+                                                    </div>
+                                                    {isSelected && (
+                                                        <Check size={16} className="text-gray-400 shrink-0" />
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                <div className="pt-8 border-t border-gray-100">
+                                    <h3 className="text-base font-semibold text-gray-900 mb-4">Notification Preferences</h3>
+                                    <div className="space-y-4">
+                                        {[
+                                            { key: 'newBookings', label: 'Email notifications for new booking requests' },
+                                            { key: 'messages', label: 'Email notifications for guest messages' },
+                                            { key: 'reviews', label: 'Email notifications for new reviews' },
+                                            { key: 'updates', label: 'Platform updates and announcements' },
+                                            { key: 'marketing', label: 'Marketing emails' }
+                                        ].map((item) => (
+                                            <label key={item.key} className="flex items-center gap-3 cursor-pointer group">
+                                                <div className="relative flex items-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        className="peer sr-only"
+                                                        checked={notifications[item.key as keyof typeof notifications]}
+                                                        onChange={(e) => updateNotificationPref(item.key, e.target.checked)}
+                                                    />
+                                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-brand-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-600"></div>
+                                                </div>
+                                                <span className="text-sm text-gray-700 group-hover:text-gray-900 transition-colors">{item.label}</span>
+                                            </label>
+                                        ))}
                                     </div>
                                 </div>
 
                                 {/* Delete Account Section */}
-                                <div className="pt-6 border-t border-gray-200">
-                                    <div className="bg-red-50 border border-red-200 rounded-xl p-6">
-                                        <div className="flex items-start gap-3 mb-4">
-                                            <AlertTriangle size={24} className="text-red-600 shrink-0 mt-0.5" />
-                                            <div>
-                                                <h3 className="text-sm font-semibold text-red-900 mb-2">Delete Host Account</h3>
-                                                <p className="text-sm text-red-700 leading-relaxed">
-                                                    Permanently delete your host account and all listings. This action cannot be undone.
-                                                </p>
-                                            </div>
+                                <div className="pt-8 border-t border-gray-100">
+                                    <div className="flex items-start justify-between gap-4 p-6 rounded-2xl border border-red-100 bg-red-50/50">
+                                        <div>
+                                            <h3 className="text-base font-bold text-red-900 mb-1">Delete Host Account</h3>
+                                            <p className="text-sm text-red-700 leading-relaxed max-w-xl">
+                                                Permanently delete your host account and all listings. This action cannot be undone and will cancel all active bookings.
+                                            </p>
                                         </div>
                                         <Button
                                             onClick={() => setShowDeleteModal(true)}
                                             variant="danger"
+                                            size="sm"
+                                            className="shrink-0"
                                         >
-                                            Delete My Account
+                                            Delete Account
                                         </Button>
                                     </div>
                                 </div>
@@ -367,7 +399,7 @@ const HostSettings: React.FC<HostSettingsProps> = ({ user, onUpdateUser }) => {
                             {/* Delete Confirmation Modal */}
                             {showDeleteModal && (
                                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8">
+                                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 animate-in zoom-in-95 duration-200">
                                         <div className="flex items-center gap-3 mb-6">
                                             <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
                                                 <AlertTriangle size={24} className="text-red-600" />
@@ -455,67 +487,82 @@ const HostSettings: React.FC<HostSettingsProps> = ({ user, onUpdateUser }) => {
 
                     {/* Support Section */}
                     {activeTab === 'support' && (
-                        <div className="space-y-6">
-                            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-                                <h2 className="text-xl font-bold text-gray-900 mb-2">Host Support</h2>
-                                <p className="text-gray-600 text-sm mb-6">Get help with your listings and bookings</p>
+                        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <div>
+                                <h2 className="text-2xl font-bold text-gray-900 mb-1">Host Support</h2>
+                                <p className="text-gray-500">Get help with your listings and bookings</p>
+                            </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    {/* WhatsApp */}
-                                    <a
-                                        href="https://wa.me/1234567890?text=Hi, I need help with my listing"
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="flex flex-col items-center p-6 border-2 border-green-200 bg-green-50 rounded-xl hover:border-green-300 hover:bg-green-100 transition group"
-                                    >
-                                        <MessageCircle size={32} className="text-green-600 mb-3" />
-                                        <h3 className="font-semibold text-gray-900 mb-1">WhatsApp</h3>
-                                        <p className="text-xs text-gray-600 text-center">Chat with host support</p>
-                                    </a>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                {/* WhatsApp */}
+                                <a
+                                    href="https://wa.me/1234567890?text=Hi, I need help with my listing"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex flex-col items-center p-6 border border-gray-200 rounded-2xl hover:border-green-300 hover:bg-green-50/50 transition group bg-white"
+                                >
+                                    <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                                        <MessageCircle size={24} className="text-green-600" />
+                                    </div>
+                                    <h3 className="font-semibold text-gray-900 mb-1">WhatsApp</h3>
+                                    <p className="text-xs text-gray-500 text-center">Chat with host support</p>
+                                </a>
 
-                                    {/* Phone */}
-                                    <a
-                                        href="tel:+1234567890"
-                                        className="flex flex-col items-center p-6 border-2 border-blue-200 bg-blue-50 rounded-xl hover:border-blue-300 hover:bg-blue-100 transition group"
-                                    >
-                                        <Phone size={32} className="text-blue-600 mb-3" />
-                                        <h3 className="font-semibold text-gray-900 mb-1">Call Us</h3>
-                                        <p className="text-xs text-gray-600 text-center">Priority Host Line</p>
-                                    </a>
+                                {/* Phone */}
+                                <a
+                                    href="tel:+1234567890"
+                                    className="flex flex-col items-center p-6 border border-gray-200 rounded-2xl hover:border-blue-300 hover:bg-blue-50/50 transition group bg-white"
+                                >
+                                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                                        <Phone size={24} className="text-blue-600" />
+                                    </div>
+                                    <h3 className="font-semibold text-gray-900 mb-1">Call Us</h3>
+                                    <p className="text-xs text-gray-500 text-center">Priority Host Line</p>
+                                </a>
 
-                                    {/* Email */}
-                                    <a
-                                        href="mailto:host-support@fiilar.com"
-                                        className="flex flex-col items-center p-6 border-2 border-purple-200 bg-purple-50 rounded-xl hover:border-purple-300 hover:bg-purple-100 transition group"
-                                    >
-                                        <Mail size={32} className="text-purple-600 mb-3" />
-                                        <h3 className="font-semibold text-gray-900 mb-1">Email</h3>
-                                        <p className="text-xs text-gray-600 text-center">host-support@fiilar.com</p>
-                                    </a>
-                                </div>
+                                {/* Email */}
+                                <a
+                                    href="mailto:host-support@fiilar.com"
+                                    className="flex flex-col items-center p-6 border border-gray-200 rounded-2xl hover:border-purple-300 hover:bg-purple-50/50 transition group bg-white"
+                                >
+                                    <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                                        <Mail size={24} className="text-purple-600" />
+                                    </div>
+                                    <h3 className="font-semibold text-gray-900 mb-1">Email</h3>
+                                    <p className="text-xs text-gray-500 text-center">host-support@fiilar.com</p>
+                                </a>
                             </div>
 
                             {/* FAQ */}
-                            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-                                <h3 className="text-lg font-bold text-gray-900 mb-4">Host FAQs</h3>
-                                <div className="space-y-3">
-                                    <details className="group">
-                                        <summary className="cursor-pointer font-medium text-gray-900 hover:text-brand-600 transition">
+                            <div className="pt-8 border-t border-gray-100">
+                                <h3 className="text-lg font-bold text-gray-900 mb-6">Host FAQs</h3>
+                                <div className="space-y-4">
+                                    <details className="group border border-gray-200 rounded-xl bg-white open:shadow-sm transition-all">
+                                        <summary className="flex items-center justify-between cursor-pointer font-medium text-gray-900 p-4 hover:bg-gray-50 rounded-xl transition-colors">
                                             How do I get paid?
+                                            <ChevronRight size={16} className="text-gray-400 group-open:rotate-90 transition-transform" />
                                         </summary>
-                                        <p className="text-sm text-gray-600 mt-2 pl-4">Payouts are processed 24 hours after the guest checks in. Make sure your bank details are up to date in the Payouts tab.</p>
+                                        <div className="px-4 pb-4 text-sm text-gray-600 leading-relaxed">
+                                            Payouts are processed 24 hours after the guest checks in. Make sure your bank details are up to date in the Payouts tab.
+                                        </div>
                                     </details>
-                                    <details className="group">
-                                        <summary className="cursor-pointer font-medium text-gray-900 hover:text-brand-600 transition">
+                                    <details className="group border border-gray-200 rounded-xl bg-white open:shadow-sm transition-all">
+                                        <summary className="flex items-center justify-between cursor-pointer font-medium text-gray-900 p-4 hover:bg-gray-50 rounded-xl transition-colors">
                                             How do I handle cancellations?
+                                            <ChevronRight size={16} className="text-gray-400 group-open:rotate-90 transition-transform" />
                                         </summary>
-                                        <p className="text-sm text-gray-600 mt-2 pl-4">Your cancellation policy determines the refund amount. You can view the policy for each booking in the Bookings tab.</p>
+                                        <div className="px-4 pb-4 text-sm text-gray-600 leading-relaxed">
+                                            Your cancellation policy determines the refund amount. You can view the policy for each booking in the Bookings tab.
+                                        </div>
                                     </details>
-                                    <details className="group">
-                                        <summary className="cursor-pointer font-medium text-gray-900 hover:text-brand-600 transition">
+                                    <details className="group border border-gray-200 rounded-xl bg-white open:shadow-sm transition-all">
+                                        <summary className="flex items-center justify-between cursor-pointer font-medium text-gray-900 p-4 hover:bg-gray-50 rounded-xl transition-colors">
                                             Can I decline a booking request?
+                                            <ChevronRight size={16} className="text-gray-400 group-open:rotate-90 transition-transform" />
                                         </summary>
-                                        <p className="text-sm text-gray-600 mt-2 pl-4">Yes, you can decline requests that don't fit your schedule or criteria. However, frequent declines may affect your listing visibility.</p>
+                                        <div className="px-4 pb-4 text-sm text-gray-600 leading-relaxed">
+                                            Yes, you can decline requests that don't fit your schedule or criteria. However, frequent declines may affect your listing visibility.
+                                        </div>
                                     </details>
                                 </div>
                             </div>
@@ -524,86 +571,88 @@ const HostSettings: React.FC<HostSettingsProps> = ({ user, onUpdateUser }) => {
 
                     {/* About Section */}
                     {activeTab === 'about' && (
-                        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 space-y-6">
+                        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                             <div>
-                                <h2 className="text-xl font-bold text-gray-900 mb-4">About Fiilar for Hosts</h2>
-                                <p className="text-gray-700 leading-relaxed">
+                                <h2 className="text-2xl font-bold text-gray-900 mb-4">About Fiilar for Hosts</h2>
+                                <p className="text-gray-600 leading-relaxed text-lg">
                                     Fiilar empowers hosts to share their unique spaces and earn income. We provide the tools and support you need to succeed.
                                 </p>
                             </div>
 
-                            <div className="grid grid-cols-3 gap-4 py-6 border-y border-gray-200">
+                            <div className="grid grid-cols-3 gap-4 py-8 border-y border-gray-100">
                                 <div className="text-center">
-                                    <p className="text-3xl font-bold text-brand-600">10K+</p>
-                                    <p className="text-sm text-gray-600 mt-1">Active Hosts</p>
+                                    <p className="text-4xl font-bold text-brand-600 mb-1">10K+</p>
+                                    <p className="text-sm font-medium text-gray-500">Active Hosts</p>
                                 </div>
-                                <div className="text-center">
-                                    <p className="text-3xl font-bold text-brand-600">$5M+</p>
-                                    <p className="text-sm text-gray-600 mt-1">Paid to Hosts</p>
+                                <div className="text-center border-l border-gray-100">
+                                    <p className="text-4xl font-bold text-brand-600 mb-1">{locale.currencySymbol}5M+</p>
+                                    <p className="text-sm font-medium text-gray-500">Paid to Hosts</p>
                                 </div>
-                                <div className="text-center">
-                                    <p className="text-3xl font-bold text-brand-600">98%</p>
-                                    <p className="text-sm text-gray-600 mt-1">Satisfaction</p>
+                                <div className="text-center border-l border-gray-100">
+                                    <p className="text-4xl font-bold text-brand-600 mb-1">98%</p>
+                                    <p className="text-sm font-medium text-gray-500">Satisfaction</p>
                                 </div>
                             </div>
 
                             <div>
-                                <h3 className="font-semibold text-gray-900 mb-3">Our Commitment</h3>
-                                <p className="text-gray-700 leading-relaxed">
-                                    We are committed to building a safe and trusted community. We verify all guests and provide host protection programs.
+                                <h3 className="font-semibold text-gray-900 mb-3 text-lg">Our Commitment</h3>
+                                <p className="text-gray-600 leading-relaxed">
+                                    We are committed to building a safe and trusted community. We verify all guests and provide host protection programs to ensure your peace of mind.
                                 </p>
                             </div>
 
-                            <div className="pt-6 border-t border-gray-200">
+                            <div className="pt-8 border-t border-gray-100">
                                 <h3 className="font-semibold text-gray-900 mb-4">Legal & Privacy</h3>
-                                <div className="flex flex-wrap gap-4">
-                                    <a href="#" className="flex items-center gap-2 text-brand-600 hover:text-brand-700 text-sm font-medium">
-                                        <FileText size={16} />
-                                        Host Terms
+                                <div className="flex flex-wrap gap-6">
+                                    <a href="#" className="flex items-center gap-2 text-gray-600 hover:text-brand-600 transition-colors text-sm font-medium">
+                                        <FileText size={18} />
+                                        Host Terms of Service
                                     </a>
-                                    <a href="#" className="flex items-center gap-2 text-brand-600 hover:text-brand-700 text-sm font-medium">
-                                        <Shield size={16} />
+                                    <a href="#" className="flex items-center gap-2 text-gray-600 hover:text-brand-600 transition-colors text-sm font-medium">
+                                        <Shield size={18} />
                                         Privacy Policy
                                     </a>
                                 </div>
                             </div>
 
-                            <div className="pt-6 border-t border-gray-200">
-                                <p className="text-xs text-gray-500">Version 1.0.0 • © 2024 Fiilar. All rights reserved.</p>
+                            <div className="pt-8 border-t border-gray-100">
+                                <p className="text-xs text-gray-400">{APP_INFO.VERSION_WITH_COPYRIGHT}</p>
                             </div>
                         </div>
                     )}
 
                     {/* Feedback Section */}
                     {activeTab === 'feedback' && (
-                        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-                            <h2 className="text-xl font-bold text-gray-900 mb-2">Host Feedback</h2>
-                            <p className="text-gray-600 text-sm mb-6">Help us improve the hosting experience</p>
+                        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <div>
+                                <h2 className="text-2xl font-bold text-gray-900 mb-1">Host Feedback</h2>
+                                <p className="text-gray-500">Help us improve the hosting experience</p>
+                            </div>
 
                             {feedbackSubmitted ? (
-                                <div className="text-center py-12">
+                                <div className="text-center py-16 bg-green-50 rounded-2xl border border-green-100">
                                     <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                                         <Check size={32} className="text-green-600" />
                                     </div>
-                                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Thank you!</h3>
+                                    <h3 className="text-xl font-bold text-gray-900 mb-2">Thank you!</h3>
                                     <p className="text-gray-600">Your feedback has been submitted successfully.</p>
                                 </div>
                             ) : (
-                                <form onSubmit={handleFeedbackSubmit} className="space-y-6">
-                                    <div>
-                                        <label className="block text-sm font-semibold text-gray-900 mb-3">How would you rate your hosting experience?</label>
-                                        <div className="flex gap-2">
+                                <form onSubmit={handleFeedbackSubmit} className="space-y-6 max-w-2xl">
+                                    <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
+                                        <label className="block text-sm font-semibold text-gray-900 mb-4 text-center">How would you rate your hosting experience?</label>
+                                        <div className="flex justify-center gap-3">
                                             {[1, 2, 3, 4, 5].map((rating) => (
                                                 <button
                                                     key={rating}
                                                     type="button"
                                                     onClick={() => setFeedbackRating(rating)}
-                                                    className="transition-transform hover:scale-110"
+                                                    className="transition-transform hover:scale-110 focus:outline-none"
                                                     title={`${rating} stars`}
                                                 >
                                                     <Star
-                                                        size={36}
-                                                        className={rating <= feedbackRating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}
+                                                        size={40}
+                                                        className={rating <= feedbackRating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300 hover:text-gray-400'}
                                                     />
                                                 </button>
                                             ))}
@@ -611,12 +660,12 @@ const HostSettings: React.FC<HostSettingsProps> = ({ user, onUpdateUser }) => {
                                     </div>
 
                                     <div>
-                                        <label htmlFor="feedback-category" className="block text-sm font-semibold text-gray-900 mb-2">Category</label>
+                                        <label htmlFor="feedback-category" className="block text-sm font-medium text-gray-700 mb-2">Category</label>
                                         <select
                                             id="feedback-category"
                                             value={feedbackCategory}
                                             onChange={(e) => setFeedbackCategory(e.target.value)}
-                                            className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                                            className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white"
                                         >
                                             <option value="general">General Feedback</option>
                                             <option value="bug">Bug Report</option>
@@ -626,14 +675,14 @@ const HostSettings: React.FC<HostSettingsProps> = ({ user, onUpdateUser }) => {
                                     </div>
 
                                     <div>
-                                        <label htmlFor="feedback-message" className="block text-sm font-semibold text-gray-900 mb-2">Your Feedback</label>
+                                        <label htmlFor="feedback-message" className="block text-sm font-medium text-gray-700 mb-2">Your Feedback</label>
                                         <textarea
                                             id="feedback-message"
                                             value={feedbackMessage}
                                             onChange={(e) => setFeedbackMessage(e.target.value)}
                                             placeholder="Tell us what you think..."
                                             rows={6}
-                                            className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
+                                            className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none bg-white"
                                             required
                                         />
                                     </div>
@@ -643,6 +692,7 @@ const HostSettings: React.FC<HostSettingsProps> = ({ user, onUpdateUser }) => {
                                         disabled={feedbackRating === 0 || !feedbackMessage.trim()}
                                         variant="primary"
                                         className="w-full"
+                                        size="lg"
                                     >
                                         Submit Feedback
                                     </Button>

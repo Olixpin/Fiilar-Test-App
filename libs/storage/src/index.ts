@@ -9,6 +9,7 @@
  * - damage-reports: Damage report management
  * - security: Authentication and booking security utilities
  * - config: Centralized application configuration
+ * - analytics: View tracking and trending calculations
  */
 
 // Re-export all modules for backward compatibility
@@ -22,6 +23,7 @@ export * from './emailService';
 export * from './phoneService';
 export * from './security';
 export * from './config';
+export * from './analytics';
 
 // Export utilities
 export * from './utils/mockListingGenerator';

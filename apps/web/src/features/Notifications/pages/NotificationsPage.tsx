@@ -125,7 +125,7 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ userId }) => {
     }, {} as Record<string, Notification[]>);
 
     return (
-        <div className="max-w-4xl mx-auto">
+        <div>
             {/* Header */}
             <div className="mb-8 flex items-start justify-between">
                 <div>
@@ -143,32 +143,32 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ userId }) => {
             </div>
 
             {/* Filter Bar */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 mb-6">
+            <div className="mb-8">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div className="flex gap-2 flex-wrap">
                         <button
                             onClick={() => setFilter('all')}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${filter === 'all'
-                                ? 'bg-brand-100 text-brand-700'
-                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                            className={`px-4 py-2 rounded-full text-sm font-medium transition ${filter === 'all'
+                                ? 'bg-brand-600 text-white shadow-md shadow-brand-600/20'
+                                : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
                                 }`}
                         >
                             All ({notifications.length})
                         </button>
                         <button
                             onClick={() => setFilter('unread')}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${filter === 'unread'
-                                ? 'bg-brand-100 text-brand-700'
-                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                            className={`px-4 py-2 rounded-full text-sm font-medium transition ${filter === 'unread'
+                                ? 'bg-brand-600 text-white shadow-md shadow-brand-600/20'
+                                : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
                                 }`}
                         >
                             Unread ({unreadCount})
                         </button>
                         <button
                             onClick={() => setFilter('urgent')}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${filter === 'urgent'
-                                ? 'bg-brand-100 text-brand-700'
-                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                            className={`px-4 py-2 rounded-full text-sm font-medium transition ${filter === 'urgent'
+                                ? 'bg-brand-600 text-white shadow-md shadow-brand-600/20'
+                                : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
                                 }`}
                         >
                             Urgent ({urgentCount})
@@ -201,43 +201,45 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ userId }) => {
 
             {/* Notifications List */}
             {filteredNotifications.length === 0 ? (
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-12 text-center">
-                    <Bell size={48} className="mx-auto text-gray-300 mb-4" />
+                <div className="py-20 text-center">
+                    <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <Bell size={32} className="text-gray-300" />
+                    </div>
                     <h3 className="text-lg font-semibold text-gray-900 mb-2">No notifications</h3>
                     <p className="text-gray-500">You're all caught up!</p>
                 </div>
             ) : (
                 Object.entries(groupedNotifications).map(([label, notifs]) => (
                     <div key={label} className="mb-8">
-                        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">{label}</h2>
-                        <div className="space-y-3">
-                            {notifs.map((notification) => (
+                        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4 pl-2">{label}</h2>
+                        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+                            {notifs.map((notification, idx) => (
                                 <div
                                     key={notification.id}
                                     onClick={() => handleNotificationClick(notification)}
-                                    className={`bg-white rounded-xl shadow-sm border border-gray-200 p-6 cursor-pointer transition hover:shadow-md group ${!notification.read ? 'bg-blue-50 border-blue-200' : ''
-                                        }`}
+                                    className={`p-6 cursor-pointer transition hover:bg-gray-50 group ${!notification.read ? 'bg-blue-50/30' : ''
+                                        } ${idx !== notifs.length - 1 ? 'border-b border-gray-100' : ''}`}
                                 >
                                     <div className="flex gap-4">
-                                        <div className="shrink-0">
+                                        <div className="shrink-0 mt-1">
                                             {getIcon(notification.type, notification.severity)}
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <div className="flex items-start justify-between gap-4 mb-2">
+                                            <div className="flex items-start justify-between gap-4 mb-1">
                                                 <div className="flex-1">
                                                     <div className="flex items-center gap-2 mb-1">
-                                                        <h3 className="font-semibold text-gray-900">{notification.title}</h3>
+                                                        <h3 className={`font-semibold ${!notification.read ? 'text-gray-900' : 'text-gray-700'}`}>{notification.title}</h3>
                                                         {!notification.read && (
                                                             <div className="w-2 h-2 bg-brand-600 rounded-full"></div>
                                                         )}
                                                     </div>
-                                                    <p className="text-gray-700 leading-relaxed">{notification.message}</p>
+                                                    <p className="text-gray-600 leading-relaxed text-sm">{notification.message}</p>
                                                 </div>
                                                 {getSeverityBadge(notification.severity)}
                                             </div>
 
-                                            <div className="flex items-center justify-between mt-4">
-                                                <span className="text-sm text-gray-500">
+                                            <div className="flex items-center justify-between mt-3">
+                                                <span className="text-xs text-gray-400 font-medium">
                                                     {new Date(notification.createdAt).toLocaleTimeString('en-US', {
                                                         hour: 'numeric',
                                                         minute: '2-digit'
@@ -245,16 +247,16 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ userId }) => {
                                                 </span>
                                                 <div className="flex items-center gap-2">
                                                     {notification.actionRequired && (
-                                                        <span className="text-sm font-semibold text-red-600">
+                                                        <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded-full">
                                                             Action Required
                                                         </span>
                                                     )}
                                                     <button
                                                         onClick={(e) => handleDeleteNotification(notification.id, e)}
-                                                        className="opacity-0 group-hover:opacity-100 p-2 hover:bg-gray-100 rounded-lg transition"
+                                                        className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-gray-200 rounded-lg transition text-gray-400 hover:text-red-600"
                                                         title="Delete notification"
                                                     >
-                                                        <Trash2 size={16} className="text-gray-400 hover:text-red-600" />
+                                                        <Trash2 size={14} />
                                                     </button>
                                                 </div>
                                             </div>

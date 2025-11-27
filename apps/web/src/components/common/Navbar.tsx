@@ -6,7 +6,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { getAllUsers, STORAGE_KEYS, getCurrentUser } from '@fiilar/storage';
 import { getUnreadCount } from '@fiilar/notifications';
 import NotificationCenter from '../../features/Notifications/components/NotificationCenter';
-import { UserAvatar } from '@fiilar/ui';
+import { UserAvatar, useToast } from '@fiilar/ui';
 
 interface NavbarProps {
   user: User | null;
@@ -27,6 +27,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onSearch, searchTerm, o
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const navigate = useNavigate();
+  const { showToast } = useToast();
 
   const [avatarSrc, setAvatarSrc] = useState<string | null>(
     user?.avatar || (user ? `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}` : null)
@@ -134,10 +135,9 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onSearch, searchTerm, o
           <div className="flex items-center min-w-[150px] lg:min-w-[200px] xl:min-w-[250px]">
             <Link to="/" className="flex items-center cursor-pointer">
               <img
-                src="https://drive.google.com/thumbnail?id=11AM3I7DLtyDpwgduNdtbUaZXJUYpvruC&sz=w400"
+                src="/assets/logo.png"
                 alt="Fiilar"
-                className="h-5 md:h-6 object-contain"
-                referrerPolicy="no-referrer"
+                className="h-6 object-contain"
               />
             </Link>
           </div>
@@ -259,8 +259,10 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onSearch, searchTerm, o
                         localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(session));
                       }
                       setAvatarSrc(dataUrl);
+                      showToast({ message: 'Profile picture updated successfully', type: 'success' });
                     } catch (err) {
                       console.error('Failed to save avatar', err);
+                      showToast({ message: 'Failed to update profile picture', type: 'error' });
                     }
                   };
                   reader.readAsDataURL(f);

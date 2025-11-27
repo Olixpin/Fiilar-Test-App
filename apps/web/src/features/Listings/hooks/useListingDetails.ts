@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Listing, User, BookingType, Booking } from '@fiilar/types';
-import { getBookings, toggleFavorite, saveBooking, deleteBooking, getAllUsers } from '@fiilar/storage';
+import { getBookings, toggleFavorite, saveBooking, deleteBooking, getAllUsers, trackListingView, trackFavorite, getBookingDraft, saveBookingDraft, deleteBookingDraft, formatDraftAge, BookingDraft } from '@fiilar/storage';
 import { startConversation } from '@fiilar/messaging';
 import { addNotification } from '@fiilar/notifications';
 import { paymentService } from '@fiilar/escrow';
@@ -68,6 +68,13 @@ export const useListingDetails = ({ listing, user, onBook, onVerify, onLogin, on
 
     const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
+    // Booking Draft Restore State
+    const [draftRestoreDialog, setDraftRestoreDialog] = useState<{
+        isOpen: boolean;
+        draft: BookingDraft | null;
+    }>({ isOpen: false, draft: null });
+    const draftCheckedRef = useRef(false);
+
     useEffect(() => {
         if (user && user.favorites && user.favorites.includes(listing.id)) {
             setIsFavorite(true);
@@ -76,13 +83,34 @@ export const useListingDetails = ({ listing, user, onBook, onVerify, onLogin, on
         }
     }, [user, listing.id]);
 
+    // Check for existing booking draft on mount
+    useEffect(() => {
+        if (user && !draftCheckedRef.current) {
+            draftCheckedRef.current = true;
+            const existingDraft = getBookingDraft(user.id, listing.id);
+            if (existingDraft) {
+                setDraftRestoreDialog({ isOpen: true, draft: existingDraft });
+            }
+        }
+    }, [user, listing.id]);
+
+    // Track listing view on mount
+    useEffect(() => {
+        trackListingView(listing.id, user?.id);
+    }, [listing.id, user?.id]);
+
     const handleToggleFavorite = () => {
         if (!user) {
             onLogin();
             return;
         }
         const newFavs = toggleFavorite(user.id, listing.id);
-        setIsFavorite(newFavs.includes(listing.id));
+        const nowFavorite = newFavs.includes(listing.id);
+        setIsFavorite(nowFavorite);
+        
+        // Track favorite/unfavorite for analytics
+        trackFavorite(listing.id, user.id, nowFavorite);
+        
         if (onRefreshUser) {
             onRefreshUser();
         }
@@ -132,9 +160,16 @@ export const useListingDetails = ({ listing, user, onBook, onVerify, onLogin, on
             hostHours = listing.availability[dateStr];
         }
 
+        // Filter out current user's Reserved bookings (saved for later) - they shouldn't block availability
+        const activeBookings = listingBookings.filter(b => {
+            if (b.status === 'Cancelled') return false;
+            // User's own Reserved bookings shouldn't block availability for them
+            if (b.status === 'Reserved' && user && b.userId === user.id) return false;
+            return true;
+        });
+
         if (!isHourly) {
-            const isBooked = listingBookings.some(b => {
-                if (b.status === 'Cancelled') return false;
+            const isBooked = activeBookings.some(b => {
                 if (b.date === dateStr) return true;
                 const start = new Date(b.date);
                 const check = new Date(dateStr);
@@ -145,7 +180,7 @@ export const useListingDetails = ({ listing, user, onBook, onVerify, onLogin, on
 
             if (isBooked) return 'ALREADY_BOOKED';
         } else {
-            const dayBookings = listingBookings.filter(b => b.date === dateStr && b.status !== 'Cancelled');
+            const dayBookings = activeBookings.filter(b => b.date === dateStr);
             const bookedHours = dayBookings.reduce((acc, curr) => [...acc, ...(curr.hours || [])], [] as number[]);
 
             if (hostHours.length > 0) {
@@ -160,6 +195,8 @@ export const useListingDetails = ({ listing, user, onBook, onVerify, onLogin, on
     const isSlotBooked = (date: string, hour: number) => {
         return listingBookings.some(b => {
             if (b.date !== date) return false;
+            // User's own Reserved bookings shouldn't show as booked slots
+            if (b.status === 'Reserved' && user && b.userId === user.id) return false;
             if (b.hours && b.hours.length > 0) {
                 return b.hours.includes(hour);
             }
@@ -168,6 +205,83 @@ export const useListingDetails = ({ listing, user, onBook, onVerify, onLogin, on
     };
 
     const hostOpenHours = listing.availability ? (listing.availability[selectedDate] || []) : [];
+
+    // --- Booking Draft Handlers ---
+    const handleRestoreBookingDraft = useCallback(() => {
+        const draft = draftRestoreDialog.draft;
+        if (draft) {
+            // Restore all the booking state from the draft
+            setSelectedDate(draft.selectedDate);
+            setSelectedHours(draft.selectedHours);
+            if (draft.selectedDays) setSelectedDays(draft.selectedDays);
+            setGuestCount(draft.guestCount);
+            setSelectedAddOns(draft.selectedAddOns);
+            setIsRecurring(draft.isRecurring);
+            setRecurrenceFreq(draft.recurrenceFreq);
+            setRecurrenceCount(draft.recurrenceCount);
+            setAgreedToTerms(draft.agreedToTerms);
+            
+            toast.showToast({ message: 'Your previous booking progress has been restored!', type: 'success' });
+        }
+        setDraftRestoreDialog({ isOpen: false, draft: null });
+    }, [draftRestoreDialog.draft, toast]);
+
+    const handleDiscardBookingDraft = useCallback(() => {
+        if (user && draftRestoreDialog.draft) {
+            deleteBookingDraft(user.id, listing.id);
+        }
+        setDraftRestoreDialog({ isOpen: false, draft: null });
+    }, [user, listing.id, draftRestoreDialog.draft]);
+
+    // Auto-save booking draft when user makes changes
+    const saveBookingDraftData = useCallback(() => {
+        if (!user) return;
+        
+        // Only save if user has made some selections beyond defaults
+        const hasHourlySelections = isHourly && selectedHours.length > 0;
+        const hasDailySelections = !isHourly && selectedDays > 1;
+        const hasGuestChanges = guestCount > 1;
+        const hasAddOns = selectedAddOns.length > 0;
+        const hasRecurring = isRecurring;
+        const hasAgreed = agreedToTerms;
+        
+        const hasSelections = hasHourlySelections || 
+                              hasDailySelections ||
+                              hasGuestChanges || 
+                              hasAddOns || 
+                              hasRecurring ||
+                              hasAgreed;
+        
+        if (hasSelections) {
+            saveBookingDraft({
+                listingId: listing.id,
+                userId: user.id,
+                selectedDate,
+                selectedHours,
+                selectedDays,
+                guestCount,
+                selectedAddOns,
+                isRecurring,
+                recurrenceFreq,
+                recurrenceCount,
+                agreedToTerms,
+                listingTitle: listing.title,
+                listingImage: listing.images?.[0]
+            });
+        }
+    }, [user, listing.id, listing.title, listing.images, selectedDate, selectedHours, selectedDays, guestCount, selectedAddOns, isRecurring, recurrenceFreq, recurrenceCount, agreedToTerms, isHourly]);
+
+    // Auto-save booking draft when booking state changes (debounced)
+    useEffect(() => {
+        // Don't save if we haven't checked for existing draft yet or dialog is open
+        if (!draftCheckedRef.current || draftRestoreDialog.isOpen) return;
+        
+        const timeoutId = setTimeout(() => {
+            saveBookingDraftData();
+        }, 1000); // Debounce by 1 second
+        
+        return () => clearTimeout(timeoutId);
+    }, [saveBookingDraftData, draftRestoreDialog.isOpen]);
 
     // --- Handlers ---
     const openGallery = (index: number) => {
@@ -469,10 +583,14 @@ export const useListingDetails = ({ listing, user, onBook, onVerify, onLogin, on
             );
             if (savedBooking) {
                 deleteBooking(savedBooking.id);
+                // Also delete any localStorage draft when removing from Reserve List
+                deleteBookingDraft(user.id, listing.id);
                 setIsSavedForLater(false);
             }
         } else {
             saveDraftBooking(false);
+            // Delete the localStorage draft since we're now saving to Reserve List (actual booking)
+            deleteBookingDraft(user.id, listing.id);
             setIsSavedForLater(true);
         }
     };
@@ -526,6 +644,9 @@ export const useListingDetails = ({ listing, user, onBook, onVerify, onLogin, on
                     actionRequired: true,
                     metadata: { link: '/dashboard?view=bookings' }
                 });
+                
+                // Clear the booking draft after successful booking
+                deleteBookingDraft(user.id, listing.id);
             }
             setShowConfirmModal(false);
             setShowVerificationModal(false);
@@ -606,6 +727,11 @@ export const useListingDetails = ({ listing, user, onBook, onVerify, onLogin, on
         handleContactHost,
         handleConfirmBooking,
         handleVerificationComplete,
-        handleShare
+        handleShare,
+        // Booking Draft
+        draftRestoreDialog,
+        handleRestoreBookingDraft,
+        handleDiscardBookingDraft,
+        formatDraftAge
     };
 };
