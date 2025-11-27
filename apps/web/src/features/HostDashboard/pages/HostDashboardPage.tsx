@@ -271,7 +271,10 @@ const HostDashboardPage: React.FC<HostDashboardPageProps> = ({ user, listings, r
 
                         {view === 'settings' && (
                             <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
-                                <HostSettings user={user} />
+                                <HostSettings
+                                    user={user}
+                                    onUpdateUser={() => refreshData()}
+                                />
                             </div>
                         )}
 

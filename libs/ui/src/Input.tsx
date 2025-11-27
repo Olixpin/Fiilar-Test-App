@@ -105,10 +105,10 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           {hasLeftIcon && (
             <div
               className={`absolute top-1/2 -translate-y-1/2 left-4 transition-colors duration-300 ${isFocused
-                  ? (variant === 'glass-dark' ? 'text-white' : 'text-brand-500')
-                  : error
-                    ? 'text-red-400'
-                    : (variant === 'glass-dark' ? 'text-white/70' : 'text-gray-400')
+                ? (variant === 'glass-dark' ? 'text-white' : 'text-brand-500')
+                : error
+                  ? 'text-red-400'
+                  : (variant === 'glass-dark' ? 'text-white/70' : 'text-gray-400')
                 }`}
             >
               {leftIcon ? leftIcon : Icon && <Icon size={inputSize === 'sm' ? 18 : inputSize === 'lg' ? 22 : 20} />}
@@ -119,10 +119,10 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           {hasRightIcon && (
             <div
               className={`absolute top-1/2 -translate-y-1/2 right-4 transition-colors duration-300 ${isFocused
-                  ? (variant === 'glass-dark' ? 'text-white' : 'text-brand-500')
-                  : error
-                    ? 'text-red-400'
-                    : (variant === 'glass-dark' ? 'text-white/70' : 'text-gray-400')
+                ? (variant === 'glass-dark' ? 'text-white' : 'text-brand-500')
+                : error
+                  ? 'text-red-400'
+                  : (variant === 'glass-dark' ? 'text-white/70' : 'text-gray-400')
                 }`}
             >
               {rightIcon ? rightIcon : Icon && <Icon size={inputSize === 'sm' ? 18 : inputSize === 'lg' ? 22 : 20} />}
@@ -133,7 +133,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             ref={ref}
             disabled={disabled}
             value={value}
-            placeholder={isFocused ? placeholder : undefined}
+            placeholder={isFocused || !label ? placeholder : undefined}
             className={baseClasses}
             onFocus={(e) => {
               setIsFocused(true);

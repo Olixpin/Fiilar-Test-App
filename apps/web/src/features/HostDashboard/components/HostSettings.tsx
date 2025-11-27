@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { User as UserIcon, Settings as SettingsIcon, HelpCircle, Info, MessageSquare, Phone, Mail, MessageCircle, Star, Check, AlertTriangle, Trash2, FileText, Shield, Upload } from 'lucide-react';
 import { User } from '@fiilar/types';
 import { Button } from '@fiilar/ui';
+import { updateUserProfile } from '@fiilar/storage';
+import { PhoneInput } from '../../../components/common/PhoneInput';
 
 interface HostSettingsProps {
     user: User | null;
@@ -55,11 +57,17 @@ const HostSettings: React.FC<HostSettingsProps> = ({ user, onUpdateUser }) => {
     const handleSaveProfile = async () => {
         setIsSaving(true);
         try {
-            // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            // Real API call
+            if (user) {
+                const updatedUser = updateUserProfile(user.id, {
+                    name: formData.name,
+                    bio: formData.bio,
+                    phone: formData.phone // Allow saving phone (only editable if previously empty)
+                });
 
-            if (onUpdateUser) {
-                onUpdateUser(formData);
+                if (onUpdateUser && updatedUser) {
+                    onUpdateUser(updatedUser);
+                }
             }
 
             setIsEditing(false);
@@ -230,28 +238,43 @@ const HostSettings: React.FC<HostSettingsProps> = ({ user, onUpdateUser }) => {
                                     </div>
 
                                     <div>
-                                        <label htmlFor="account-email" className="block text-sm font-semibold text-gray-900 mb-2">Email</label>
+                                        <label htmlFor="account-email" className="block text-sm font-semibold text-gray-900 mb-2">
+                                            Email
+                                            <span className="ml-2 text-xs font-normal text-gray-500">(Contact support to change)</span>
+                                        </label>
                                         <input
                                             id="account-email"
                                             type="email"
-                                            value={isEditing ? formData.email : (user?.email || '')}
-                                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                            className={`w-full border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-500 ${isEditing ? 'border-gray-300 bg-white' : 'border-transparent bg-gray-50'}`}
-                                            readOnly={!isEditing}
+                                            value={user?.email || ''}
+                                            className="w-full border border-transparent bg-gray-100 text-gray-500 rounded-xl px-4 py-3 focus:outline-none cursor-not-allowed"
+                                            readOnly
+                                            disabled
                                         />
                                     </div>
 
                                     <div>
-                                        <label htmlFor="account-phone" className="block text-sm font-semibold text-gray-900 mb-2">Phone</label>
-                                        <input
-                                            id="account-phone"
-                                            type="tel"
-                                            value={isEditing ? formData.phone : (user?.phone || '')}
-                                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                            placeholder={isEditing ? "+1 (555) 000-0000" : "Not set"}
-                                            className={`w-full border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-500 ${isEditing ? 'border-gray-300 bg-white' : 'border-transparent bg-gray-50'}`}
-                                            readOnly={!isEditing}
-                                        />
+                                        <label htmlFor="account-phone" className="block text-sm font-semibold text-gray-900 mb-2">
+                                            Phone
+                                            {user?.phone && <span className="ml-2 text-xs font-normal text-gray-500">(Contact support to change)</span>}
+                                        </label>
+                                        {user?.phone ? (
+                                            <input
+                                                id="account-phone"
+                                                type="tel"
+                                                value={user.phone}
+                                                className="w-full border border-transparent bg-gray-100 text-gray-500 rounded-xl px-4 py-3 focus:outline-none cursor-not-allowed"
+                                                readOnly
+                                                disabled
+                                            />
+                                        ) : (
+                                            <PhoneInput
+                                                id="account-phone"
+                                                value={isEditing ? formData.phone : ''}
+                                                onChange={(val) => setFormData({ ...formData, phone: val })}
+                                                readOnly={!isEditing}
+                                                className={!isEditing ? 'border-transparent bg-gray-50' : ''}
+                                            />
+                                        )}
                                     </div>
                                 </div>
 

@@ -24,9 +24,10 @@ import { UserReserveListTab } from '../components/UserReserveListTab';
 interface UserDashboardProps {
   user: User | null;
   listings: Listing[];
+  onRefreshUser: () => void;
 }
 
-const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings }) => {
+const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings, onRefreshUser }) => {
   const navigate = useNavigate();
   const toast = useToast();
   // Hooks must be declared unconditionally and in the same order on every render.
@@ -353,7 +354,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings }) => {
             {/* Settings Tab */}
             {activeTab === 'settings' && (
               <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
-                <Settings user={user} />
+                <Settings user={user} onUpdateUser={() => onRefreshUser()} />
               </div>
             )}
 

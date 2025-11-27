@@ -505,6 +505,7 @@ const App: React.FC = () => {
                         <UserDashboard
                           user={user}
                           listings={listings}
+                          onRefreshUser={refreshData}
                         />
                   } />
                   <Route path="/host/dashboard" element={

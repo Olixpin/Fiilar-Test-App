@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { User } from '@fiilar/types';
-import { Button, Input, Select, Form, FormField, FormItem, FormControl, FormMessage, useToast } from '@fiilar/ui';
+import { Button, Form, FormField, FormItem, FormControl, FormMessage, useToast } from '@fiilar/ui';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Phone, ShieldAlert } from 'lucide-react';
 import { saveUser } from '@fiilar/storage';
+import { PhoneInput } from '../../../components/common/PhoneInput';
 
 interface HostPhoneCollectionModalProps {
     user: User;
@@ -15,7 +16,6 @@ interface HostPhoneCollectionModalProps {
 }
 
 const HostPhoneCollectionModal: React.FC<HostPhoneCollectionModalProps> = ({ user, isOpen, onClose, onUpdateUser }) => {
-    const [country, setCountry] = useState('ng');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const { showToast } = useToast();
 
@@ -31,7 +31,21 @@ const HostPhoneCollectionModal: React.FC<HostPhoneCollectionModalProps> = ({ use
         phone: z.string().superRefine((val, ctx) => {
             // Remove spaces and non-digit chars (except +)
             const cleanVal = val.replace(/[^\d+]/g, '');
-            const code = countryCodes[country];
+
+            // Detect country from prefix
+            let detectedCountry = 'ng'; // Default
+            let code = '+234';
+
+            if (cleanVal.startsWith('+1')) {
+                detectedCountry = 'us';
+                code = '+1';
+            } else if (cleanVal.startsWith('+44')) {
+                detectedCountry = 'uk';
+                code = '+44';
+            } else if (cleanVal.startsWith('+234')) {
+                detectedCountry = 'ng';
+                code = '+234';
+            }
 
             if (!cleanVal.startsWith(code)) {
                 ctx.addIssue({
@@ -43,7 +57,7 @@ const HostPhoneCollectionModal: React.FC<HostPhoneCollectionModalProps> = ({ use
 
             const numberPart = cleanVal.substring(code.length);
 
-            if (country === 'ng') {
+            if (detectedCountry === 'ng') {
                 if (numberPart.length !== 10) {
                     ctx.addIssue({
                         code: z.ZodIssueCode.custom,
@@ -127,80 +141,14 @@ const HostPhoneCollectionModal: React.FC<HostPhoneCollectionModalProps> = ({ use
                                 name="phone"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <div className="flex flex-col sm:flex-row gap-3">
-                                            <div className="w-full sm:w-[100px] shrink-0">
-                                                <Select
-                                                    id="country"
-                                                    label="Country"
-                                                    value={country}
-                                                    onChange={(e) => {
-                                                        const newCountry = e.target.value;
-                                                        setCountry(newCountry);
-                                                        // Update phone input with new code
-                                                        const oldCode = countryCodes[country];
-                                                        const newCode = countryCodes[newCountry];
-                                                        const currentVal = form.getValues().phone;
-
-                                                        // Replace old code with new code
-                                                        let newVal = currentVal;
-                                                        if (currentVal.startsWith(oldCode)) {
-                                                            newVal = newCode + currentVal.substring(oldCode.length);
-                                                        } else {
-                                                            newVal = newCode + " ";
-                                                        }
-                                                        form.setValue('phone', newVal);
-                                                    }}
-                                                    options={[
-                                                        { value: 'ng', label: 'NG' },
-                                                        { value: 'us', label: 'US' },
-                                                        { value: 'uk', label: 'UK' },
-                                                    ]}
-                                                    className="h-14 text-lg bg-gray-50 border-gray-200 focus:bg-white transition-all"
-                                                />
-                                            </div>
-                                            <div className="grow">
-                                                <FormControl>
-                                                    <Input
-                                                        id="phone"
-                                                        autoComplete="tel"
-                                                        label="Phone number"
-                                                        type="tel"
-                                                        placeholder="+234 906 000 0000"
-                                                        className="h-14 text-lg bg-gray-50 border-gray-200 focus:bg-white transition-all [&:-webkit-autofill]:shadow-[0_0_0_1000px_#f9fafb_inset] [&:-webkit-autofill]:-webkit-text-fill-color-black"
-                                                        {...field}
-                                                        onChange={(e) => {
-                                                            let value = e.target.value;
-                                                            const code = countryCodes[country];
-
-                                                            // Ensure it starts with code
-                                                            if (!value.startsWith(code)) {
-                                                                // If user deleted part of code, restore it
-                                                                // Or if they pasted something else
-                                                                // For now, let's just enforce the prefix if it's missing
-                                                                if (!value.includes(code)) {
-                                                                    value = code + " " + value.replace(/[^\d]/g, '');
-                                                                }
-                                                            }
-
-                                                            // Strip leading zero after code
-                                                            // Regex: Code followed by optional space/s then 0
-                                                            // We want to remove that 0
-                                                            const parts = value.split(code);
-                                                            if (parts.length > 1) {
-                                                                let numberPart = parts[1].trimStart();
-                                                                if (numberPart.startsWith('0')) {
-                                                                    numberPart = numberPart.substring(1);
-                                                                }
-                                                                // Reassemble
-                                                                value = code + " " + numberPart;
-                                                            }
-
-                                                            field.onChange(value);
-                                                        }}
-                                                    />
-                                                </FormControl>
-                                            </div>
-                                        </div>
+                                        <FormControl>
+                                            <PhoneInput
+                                                id="phone"
+                                                label="Phone number"
+                                                value={field.value}
+                                                onChange={field.onChange}
+                                            />
+                                        </FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )}

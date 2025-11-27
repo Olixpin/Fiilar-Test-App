@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useToast } from '@fiilar/ui';
 import { User } from '@fiilar/types';
+import { updateUserProfile } from '@fiilar/storage';
 
 interface UseSettingsDataProps {
     user: User | null;
@@ -63,11 +64,17 @@ export const useSettingsData = ({ user, onUpdateUser }: UseSettingsDataProps) =>
     const handleSaveProfile = async () => {
         setIsSaving(true);
         try {
-            // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            // Real API call
+            if (user) {
+                const updatedUser = updateUserProfile(user.id, {
+                    name: formData.name,
+                    bio: formData.bio,
+                    phone: formData.phone
+                });
 
-            if (onUpdateUser) {
-                onUpdateUser(formData);
+                if (onUpdateUser && updatedUser) {
+                    onUpdateUser(updatedUser);
+                }
             }
 
             setIsEditing(false);

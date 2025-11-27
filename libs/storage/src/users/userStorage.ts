@@ -110,6 +110,7 @@ export const updateUserProfile = (
         avatar?: string;
         bio?: string;
         name?: string;
+        phone?: string;
     }
 ): User | null => {
     const users = getAllUsers();
