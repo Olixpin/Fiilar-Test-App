@@ -2,14 +2,60 @@ import { User, Role } from '@fiilar/types';
 import { STORAGE_KEYS } from '../constants';
 import { db } from '../mockDb';
 import { generateVerificationToken, getTokenExpiry, sendVerificationEmail } from '../emailService';
+import { 
+    createSession, 
+    invalidateSession, 
+    validateSession,
+    logAuditEvent
+} from '../security/authSecurity';
+import { DEMO_CONFIG } from '../config/appConfig';
+
+// Session storage key
+const SESSION_KEY = 'fiilar_current_session';
+
+/**
+ * Get current session ID
+ */
+export const getCurrentSessionId = (): string | null => {
+    return localStorage.getItem(SESSION_KEY);
+};
+
+/**
+ * Validate current session and return user if valid
+ */
+export const validateCurrentSession = (): { valid: boolean; user?: User; reason?: string } => {
+    const sessionId = getCurrentSessionId();
+    if (!sessionId) {
+        return { valid: false, reason: 'No session' };
+    }
+    
+    const sessionResult = validateSession(sessionId);
+    if (!sessionResult.valid || !sessionResult.session) {
+        localStorage.removeItem(SESSION_KEY);
+        localStorage.removeItem(STORAGE_KEYS.USER);
+        return { valid: false, reason: sessionResult.reason };
+    }
+    
+    const user = db.users.findById(sessionResult.session.userId);
+    if (!user) {
+        localStorage.removeItem(SESSION_KEY);
+        localStorage.removeItem(STORAGE_KEYS.USER);
+        return { valid: false, reason: 'User not found' };
+    }
+    
+    return { valid: true, user };
+};
+
+import { isAdminEmail } from '../config/appConfig';
+
+// isAdminEmail is now imported from centralized config
 
 /**
  * Login a user with the specified role and provider
  * Creates a new user if one doesn't exist
- */
-/**
- * Login a user with the specified role and provider
- * Creates a new user if one doesn't exist
+ * 
+ * SECURITY: Now creates a proper session with expiry
+ * Admin access is granted only through verified admin emails
  */
 export const loginUser = (
     role: Role,
@@ -18,6 +64,14 @@ export const loginUser = (
     profileData?: { firstName?: string; lastName?: string; avatar?: string }
 ): User => {
     console.log('🔵 loginUser called with:', { role, provider, identifier, hasProfileData: !!profileData });
+    
+    // SECURITY: Auto-detect admin role from admin email domain
+    let effectiveRole = role;
+    if (identifier && (provider === 'email' || provider === 'google') && isAdminEmail(identifier)) {
+        console.log('🔐 Admin email detected, setting admin role');
+        effectiveRole = Role.ADMIN;
+    }
+    
     // 1. Try to find existing user by identifier (if provided)
     if (identifier) {
         const users = db.users.findAll();
@@ -27,14 +81,14 @@ export const loginUser = (
         );
 
         if (existingUser) {
-            console.log('🟢 Found existing user:', { existingRole: existingUser.role, newRole: role });
+            console.log('🟢 Found existing user:', { existingRole: existingUser.role, newRole: effectiveRole });
 
-            // Update role if different (e.g., user becoming a host)
+            // Update role if different (e.g., user becoming a host or admin email detected)
             const updates: Partial<User> = {};
-            if (existingUser.role !== role) {
-                console.log('🔄 Updating user role from', existingUser.role, 'to', role);
-                updates.role = role;
-                updates.isHost = role === Role.HOST;
+            if (existingUser.role !== effectiveRole) {
+                console.log('🔄 Updating user role from', existingUser.role, 'to', effectiveRole);
+                updates.role = effectiveRole;
+                updates.isHost = effectiveRole === Role.HOST;
             }
 
             // Update profile data if provided (e.g. Google login)
@@ -53,16 +107,42 @@ export const loginUser = (
             if (Object.keys(updates).length > 0) {
                 db.users.update(existingUser.id, updates);
                 const updatedUser = { ...existingUser, ...updates };
+                
+                // SECURITY: Create proper session
+                const session = createSession(updatedUser.id);
+                localStorage.setItem(SESSION_KEY, session.id);
                 localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(updatedUser));
+                
+                logAuditEvent({
+                    action: 'LOGIN',
+                    userId: updatedUser.id,
+                    identifier: identifier,
+                    success: true,
+                    metadata: { provider, role: effectiveRole, existing: true }
+                });
+                
                 return updatedUser;
             }
 
+            // SECURITY: Create proper session
+            const session = createSession(existingUser.id);
+            localStorage.setItem(SESSION_KEY, session.id);
             localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(existingUser));
+            
+            logAuditEvent({
+                action: 'LOGIN',
+                userId: existingUser.id,
+                identifier: identifier,
+                success: true,
+                metadata: { provider, role: effectiveRole, existing: true }
+            });
+            
             return existingUser;
         }
     }
 
     // 2. If no identifier provided, use legacy demo accounts (Fallback)
+    // SECURITY: Admin bypass has been removed - admins must authenticate via email
     let userId = '';
     let name = '';
     let email = '';
@@ -70,9 +150,18 @@ export const loginUser = (
 
     if (!identifier) {
         switch (role) {
-            case Role.HOST: userId = 'host_123'; name = 'Jane Host'; email = 'jane@example.com'; break;
-            case Role.USER: userId = 'user_123'; name = 'John User'; email = 'john@example.com'; break;
-            case Role.ADMIN: userId = 'admin_001'; name = 'Super Admin'; email = 'admin@fiilar.com'; break;
+            case Role.HOST: userId = DEMO_CONFIG.MOCK_HOST_ID; name = 'Jane Host'; email = DEMO_CONFIG.DEMO_EMAILS.HOST; break;
+            case Role.USER: userId = DEMO_CONFIG.MOCK_USER_ID; name = 'John User'; email = DEMO_CONFIG.DEMO_EMAILS.USER; break;
+            case Role.ADMIN: 
+                // SECURITY: Admin must authenticate with proper credentials
+                // Logging attempted admin bypass
+                logAuditEvent({
+                    action: 'ADMIN_BYPASS_ATTEMPT',
+                    userId: 'unknown',
+                    success: false,
+                    metadata: { reason: 'Admin login attempted without credentials' }
+                });
+                throw new Error('Admin authentication requires email verification. Please use admin@fiilar.com.');
         }
     } else {
         // 3. Create NEW User (Dynamic)
@@ -123,25 +212,25 @@ export const loginUser = (
             email: email,
             phone: phone,
             password: provider === 'email' ? 'password' : undefined, // Only set password for email users (mock)
-            role: role,
-            isHost: role === Role.HOST,
+            role: effectiveRole,
+            isHost: effectiveRole === Role.HOST,
             createdAt: new Date().toISOString(),
-            kycVerified: role === Role.ADMIN, // Admin verified by default
-            walletBalance: role === Role.HOST ? 0 : 0, // Start with 0 balance
+            kycVerified: effectiveRole === Role.ADMIN, // Admin verified by default
+            walletBalance: effectiveRole === Role.HOST ? 0 : 0, // Start with 0 balance
             avatar: profileData?.avatar || (name ? `https://api.dicebear.com/7.x/avataaars/svg?seed=${userId}` : undefined),
             favorites: [],
             authProvider: provider,
             // Google is auto-verified. Admin is auto-verified.
-            emailVerified: role === Role.ADMIN || isGoogle || provider === 'email', // Assume verified if logging in via email (OTP passed)
+            emailVerified: effectiveRole === Role.ADMIN || isGoogle || provider === 'email', // Assume verified if logging in via email (OTP passed)
             phoneVerified: provider === 'phone', // Assume verified if logging in via phone
-            verificationToken: (role !== Role.ADMIN && !isGoogle) ? token : undefined,
-            verificationTokenExpiry: (role !== Role.ADMIN && !isGoogle) ? getTokenExpiry() : undefined
+            verificationToken: (effectiveRole !== Role.ADMIN && !isGoogle) ? token : undefined,
+            verificationTokenExpiry: (effectiveRole !== Role.ADMIN && !isGoogle) ? getTokenExpiry() : undefined
         };
 
         db.users.create(user);
 
         // Send verification email for new non-admin users who didn't use Google
-        if (role !== Role.ADMIN && !isGoogle && provider === 'email' && !user.emailVerified) {
+        if (effectiveRole !== Role.ADMIN && !isGoogle && provider === 'email' && !user.emailVerified) {
             sendVerificationEmail(email, token, name);
         }
     } else {
@@ -172,14 +261,46 @@ export const loginUser = (
         }
     }
 
+    // SECURITY: Create proper session with expiry
+    const session = createSession(user.id);
+    localStorage.setItem(SESSION_KEY, session.id);
+    
     // Set as active session
     localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
+    
+    // Log successful login
+    logAuditEvent({
+        action: 'LOGIN',
+        userId: user.id,
+        identifier: identifier || email,
+        success: true,
+        metadata: { provider, role: effectiveRole }
+    });
+    
     return user as User;
 };
 
 /**
  * Logout the current user
+ * SECURITY: Properly invalidates session
  */
 export const logoutUser = () => {
+    const sessionId = getCurrentSessionId();
+    const user = JSON.parse(localStorage.getItem(STORAGE_KEYS.USER) || 'null');
+    
+    if (sessionId) {
+        invalidateSession(sessionId);
+        localStorage.removeItem(SESSION_KEY);
+    }
+    
     localStorage.removeItem(STORAGE_KEYS.USER);
+    
+    // Log logout
+    if (user) {
+        logAuditEvent({
+            action: 'LOGOUT',
+            userId: user.id,
+            success: true
+        });
+    }
 };

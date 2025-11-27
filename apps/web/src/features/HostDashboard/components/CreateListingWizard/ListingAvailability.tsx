@@ -1,5 +1,5 @@
 import React from 'react';
-import { Listing, BookingType, Booking, CancellationPolicy } from '@fiilar/types';
+import { Listing, BookingType, Booking, CancellationPolicy, PricingModel, NightlyConfig, DailyConfig, HourlyConfig } from '@fiilar/types';
 import { Button } from '@fiilar/ui';
 import {
     ArrowRight, Briefcase, X, Plus, FileText, PackagePlus, Settings, Repeat, Zap, Shield, Image, Clock
@@ -324,6 +324,237 @@ inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow
                                 </p>
                             </div>
                         )}
+
+                        {/* Model-Specific Time Configuration */}
+                        {newListing.pricingModel && (
+                            <div className="space-y-4 p-4 bg-blue-50 rounded-xl border border-blue-100">
+                                <h4 className="font-semibold text-gray-900 text-sm flex items-center gap-2">
+                                    <Clock size={16} className="text-blue-600" />
+                                    {newListing.pricingModel === PricingModel.NIGHTLY && 'Check-In & Check-Out Times'}
+                                    {newListing.pricingModel === PricingModel.DAILY && 'Venue Access Hours'}
+                                    {newListing.pricingModel === PricingModel.HOURLY && 'Operating Hours & Rules'}
+                                </h4>
+
+                                {/* NIGHTLY: Check-in/Check-out */}
+                                {newListing.pricingModel === PricingModel.NIGHTLY && (
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="text-xs font-medium text-gray-700 mb-1.5 block">Check-In Time</label>
+                                            <select
+                                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none bg-white"
+                                                value={(newListing.bookingConfig as NightlyConfig)?.checkInTime || '15:00'}
+                                                title="Select check-in time"
+                                                onChange={(e) => setNewListing({
+                                                    ...newListing,
+                                                    bookingConfig: {
+                                                        ...(newListing.bookingConfig as NightlyConfig || {}),
+                                                        checkInTime: e.target.value,
+                                                        checkOutTime: (newListing.bookingConfig as NightlyConfig)?.checkOutTime || '11:00',
+                                                        allowLateCheckout: (newListing.bookingConfig as NightlyConfig)?.allowLateCheckout || false
+                                                    } as NightlyConfig
+                                                })}
+                                            >
+                                                <option value="12:00">12:00 PM</option>
+                                                <option value="13:00">1:00 PM</option>
+                                                <option value="14:00">2:00 PM</option>
+                                                <option value="15:00">3:00 PM</option>
+                                                <option value="16:00">4:00 PM</option>
+                                                <option value="17:00">5:00 PM</option>
+                                            </select>
+                                            <p className="text-xs text-gray-500 mt-1">Guests can arrive from this time</p>
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-medium text-gray-700 mb-1.5 block">Check-Out Time</label>
+                                            <select
+                                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none bg-white"
+                                                value={(newListing.bookingConfig as NightlyConfig)?.checkOutTime || '11:00'}
+                                                title="Select check-out time"
+                                                onChange={(e) => setNewListing({
+                                                    ...newListing,
+                                                    bookingConfig: {
+                                                        ...(newListing.bookingConfig as NightlyConfig || {}),
+                                                        checkInTime: (newListing.bookingConfig as NightlyConfig)?.checkInTime || '15:00',
+                                                        checkOutTime: e.target.value,
+                                                        allowLateCheckout: (newListing.bookingConfig as NightlyConfig)?.allowLateCheckout || false
+                                                    } as NightlyConfig
+                                                })}
+                                            >
+                                                <option value="09:00">9:00 AM</option>
+                                                <option value="10:00">10:00 AM</option>
+                                                <option value="11:00">11:00 AM</option>
+                                                <option value="12:00">12:00 PM</option>
+                                                <option value="13:00">1:00 PM</option>
+                                            </select>
+                                            <p className="text-xs text-gray-500 mt-1">Guests must leave by this time</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* DAILY: Access Hours */}
+                                {newListing.pricingModel === PricingModel.DAILY && (
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="text-xs font-medium text-gray-700 mb-1.5 block">Venue Opens At</label>
+                                            <select
+                                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none bg-white"
+                                                value={(newListing.bookingConfig as DailyConfig)?.accessStartTime || '08:00'}
+                                                title="Select venue opening time"
+                                                onChange={(e) => setNewListing({
+                                                    ...newListing,
+                                                    bookingConfig: {
+                                                        ...(newListing.bookingConfig as DailyConfig || {}),
+                                                        accessStartTime: e.target.value,
+                                                        accessEndTime: (newListing.bookingConfig as DailyConfig)?.accessEndTime || '23:00',
+                                                        overnightAllowed: (newListing.bookingConfig as DailyConfig)?.overnightAllowed || false
+                                                    } as DailyConfig
+                                                })}
+                                            >
+                                                <option value="06:00">6:00 AM</option>
+                                                <option value="07:00">7:00 AM</option>
+                                                <option value="08:00">8:00 AM</option>
+                                                <option value="09:00">9:00 AM</option>
+                                                <option value="10:00">10:00 AM</option>
+                                            </select>
+                                            <p className="text-xs text-gray-500 mt-1">When guests can start accessing</p>
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-medium text-gray-700 mb-1.5 block">Events Must End By</label>
+                                            <select
+                                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none bg-white"
+                                                value={(newListing.bookingConfig as DailyConfig)?.accessEndTime || '23:00'}
+                                                title="Select event end time"
+                                                onChange={(e) => setNewListing({
+                                                    ...newListing,
+                                                    bookingConfig: {
+                                                        ...(newListing.bookingConfig as DailyConfig || {}),
+                                                        accessStartTime: (newListing.bookingConfig as DailyConfig)?.accessStartTime || '08:00',
+                                                        accessEndTime: e.target.value,
+                                                        overnightAllowed: (newListing.bookingConfig as DailyConfig)?.overnightAllowed || false
+                                                    } as DailyConfig
+                                                })}
+                                            >
+                                                <option value="20:00">8:00 PM</option>
+                                                <option value="21:00">9:00 PM</option>
+                                                <option value="22:00">10:00 PM</option>
+                                                <option value="23:00">11:00 PM</option>
+                                                <option value="00:00">12:00 AM</option>
+                                            </select>
+                                            <p className="text-xs text-gray-500 mt-1">Latest time for events to end</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* HOURLY: Operating Hours + Buffer */}
+                                {newListing.pricingModel === PricingModel.HOURLY && (
+                                    <div className="space-y-4">
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="text-xs font-medium text-gray-700 mb-1.5 block">Operating Hours Start</label>
+                                                <select
+                                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none bg-white"
+                                                    value={(newListing.bookingConfig as HourlyConfig)?.operatingHours?.start || '09:00'}
+                                                    title="Select operating hours start time"
+                                                    onChange={(e) => setNewListing({
+                                                        ...newListing,
+                                                        bookingConfig: {
+                                                            ...(newListing.bookingConfig as HourlyConfig || {}),
+                                                            operatingHours: {
+                                                                start: e.target.value,
+                                                                end: (newListing.bookingConfig as HourlyConfig)?.operatingHours?.end || '18:00'
+                                                            },
+                                                            bufferMinutes: (newListing.bookingConfig as HourlyConfig)?.bufferMinutes || 30,
+                                                            minHoursBooking: (newListing.bookingConfig as HourlyConfig)?.minHoursBooking || 2
+                                                        } as HourlyConfig
+                                                    })}
+                                                >
+                                                    {Array.from({ length: 24 }, (_, i) => (
+                                                        <option key={i} value={`${i.toString().padStart(2, '0')}:00`}>
+                                                            {i === 0 ? '12:00 AM' : i < 12 ? `${i}:00 AM` : i === 12 ? '12:00 PM' : `${i - 12}:00 PM`}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="text-xs font-medium text-gray-700 mb-1.5 block">Operating Hours End</label>
+                                                <select
+                                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none bg-white"
+                                                    value={(newListing.bookingConfig as HourlyConfig)?.operatingHours?.end || '18:00'}
+                                                    title="Select operating hours end time"
+                                                    onChange={(e) => setNewListing({
+                                                        ...newListing,
+                                                        bookingConfig: {
+                                                            ...(newListing.bookingConfig as HourlyConfig || {}),
+                                                            operatingHours: {
+                                                                start: (newListing.bookingConfig as HourlyConfig)?.operatingHours?.start || '09:00',
+                                                                end: e.target.value
+                                                            },
+                                                            bufferMinutes: (newListing.bookingConfig as HourlyConfig)?.bufferMinutes || 30,
+                                                            minHoursBooking: (newListing.bookingConfig as HourlyConfig)?.minHoursBooking || 2
+                                                        } as HourlyConfig
+                                                    })}
+                                                >
+                                                    {Array.from({ length: 24 }, (_, i) => (
+                                                        <option key={i} value={`${i.toString().padStart(2, '0')}:00`}>
+                                                            {i === 0 ? '12:00 AM' : i < 12 ? `${i}:00 AM` : i === 12 ? '12:00 PM' : `${i - 12}:00 PM`}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="text-xs font-medium text-gray-700 mb-1.5 block">Cleaning Buffer (minutes)</label>
+                                                <select
+                                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none bg-white"
+                                                    value={(newListing.bookingConfig as HourlyConfig)?.bufferMinutes || 30}
+                                                    title="Select cleaning buffer time"
+                                                    onChange={(e) => setNewListing({
+                                                        ...newListing,
+                                                        bookingConfig: {
+                                                            ...(newListing.bookingConfig as HourlyConfig || {}),
+                                                            operatingHours: (newListing.bookingConfig as HourlyConfig)?.operatingHours || { start: '09:00', end: '18:00' },
+                                                            bufferMinutes: parseInt(e.target.value),
+                                                            minHoursBooking: (newListing.bookingConfig as HourlyConfig)?.minHoursBooking || 2
+                                                        } as HourlyConfig
+                                                    })}
+                                                >
+                                                    <option value="0">No buffer</option>
+                                                    <option value="15">15 minutes</option>
+                                                    <option value="30">30 minutes</option>
+                                                    <option value="45">45 minutes</option>
+                                                    <option value="60">1 hour</option>
+                                                </select>
+                                                <p className="text-xs text-gray-500 mt-1">Time between bookings for cleaning</p>
+                                            </div>
+                                            <div>
+                                                <label className="text-xs font-medium text-gray-700 mb-1.5 block">Minimum Booking (hours)</label>
+                                                <select
+                                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none bg-white"
+                                                    value={(newListing.bookingConfig as HourlyConfig)?.minHoursBooking || 2}
+                                                    title="Select minimum booking hours"
+                                                    onChange={(e) => setNewListing({
+                                                        ...newListing,
+                                                        bookingConfig: {
+                                                            ...(newListing.bookingConfig as HourlyConfig || {}),
+                                                            operatingHours: (newListing.bookingConfig as HourlyConfig)?.operatingHours || { start: '09:00', end: '18:00' },
+                                                            bufferMinutes: (newListing.bookingConfig as HourlyConfig)?.bufferMinutes || 30,
+                                                            minHoursBooking: parseInt(e.target.value)
+                                                        } as HourlyConfig
+                                                    })}
+                                                >
+                                                    <option value="1">1 hour</option>
+                                                    <option value="2">2 hours</option>
+                                                    <option value="3">3 hours</option>
+                                                    <option value="4">4 hours</option>
+                                                </select>
+                                                <p className="text-xs text-gray-500 mt-1">Minimum hours per booking</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
 
                         {/* Cancellation Policy Dropdown */}
                         <div>

@@ -125,7 +125,6 @@ const Login: React.FC<LoginProps> = ({ onLogin, onBack }) => {
                                 lastName: 'Lee',
                                 avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=JessicaLee'
                             })}
-                            onAdminLogin={() => onLogin(Role.ADMIN)}
                         />
                     )}
 

@@ -55,6 +55,7 @@ const SystemHealthCheck: React.FC = () => {
                 userId: guestId,
                 date: new Date().toISOString(),
                 duration: 1,
+                bookingType: BookingType.DAILY,
                 totalPrice: 100,
                 serviceFee: 10,
                 cautionFee: 20,
@@ -179,6 +180,7 @@ const SystemHealthCheck: React.FC = () => {
                     userId: recurringGuestId,
                     date: date,
                     duration: 1,
+                    bookingType: BookingType.DAILY,
                     totalPrice: 150,
                     serviceFee: 15,
                     cautionFee: 0,
@@ -251,6 +253,7 @@ const SystemHealthCheck: React.FC = () => {
                 userId: guestId,
                 date: '2025-03-01', // Mar 1
                 duration: 3,        // Mar 1, 2, 3
+                bookingType: BookingType.DAILY,
                 totalPrice: 300,
                 serviceFee: 30,
                 cautionFee: 0,
@@ -321,6 +324,7 @@ const SystemHealthCheck: React.FC = () => {
                 date: '2025-03-01',
                 duration: 2,
                 hours: [9, 10],
+                bookingType: BookingType.HOURLY,
                 totalPrice: 100,
                 serviceFee: 10,
                 cautionFee: 0,

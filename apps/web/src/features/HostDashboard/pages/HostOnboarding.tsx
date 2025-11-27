@@ -5,7 +5,7 @@ import { useToast, Form } from '@fiilar/ui';
 import LoginOptions from '../../Auth/components/Login/LoginOptions';
 import EmailLogin from '../../Auth/components/Login/EmailLogin';
 import OtpVerification from '../../Auth/components/Login/OtpVerification';
-import { sendVerificationEmail, verifyEmailOtp, sendVerificationSms, verifyPhoneOtp } from '@fiilar/storage';
+import { sendVerificationEmail, verifyEmailOtp } from '@fiilar/storage';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -22,57 +22,23 @@ interface HostOnboardingProps {
 
 const HostOnboarding: React.FC<HostOnboardingProps> = ({ onLogin, onBack }) => {
     const [step, setStep] = useState(0);
-    const [country, setCountry] = useState('ng');
     const [otp, setOtp] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const { showToast } = useToast();
 
-    // Form Schemas
+    // Form Schema
     const emailSchema = z.object({
         email: z.string().email({ message: "Please enter a valid email address" }),
     });
 
-    const phoneSchema = z.object({
-        phone: z.string().superRefine((val, ctx) => {
-            if (country === 'ng') {
-                if (val.length !== 10) {
-                    ctx.addIssue({
-                        code: z.ZodIssueCode.custom,
-                        message: "Phone number must be exactly 10 digits",
-                    });
-                }
-            } else {
-                if (val.length < 10) {
-                    ctx.addIssue({
-                        code: z.ZodIssueCode.custom,
-                        message: "Phone number must be at least 10 digits",
-                    });
-                }
-            }
-        }),
-    });
-
-    // Forms
+    // Form
     const emailForm = useForm<z.infer<typeof emailSchema>>({
         resolver: zodResolver(emailSchema),
         defaultValues: {
             email: "",
         },
     });
-
-    const phoneForm = useForm<z.infer<typeof phoneSchema>>({
-        resolver: zodResolver(phoneSchema),
-        defaultValues: {
-            phone: "",
-        },
-    });
-
-    const countryCodes: Record<string, string> = {
-        ng: '+234',
-        us: '+1',
-        uk: '+44',
-    };
 
     const handleStepChange = (newStep: number) => {
         setStep(newStep);
@@ -81,46 +47,27 @@ const HostOnboarding: React.FC<HostOnboardingProps> = ({ onLogin, onBack }) => {
         setIsLoading(false);
     };
 
-    const handleVerify = async (provider: 'email' | 'phone', codeOverride?: string) => {
+    const handleVerify = async (codeOverride?: string) => {
         setIsLoading(true);
         setError(null);
 
         // Simulate network request
         setTimeout(() => {
             const code = codeOverride || otp;
-
-            if (provider === 'email') {
-                const email = emailForm.getValues().email;
-                const result = verifyEmailOtp(email, code);
-                if (result.success) {
-                    onLogin(Role.HOST, 'email', email);
-                } else {
-                    setError(result.message || 'Invalid verification code');
-                    setIsLoading(false);
-                }
+            const email = emailForm.getValues().email;
+            const result = verifyEmailOtp(email, code);
+            if (result.success) {
+                onLogin(Role.HOST, 'email', email);
             } else {
-                const fullPhone = `${countryCodes[country] || ''}${phoneForm.getValues().phone}`;
-                const result = verifyPhoneOtp(fullPhone, code);
-                if (result.success) {
-                    onLogin(Role.HOST, 'phone', fullPhone);
-                } else {
-                    setError(result.message || 'Invalid verification code');
-                    setIsLoading(false);
-                }
+                setError(result.message || 'Invalid verification code');
+                setIsLoading(false);
             }
         }, 1500);
     };
 
-    const handleResend = (provider: 'email' | 'phone') => {
-        // Simulate resending code
-        if (provider === 'email') {
-            const code = sendVerificationEmail(emailForm.getValues().email, 'mock-token', '');
-            showToast({ message: `Demo Code: ${code}`, type: 'info', duration: 5000 });
-        } else {
-            const fullPhone = `${countryCodes[country] || ''}${phoneForm.getValues().phone}`;
-            const code = sendVerificationSms(fullPhone);
-            showToast({ message: `Demo Code: ${code}`, type: 'info', duration: 5000 });
-        }
+    const handleResend = () => {
+        const code = sendVerificationEmail(emailForm.getValues().email, 'mock-token', '');
+        showToast({ message: `Demo Code: ${code}`, type: 'info', duration: 5000 });
     };
 
     return (
@@ -191,29 +138,17 @@ const HostOnboarding: React.FC<HostOnboardingProps> = ({ onLogin, onBack }) => {
                 <div className="max-w-[420px] w-full mx-auto relative">
                     <div className="mt-2">
                         {step === 0 && (
-                            <Form {...phoneForm}>
-                                <LoginOptions
-                                    country={country}
-                                    setCountry={setCountry}
-                                    phoneForm={phoneForm}
-                                    onContinue={phoneForm.handleSubmit((data) => {
-                                        const fullPhone = `${countryCodes[country] || ''}${data.phone}`;
-                                        const code = sendVerificationSms(fullPhone);
-                                        showToast({ message: `Demo Code: ${code}`, type: 'info', duration: 5000 });
-                                        handleStepChange(2);
-                                    })}
-                                    onEmailLogin={() => handleStepChange(1)}
-                                    onGoogleLogin={() => onLogin(Role.HOST, 'google', 'alex.taylor@gmail.example.com', {
-                                        firstName: 'Alex',
-                                        lastName: 'Taylor',
-                                        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=AlexTaylor'
-                                    })}
-                                    title="Become a Host"
-                                    subtitle="Enter your details to start hosting."
-                                    showAdminLink={false}
-                                    variant="glass-dark"
-                                />
-                            </Form>
+                            <LoginOptions
+                                onEmailLogin={() => handleStepChange(1)}
+                                onGoogleLogin={() => onLogin(Role.HOST, 'google', 'alex.taylor@gmail.example.com', {
+                                    firstName: 'Alex',
+                                    lastName: 'Taylor',
+                                    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=AlexTaylor'
+                                })}
+                                title="Become a Host"
+                                subtitle="Enter your details to start hosting."
+                                variant="glass-dark"
+                            />
                         )}
 
                         {step === 1 && (
@@ -224,7 +159,7 @@ const HostOnboarding: React.FC<HostOnboardingProps> = ({ onLogin, onBack }) => {
                                     onContinue={emailForm.handleSubmit((data) => {
                                         const code = sendVerificationEmail(data.email, 'mock-token', '');
                                         showToast({ message: `Demo Code: ${code}`, type: 'info', duration: 5000 });
-                                        handleStepChange(3);
+                                        handleStepChange(2);
                                     })}
                                     variant="glass-dark"
                                 />
@@ -233,28 +168,13 @@ const HostOnboarding: React.FC<HostOnboardingProps> = ({ onLogin, onBack }) => {
 
                         {step === 2 && (
                             <OtpVerification
-                                target={`${countryCodes[country] || ''} ${phoneForm.getValues().phone}`}
-                                type="phone"
-                                otp={otp}
-                                setOtp={setOtp}
-                                onBack={() => handleStepChange(0)}
-                                onVerify={(code) => handleVerify('phone', code)}
-                                onResend={() => handleResend('phone')}
-                                isLoading={isLoading}
-                                error={error}
-                                variant="glass-dark"
-                            />
-                        )}
-
-                        {step === 3 && (
-                            <OtpVerification
                                 target={emailForm.getValues().email}
                                 type="email"
                                 otp={otp}
                                 setOtp={setOtp}
                                 onBack={() => handleStepChange(1)}
-                                onVerify={(code) => handleVerify('email', code)}
-                                onResend={() => handleResend('email')}
+                                onVerify={(code) => handleVerify(code)}
+                                onResend={() => handleResend()}
                                 isLoading={isLoading}
                                 error={error}
                                 variant="glass-dark"

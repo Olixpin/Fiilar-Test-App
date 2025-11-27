@@ -20,6 +20,38 @@ export enum BookingType {
   DAILY = 'Daily'
 }
 
+// NEW: Three-model pricing system
+export enum PricingModel {
+  NIGHTLY = 'NIGHTLY',  // Overnight stays (Airbnb-style)
+  DAILY = 'DAILY',      // Full-day events (Wedding halls, venues)
+  HOURLY = 'HOURLY'     // By-the-hour (Studios, meeting rooms)
+}
+
+// Booking config types for each model
+export interface NightlyConfig {
+  checkInTime: string;      // "15:00" (3:00 PM)
+  checkOutTime: string;     // "11:00" (11:00 AM)
+  allowLateCheckout?: boolean;
+}
+
+export interface DailyConfig {
+  accessStartTime: string;  // "08:00" (8:00 AM)
+  accessEndTime: string;    // "23:00" (11:00 PM)
+  overnightAllowed: boolean;
+}
+
+export interface HourlyConfig {
+  operatingHours: {
+    start: string;          // "09:00"
+    end: string;            // "18:00"
+  };
+  bufferMinutes: number;    // 30
+  minHoursBooking: number;  // 2
+}
+
+export type BookingConfig = NightlyConfig | DailyConfig | HourlyConfig;
+
+
 export enum ListingStatus {
   DRAFT = 'Draft',
   PENDING_KYC = 'Pending KYC',
@@ -141,6 +173,10 @@ export interface Listing {
   safetyItems?: string[];
   approvalTime?: string; // e.g. "0-15 mins", "1-2 hours"
 
+  // NEW: Pricing Model System (Phase 1: Optional for migration)
+  pricingModel?: PricingModel;  // NIGHTLY, DAILY, or HOURLY
+  bookingConfig?: BookingConfig; // Model-specific configuration
+
   // Ratings
   rating?: number;
   reviewCount?: number;
@@ -153,6 +189,7 @@ export interface Booking {
   date: string;
   duration: number; // hours or days
   hours?: number[]; // Specific hours booked (e.g. [9, 10]) for collision detection
+  bookingType: BookingType; // HOURLY or DAILY - determines pricing model
 
   // Financials
   totalPrice: number; // The final amount paid

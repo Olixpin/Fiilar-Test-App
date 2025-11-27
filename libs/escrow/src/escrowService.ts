@@ -1,4 +1,5 @@
 import { Booking, EscrowTransaction, PlatformFinancials } from '@fiilar/types';
+import { BOOKING_CONFIG } from '@fiilar/storage';
 
 const STORAGE_KEYS = {
     ESCROW_TRANSACTIONS: 'fiilar_escrow_transactions',
@@ -13,14 +14,34 @@ const generatePaystackRef = () => `PAYSTACK_${Date.now()}_${Math.random().toStri
 /**
  * Escrow Service - Handles all financial transactions and escrow management
  * In production, this would integrate with Paystack APIs
+ * 
+ * API ENDPOINTS (for backend implementation):
+ * - POST /api/escrow/payment - Process guest payment
+ * - POST /api/escrow/release - Release funds to host
+ * - POST /api/escrow/refund - Process refund to guest
+ * - GET  /api/escrow/transactions - Get all transactions
+ * - GET  /api/escrow/financials - Get platform financial overview
+ * - POST /api/escrow/dispute/resolve - Resolve a dispute
  */
 export const escrowService = {
 
     /**
      * Process guest payment when booking is created
      * Creates transaction records for payment and service fee
+     * 
+     * API: POST /api/escrow/payment
+     * Body: { bookingId, guestId, amount, serviceFee }
+     * Response: { success, transactionIds, paystackReference }
      */
     processGuestPayment: async (booking: Booking, guestId: string): Promise<{ success: boolean; transactionIds: string[] }> => {
+        console.log('📤 API CALL: POST /api/escrow/payment', {
+            bookingId: booking.id,
+            guestId,
+            amount: booking.totalPrice,
+            serviceFee: booking.serviceFee,
+            cautionFee: booking.cautionFee
+        });
+        
         await delay(1000);
 
         const transactions: EscrowTransaction[] = [];
@@ -65,6 +86,12 @@ export const escrowService = {
         const existing = await escrowService.getEscrowTransactions();
         localStorage.setItem(STORAGE_KEYS.ESCROW_TRANSACTIONS, JSON.stringify([...existing, ...transactions]));
 
+        console.log('✅ API RESPONSE: Payment processed', { 
+            success: true, 
+            transactionIds,
+            paystackReferences: transactions.map(t => t.paystackReference)
+        });
+        
         return { success: true, transactionIds };
     },
 
@@ -92,20 +119,30 @@ export const escrowService = {
             bookingEnd.setHours(11, 0, 0, 0);
         }
 
-        // Add 48 hours cooling off period
-        const releaseDate = new Date(bookingEnd.getTime() + (48 * 60 * 60 * 1000));
+        // Add escrow release period (configurable)
+        const releaseDate = new Date(bookingEnd.getTime() + (BOOKING_CONFIG.ESCROW_RELEASE_HOURS * 60 * 60 * 1000));
         return releaseDate.toISOString();
     },
 
     /**
      * Release funds from escrow to host
      * Creates payout transaction
+     * 
+     * API: POST /api/escrow/release
+     * Body: { bookingId, hostId, amount, notes }
+     * Response: { success, transactionId, paystackReference }
      */
     releaseFundsToHost: async (booking: Booking, hostId: string, notes?: string): Promise<{ success: boolean; transactionId: string }> => {
-        await delay(1500);
-
-        // Calculate host payout (total - service fee - caution fee)
         const hostPayout = booking.totalPrice - booking.serviceFee - booking.cautionFee;
+        
+        console.log('📤 API CALL: POST /api/escrow/release', {
+            bookingId: booking.id,
+            hostId,
+            amount: hostPayout,
+            notes: notes || 'Standard release'
+        });
+        
+        await delay(1500);
 
         const payoutTx: EscrowTransaction = {
             id: `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_payout`,
@@ -126,13 +163,32 @@ export const escrowService = {
         const existing = await escrowService.getEscrowTransactions();
         localStorage.setItem(STORAGE_KEYS.ESCROW_TRANSACTIONS, JSON.stringify([...existing, payoutTx]));
 
+        console.log('✅ API RESPONSE: Funds released to host', {
+            success: true,
+            transactionId: payoutTx.id,
+            hostPayout,
+            paystackReference: payoutTx.paystackReference
+        });
+        
         return { success: true, transactionId: payoutTx.id };
     },
 
     /**
      * Process refund when booking is cancelled
+     * 
+     * API: POST /api/escrow/refund
+     * Body: { bookingId, guestId, refundAmount, notes }
+     * Response: { success, transactionId, paystackReference }
      */
     processRefund: async (booking: Booking, guestId: string, refundAmount: number, notes?: string): Promise<{ success: boolean; transactionId: string }> => {
+        console.log('📤 API CALL: POST /api/escrow/refund', {
+            bookingId: booking.id,
+            guestId,
+            refundAmount,
+            originalAmount: booking.totalPrice,
+            notes: notes || 'Refund'
+        });
+        
         await delay(1000);
 
         const refundTx: EscrowTransaction = {
@@ -154,23 +210,40 @@ export const escrowService = {
         const existing = await escrowService.getEscrowTransactions();
         localStorage.setItem(STORAGE_KEYS.ESCROW_TRANSACTIONS, JSON.stringify([...existing, refundTx]));
 
+        console.log('✅ API RESPONSE: Refund processed', {
+            success: true,
+            transactionId: refundTx.id,
+            refundAmount,
+            paystackReference: refundTx.paystackReference
+        });
+        
         return { success: true, transactionId: refundTx.id };
     },
 
     /**
      * Get all escrow transactions
+     * 
+     * API: GET /api/escrow/transactions
+     * Response: EscrowTransaction[]
      */
     getEscrowTransactions: async (): Promise<EscrowTransaction[]> => {
+        console.log('📤 API CALL: GET /api/escrow/transactions');
         await delay(300);
         const txs = localStorage.getItem(STORAGE_KEYS.ESCROW_TRANSACTIONS);
-        return txs ? JSON.parse(txs) : [];
+        const result = txs ? JSON.parse(txs) : [];
+        console.log('✅ API RESPONSE: Retrieved', result.length, 'transactions');
+        return result;
     },
 
     /**
      * Get platform financial overview
      * Calculates totals from all transactions
+     * 
+     * API: GET /api/escrow/financials
+     * Response: PlatformFinancials
      */
     getPlatformFinancials: async (bookings: Booking[]): Promise<PlatformFinancials> => {
+        console.log('📤 API CALL: GET /api/escrow/financials');
         await delay(500);
         const transactions = await escrowService.getEscrowTransactions();
 
@@ -197,13 +270,17 @@ export const escrowService = {
         // Count pending payouts
         const pendingPayouts = bookings.filter(b => b.paymentStatus === 'Paid - Escrow').length;
 
-        return {
+        const financials = {
             totalEscrow,
             totalReleased,
             totalRevenue,
             pendingPayouts,
             totalRefunded,
         };
+        
+        console.log('✅ API RESPONSE: Platform financials', financials);
+        
+        return financials;
     },
 
     /**
@@ -232,8 +309,19 @@ export const escrowService = {
     /**
      * Resolve a dispute
      * Admin intervention to either refund guest or release to host
+     * 
+     * API: POST /api/escrow/dispute/resolve
+     * Body: { bookingId, decision: 'REFUND_GUEST' | 'RELEASE_TO_HOST', adminNotes }
+     * Response: { success }
      */
     resolveDispute: async (booking: Booking, decision: 'REFUND_GUEST' | 'RELEASE_TO_HOST', adminNotes: string): Promise<{ success: boolean }> => {
+        console.log('📤 API CALL: POST /api/escrow/dispute/resolve', {
+            bookingId: booking.id,
+            decision,
+            adminNotes,
+            amount: booking.totalPrice
+        });
+        
         await delay(1000);
 
         if (decision === 'REFUND_GUEST') {
@@ -262,6 +350,7 @@ export const escrowService = {
             }
         }
 
+        console.log('✅ API RESPONSE: Dispute resolved', { success: true, decision });
         return { success: true };
     },
 };

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useToast } from '@fiilar/ui';
 import { Booking, Listing } from '@fiilar/types';
 import { X, Calendar, Clock, AlertCircle, CheckCircle, DollarSign, Trash2, Plus } from 'lucide-react';
-import { updateBooking, getBookings, deleteBooking, createBooking, setModificationAllowed, updateUserWalletBalance } from '@fiilar/storage';
+import { updateBooking, getBookings, deleteBooking, createSecureBooking, setModificationAllowed, updateUserWalletBalance } from '@fiilar/storage';
 import { paymentService, escrowService } from '@fiilar/escrow';
 import { Button } from '@fiilar/ui';
 
@@ -169,15 +169,24 @@ const ModifyBookingModal: React.FC<ModifyBookingModalProps> = ({ booking, listin
                 // 1. Remove bookings
                 pendingRemovals.forEach(id => deleteBooking(id));
 
-                // 2. Add new bookings
-                pendingAdditions.forEach(dateStr => {
-                    createBooking({
+                // 2. Add new bookings with security validation
+                for (const dateStr of pendingAdditions) {
+                    const newBooking: Booking = {
                         ...booking,
                         id: `bk_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
                         date: new Date(dateStr).toISOString(),
                         status: 'Pending'
+                    };
+                    
+                    const result = createSecureBooking(newBooking, {
+                        listing: listing,
+                        datesCount: 1 // Each booking is created individually for additions
                     });
-                });
+                    
+                    if (!result.success) {
+                        throw new Error(result.error || 'Failed to create booking');
+                    }
+                }
 
             } else {
                 // Single Booking Update

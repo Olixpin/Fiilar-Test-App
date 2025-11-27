@@ -1,9 +1,19 @@
 import { db } from './mockDb';
-import { User, Role } from '@fiilar/types';
+import { Role } from '@fiilar/types';
 import { generateOTP, getOtpExpiry, isTokenExpired, VerificationResult } from './emailService';
+import {
+    hashString,
+    verifyHash,
+    isLockedOut,
+    recordOtpAttempt,
+    clearAttempts,
+    logAuditEvent,
+    SECURITY_CONFIG,
+} from './security/authSecurity';
 
 /**
  * Send verification SMS (mock implementation)
+ * SECURITY: OTP is hashed before storage
  */
 export const sendVerificationSms = (phone: string): string => {
     const otp = generateOTP();
@@ -11,14 +21,16 @@ export const sendVerificationSms = (phone: string): string => {
 
     // Normalize phone number (remove spaces, etc.)
     const normalizedPhone = phone.replace(/\s+/g, '');
+    
+    // SECURITY: Hash OTP before storing
+    const hashedOtp = hashString(otp);
 
-    // Update user with OTP
+    // Update user with HASHED OTP
     let user = db.users.find(u => u.phone === normalizedPhone);
 
     if (!user) {
         // Create a new user for verification purposes if not found
-        // Note: In a real app, you might want to check if email exists first or handle this differently
-        user = {
+        const newUser = {
             id: 'user_' + Date.now(),
             name: '',
             email: '', // Email might be empty if signing up via phone
@@ -30,18 +42,38 @@ export const sendVerificationSms = (phone: string): string => {
             walletBalance: 0,
             avatar: '',
             favorites: [],
-            authProvider: 'phone',
+            authProvider: 'phone' as const,
             emailVerified: false,
             phoneVerified: false,
             phone: normalizedPhone,
-            verificationOtp: otp,
+            verificationOtp: hashedOtp, // SECURITY: Store hash, not plain OTP
             verificationOtpExpiry: otpExpiry
         };
-        db.users.create(user);
+        db.users.create(newUser);
+        
+        logAuditEvent({
+            action: 'OTP_SENT',
+            userId: newUser.id,
+            success: true,
+            metadata: {
+                channel: 'phone',
+                phone: normalizedPhone.slice(-4) // Log only last 4 digits for privacy
+            }
+        });
     } else {
         db.users.update(user.id, {
-            verificationOtp: otp,
+            verificationOtp: hashedOtp, // SECURITY: Store hash, not plain OTP
             verificationOtpExpiry: otpExpiry
+        });
+        
+        logAuditEvent({
+            action: 'OTP_SENT',
+            userId: user.id,
+            success: true,
+            metadata: {
+                channel: 'phone',
+                phone: normalizedPhone.slice(-4)
+            }
         });
     }
 
@@ -57,23 +89,64 @@ export const sendVerificationSms = (phone: string): string => {
 
 /**
  * Verify phone OTP
+ * SECURITY: Implements rate limiting and secure hash comparison
  */
 export const verifyPhoneOtp = (phone: string, otp: string): VerificationResult => {
     const normalizedPhone = phone.replace(/\s+/g, '');
-    const user = db.users.find(u => u.phone === normalizedPhone);
-
-    if (!user) {
+    
+    // SECURITY: Check if account is locked out
+    const lockoutStatus = isLockedOut(normalizedPhone);
+    if (lockoutStatus.locked) {
+        logAuditEvent({
+            action: 'OTP_FAILED',
+            identifier: normalizedPhone,
+            success: false,
+            metadata: { reason: 'Account locked', remainingMinutes: lockoutStatus.remainingMinutes }
+        });
         return {
             success: false,
-            message: 'User not found'
+            message: `Too many attempts. Please try again in ${lockoutStatus.remainingMinutes} minutes.`,
+            lockedUntil: new Date(Date.now() + (lockoutStatus.remainingMinutes || 0) * 60 * 1000).toISOString()
         };
     }
 
-    // Check OTP
-    if (user.verificationOtp !== otp) {
+    const user = db.users.find(u => u.phone === normalizedPhone);
+
+    if (!user) {
+        // SECURITY: Don't reveal whether user exists
+        recordOtpAttempt(normalizedPhone, false);
         return {
             success: false,
             message: 'Invalid verification code'
+        };
+    }
+
+    // SECURITY: Verify OTP using hash comparison
+    const isValidOtp = user.verificationOtp && verifyHash(otp, user.verificationOtp);
+    
+    if (!isValidOtp) {
+        const attemptResult = recordOtpAttempt(normalizedPhone, false);
+        
+        logAuditEvent({
+            action: 'OTP_FAILED',
+            userId: user.id,
+            identifier: normalizedPhone,
+            success: false,
+            metadata: { attemptsRemaining: attemptResult.attemptsRemaining }
+        });
+        
+        if (!attemptResult.allowed) {
+            return {
+                success: false,
+                message: `Too many attempts. Please try again in ${SECURITY_CONFIG.LOCKOUT_DURATION_MINUTES} minutes.`,
+                lockedUntil: attemptResult.lockedUntil
+            };
+        }
+        
+        return {
+            success: false,
+            message: 'Invalid verification code',
+            attemptsRemaining: attemptResult.attemptsRemaining
         };
     }
 
@@ -84,6 +157,9 @@ export const verifyPhoneOtp = (phone: string, otp: string): VerificationResult =
             message: 'Verification code has expired. Please request a new one.'
         };
     }
+
+    // SECURITY: Clear attempt records on success
+    clearAttempts(normalizedPhone);
 
     // Verify phone
     db.users.update(user.id, {
@@ -100,6 +176,13 @@ export const verifyPhoneOtp = (phone: string, otp: string): VerificationResult =
             localStorage.setItem('fiilar_user', JSON.stringify(updatedUser));
         }
     }
+
+    logAuditEvent({
+        action: 'OTP_VERIFIED',
+        userId: user.id,
+        identifier: normalizedPhone,
+        success: true
+    });
 
     return {
         success: true,

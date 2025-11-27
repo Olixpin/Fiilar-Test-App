@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Listing, BookingType } from '@fiilar/types';
+import { Listing, BookingType, PricingModel } from '@fiilar/types';
 import { Star, Heart, ImageOff, MapPin, Gem } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
@@ -198,7 +198,12 @@ const ListingCard: React.FC<ListingCardProps> = ({ listing, badgeVariant = 'whit
 
         <div className="text-right">
           <span className="font-bold text-lg text-red-500">{formatCurrency(listing.price, { compact: true })}</span>
-          <span className="text-gray-400 text-xs">/{listing.priceUnit === BookingType.HOURLY ? 'Hr' : 'Night'}</span>
+          <span className="text-gray-400 text-xs">/{
+            listing.pricingModel === PricingModel.NIGHTLY ? 'Night' :
+              listing.pricingModel === PricingModel.DAILY ? 'Day' :
+                listing.pricingModel === PricingModel.HOURLY ? 'Hr' :
+                  listing.priceUnit === BookingType.HOURLY ? 'Hr' : 'Night'
+          }</span>
         </div>
       </div>
     </Link>

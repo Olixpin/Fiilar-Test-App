@@ -1,6 +1,6 @@
 import React from 'react';
-import { Listing, User, BookingType } from '@fiilar/types';
-import { Star, Minus, Plus, Calendar as CalendarIcon, PackagePlus, CheckCircle, Repeat, X, Ban, Info, AlertCircle, Heart } from 'lucide-react';
+import { Listing, User, BookingType, PricingModel } from '@fiilar/types';
+import { Star, Minus, Plus, Calendar as CalendarIcon, PackagePlus, CheckCircle, Repeat, X, Info, AlertCircle, Heart } from 'lucide-react';
 import { formatCurrency } from '../../../../utils/currency';
 import { getAverageRating, getReviews } from '@fiilar/reviews';
 import { ListingCalendar } from '@fiilar/calendar';
@@ -64,7 +64,6 @@ export const BookingWidget: React.FC<BookingWidgetProps> = ({
   setRecurrenceCount,
   bookingSeries,
   selectedHours,
-  handleHourToggle,
   hostOpenHours,
   isSlotBooked,
   selectedDays,
@@ -86,7 +85,12 @@ export const BookingWidget: React.FC<BookingWidgetProps> = ({
         <div className="flex justify-between items-start mb-6">
           <div>
             <span className="text-2xl font-bold text-gray-900">{formatCurrency(listing.price, { compact: true })}</span>
-            <span className="text-gray-500">/{listing.priceUnit === BookingType.HOURLY ? 'hr' : 'day'}</span>
+            <span className="text-gray-500">/{
+              listing.pricingModel === PricingModel.NIGHTLY ? 'night' :
+                listing.pricingModel === PricingModel.DAILY ? 'day' :
+                  listing.pricingModel === PricingModel.HOURLY ? 'hr' :
+                    listing.priceUnit === BookingType.HOURLY ? 'hr' : 'night'
+            }</span>
           </div>
           <div className="flex items-center gap-1 text-sm font-medium text-gray-700 bg-gray-100/50 px-2 py-1 rounded-lg">
             <Star size={14} className="fill-brand-500 text-brand-500" />
@@ -240,6 +244,7 @@ export const BookingWidget: React.FC<BookingWidgetProps> = ({
                           max={8}
                           value={recurrenceCount}
                           onChange={(e) => setRecurrenceCount(parseInt(e.target.value))}
+                          title="Number of repeats"
                           className="flex-1 h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-brand-600"
                         />
                         <span className="text-xs font-bold w-4 text-center">{recurrenceCount}</span>
@@ -272,6 +277,7 @@ export const BookingWidget: React.FC<BookingWidgetProps> = ({
                 <select
                   className="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all"
                   value={selectedHours.length > 0 ? Math.min(...selectedHours) : ''}
+                  title="Select start time"
                   onChange={(e) => {
                     const start = parseInt(e.target.value);
                     const currentEnd = selectedHours.length > 0 ? Math.max(...selectedHours) + 1 : start + 1;
@@ -295,6 +301,7 @@ export const BookingWidget: React.FC<BookingWidgetProps> = ({
                 <select
                   className="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all"
                   value={selectedHours.length > 0 ? Math.max(...selectedHours) + 1 : ''}
+                  title="Select end time"
                   onChange={(e) => {
                     const end = parseInt(e.target.value);
                     const currentStart = selectedHours.length > 0 ? Math.min(...selectedHours) : end - 1;
@@ -404,8 +411,8 @@ export const BookingWidget: React.FC<BookingWidgetProps> = ({
             disabled={(isHourly && hostOpenHours.length === 0)}
             variant={isSavedForLater ? "outline" : "outline"}
             className={`w-full ${isSavedForLater
-              ? 'bg-brand-50 text-brand-700 border-brand-200'
-              : 'border-brand-600 text-brand-600 hover:bg-brand-50'
+                ? 'bg-brand-50 text-brand-700 border-brand-200'
+                : 'border-brand-600 text-brand-600 hover:bg-brand-50'
               }`}
             leftIcon={<Heart size={18} className={isSavedForLater ? 'fill-current' : ''} />}
           >

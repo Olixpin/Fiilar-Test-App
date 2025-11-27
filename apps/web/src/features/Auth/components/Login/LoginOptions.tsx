@@ -6,20 +6,16 @@ import { Button } from '@fiilar/ui';
 interface LoginOptionsProps {
     onEmailLogin: () => void;
     onGoogleLogin: () => void;
-    onAdminLogin?: () => void;
     title?: string;
     subtitle?: string;
-    showAdminLink?: boolean;
     variant?: 'default' | 'glass' | 'glass-dark';
 }
 
 const LoginOptions: React.FC<LoginOptionsProps> = ({
     onEmailLogin,
     onGoogleLogin,
-    onAdminLogin,
     title = "Get Started",
     subtitle = "Enter your details to create an account or sign in.",
-    showAdminLink = true,
     variant = 'default'
 }) => {
     const isGlass = variant === 'glass' || variant === 'glass-dark';
@@ -66,11 +62,12 @@ const LoginOptions: React.FC<LoginOptionsProps> = ({
                 By continuing, you agree to our <Link to="/terms" className={`underline ${isGlass ? 'hover:text-white' : 'hover:text-gray-600'}`}>Terms of Service</Link> and <Link to="/privacy" className={`underline ${isGlass ? 'hover:text-white' : 'hover:text-gray-600'}`}>Privacy Policy</Link>.
             </p>
 
-            {showAdminLink && onAdminLogin && (
-                <div className="mt-6 text-center">
-                    <button onClick={onAdminLogin} className={`text-xs transition-colors font-medium ${isGlass ? 'text-white/40 hover:text-white' : 'text-gray-300 hover:text-brand-600'}`}>Admin Access</button>
-                </div>
-            )}
+            {/* 
+              SECURITY: Admin access removed from public login screen
+              Admins should authenticate via the same flow (email/phone OTP)
+              Admin privileges are granted based on the admin@fiilar.com email domain
+              or explicit admin role assignment in the database
+            */}
         </div>
     );
 };

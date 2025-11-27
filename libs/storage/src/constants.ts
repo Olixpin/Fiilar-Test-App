@@ -1,4 +1,4 @@
-import { SpaceType, Listing, ListingStatus, BookingType, CancellationPolicy } from '@fiilar/types';
+import { SpaceType, Listing, ListingStatus, BookingType, CancellationPolicy, PricingModel } from '@fiilar/types';
 
 /**
  * Storage keys for localStorage
@@ -17,7 +17,10 @@ export const STORAGE_KEYS = {
 const today = new Date().toISOString().split('T')[0];
 const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
 
-export const SERVICE_FEE_PERCENTAGE = 0.10; // 10% Platform Fee
+// SERVICE_FEE_PERCENTAGE is now in config/appConfig.ts
+// Re-export for backward compatibility
+export { BOOKING_CONFIG } from './config/appConfig';
+export const SERVICE_FEE_PERCENTAGE = 0.10; // @deprecated - Use BOOKING_CONFIG.SERVICE_FEE_PERCENTAGE
 
 export const MOCK_LISTINGS: Listing[] = [
   {
@@ -28,6 +31,12 @@ export const MOCK_LISTINGS: Listing[] = [
     type: SpaceType.STUDIO,
     price: 150,
     priceUnit: BookingType.HOURLY,
+    pricingModel: PricingModel.HOURLY,
+    bookingConfig: {
+      operatingHours: { start: '09:00', end: '18:00' },
+      bufferMinutes: 30,
+      minHoursBooking: 2
+    },
     images: [
       'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?auto=format&fit=crop&q=80&w=2070',
       'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&q=80&w=2080',
@@ -38,7 +47,7 @@ export const MOCK_LISTINGS: Listing[] = [
     location: 'SoHo, New York',
     status: ListingStatus.LIVE,
     tags: ['daylight', 'loft', 'fashion', 'high ceilings'],
-    requiresIdentityVerification: false, // Allows instant booking
+    requiresIdentityVerification: false,
     availability: {
       [today]: [9, 10, 11, 13, 14, 15],
       [tomorrow]: [9, 10, 11, 12, 13, 14, 15, 16]
@@ -77,6 +86,8 @@ export const MOCK_LISTINGS: Listing[] = [
     type: SpaceType.CONFERENCE,
     price: 200,
     priceUnit: BookingType.HOURLY,
+    pricingModel: PricingModel.HOURLY,
+    bookingConfig: { operatingHours: { start: '09:00', end: '18:00' }, bufferMinutes: 30, minHoursBooking: 1 },
     images: [
       '/assets/listing-2-hero.png',
       '/assets/listing-2-detail-1.png',
@@ -125,6 +136,8 @@ export const MOCK_LISTINGS: Listing[] = [
     type: SpaceType.EVENT_CENTER,
     price: 2500,
     priceUnit: BookingType.DAILY,
+    pricingModel: PricingModel.NIGHTLY,
+    bookingConfig: { checkInTime: '15:00', checkOutTime: '11:00', allowLateCheckout: false },
     images: [
       'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&q=80&w=2070',
       'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&q=80&w=2053',
@@ -170,6 +183,8 @@ export const MOCK_LISTINGS: Listing[] = [
     type: SpaceType.APARTMENT,
     price: 50000,
     priceUnit: BookingType.DAILY,
+    pricingModel: PricingModel.NIGHTLY,
+    bookingConfig: { checkInTime: '15:00', checkOutTime: '11:00', allowLateCheckout: false },
     images: [
       'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&q=80&w=2080',
       'https://images.unsplash.com/photo-1493809842364-78817add7ffb?auto=format&fit=crop&q=80&w=2070',
@@ -212,6 +227,8 @@ export const MOCK_LISTINGS: Listing[] = [
     type: SpaceType.STUDIO,
     price: 15000,
     priceUnit: BookingType.HOURLY,
+    pricingModel: PricingModel.NIGHTLY,
+    bookingConfig: { checkInTime: '15:00', checkOutTime: '11:00', allowLateCheckout: false },
     images: [
       'https://images.unsplash.com/photo-1513364776144-60967b0f800f?auto=format&fit=crop&q=80&w=2071',
       'https://images.unsplash.com/photo-1520466809213-7b9a56adcd45?auto=format&fit=crop&q=80&w=2070',
@@ -254,6 +271,8 @@ export const MOCK_LISTINGS: Listing[] = [
     type: SpaceType.CO_WORKING,
     price: 10000,
     priceUnit: BookingType.HOURLY,
+    pricingModel: PricingModel.DAILY,
+    bookingConfig: { accessStartTime: '08:00', accessEndTime: '23:00', overnightAllowed: false },
     images: [
       'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=2069',
       'https://images.unsplash.com/photo-1497215842964-222b430dc094?auto=format&fit=crop&q=80&w=2070',
@@ -296,6 +315,8 @@ export const MOCK_LISTINGS: Listing[] = [
     type: SpaceType.EVENT_CENTER,
     price: 500000,
     priceUnit: BookingType.DAILY,
+    pricingModel: PricingModel.DAILY,
+    bookingConfig: { accessStartTime: '08:00', accessEndTime: '23:00', overnightAllowed: false },
     images: [
       'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&q=80&w=2098',
       'https://images.unsplash.com/photo-1505373877841-8d25f7d46678?auto=format&fit=crop&q=80&w=2012',
@@ -337,6 +358,8 @@ export const MOCK_LISTINGS: Listing[] = [
     type: SpaceType.OPEN_SPACE,
     price: 20000,
     priceUnit: BookingType.HOURLY,
+    pricingModel: PricingModel.DAILY,
+    bookingConfig: { accessStartTime: '08:00', accessEndTime: '23:00', overnightAllowed: false },
     images: [
       'https://images.unsplash.com/photo-1591088398332-8a7791972843?auto=format&fit=crop&q=80&w=2074',
       'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?auto=format&fit=crop&q=80&w=2232',
@@ -378,6 +401,8 @@ export const MOCK_LISTINGS: Listing[] = [
     type: SpaceType.CONFERENCE,
     price: 25000,
     priceUnit: BookingType.HOURLY,
+    pricingModel: PricingModel.HOURLY,
+    bookingConfig: { operatingHours: { start: '09:00', end: '18:00' }, bufferMinutes: 30, minHoursBooking: 1 },
     images: [
       'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=2069',
       'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?auto=format&fit=crop&q=80&w=2070',
@@ -420,6 +445,8 @@ export const MOCK_LISTINGS: Listing[] = [
     type: SpaceType.APARTMENT,
     price: 250000,
     priceUnit: BookingType.DAILY,
+    pricingModel: PricingModel.NIGHTLY,
+    bookingConfig: { checkInTime: '15:00', checkOutTime: '11:00', allowLateCheckout: false },
     images: [
       'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&q=80&w=2080',
       'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&q=80&w=2070',
@@ -462,6 +489,8 @@ export const MOCK_LISTINGS: Listing[] = [
     type: SpaceType.STUDIO,
     price: 10000,
     priceUnit: BookingType.HOURLY,
+    pricingModel: PricingModel.HOURLY,
+    bookingConfig: { operatingHours: { start: '09:00', end: '18:00' }, bufferMinutes: 30, minHoursBooking: 2 },
     images: [
       'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?auto=format&fit=crop&q=80&w=2070',
       'https://images.unsplash.com/photo-1478737270239-2f02b77ac6d5?auto=format&fit=crop&q=80&w=2070',
@@ -504,6 +533,8 @@ export const MOCK_LISTINGS: Listing[] = [
     type: SpaceType.CO_WORKING,
     price: 5000,
     priceUnit: BookingType.HOURLY,
+    pricingModel: PricingModel.HOURLY,
+    bookingConfig: { operatingHours: { start: '09:00', end: '18:00' }, bufferMinutes: 30, minHoursBooking: 2 },
     images: [
       'https://images.unsplash.com/photo-1527192491265-7e15c55b1ed2?auto=format&fit=crop&q=80&w=2070',
       'https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&q=80&w=2069',
@@ -545,6 +576,8 @@ export const MOCK_LISTINGS: Listing[] = [
     type: SpaceType.EVENT_CENTER,
     price: 80000,
     priceUnit: BookingType.DAILY,
+    pricingModel: PricingModel.DAILY,
+    bookingConfig: { accessStartTime: '08:00', accessEndTime: '23:00', overnightAllowed: false },
     images: [
       'https://images.unsplash.com/photo-1591088398332-8a7791972843?auto=format&fit=crop&q=80&w=2074',
       'https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?auto=format&fit=crop&q=80&w=2069',
@@ -581,5 +614,12 @@ export const MOCK_LISTINGS: Listing[] = [
   }
 ];
 
+/**
+ * @deprecated Use DEMO_CONFIG.MOCK_USER_ID from '../config/appConfig' instead
+ */
 export const MOCK_USER_ID = 'user_123';
+
+/**
+ * @deprecated Use DEMO_CONFIG.MOCK_HOST_ID from '../config/appConfig' instead
+ */
 export const MOCK_HOST_ID = 'host_123';

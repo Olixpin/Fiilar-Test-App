@@ -78,6 +78,8 @@ export const Toast: React.FC<ToastProps> = ({
             </div>
             <button
                 onClick={handleClose}
+                title="Close notification"
+                aria-label="Close notification"
                 className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-full transition-colors shrink-0"
             >
                 <X size={16} />

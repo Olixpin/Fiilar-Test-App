@@ -140,7 +140,7 @@ export const OTPInput: React.FC<OTPInputProps> = ({
                     value={valueArray[index] || ''}
                     type="text"
                     inputMode="numeric"
-                    autoComplete={index === 0 ? 'one-time-code' : 'off'}
+                    autoComplete="one-time-code"
                     aria-label={`Digit ${index + 1} of ${length}`}
                     placeholder="·"
                     className={`

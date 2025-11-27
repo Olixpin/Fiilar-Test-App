@@ -9,9 +9,9 @@ interface Section {
 const SECTIONS: Section[] = [
     { id: 'overview', label: 'Overview' },
     { id: 'amenities', label: 'Amenities' },
+    { id: 'access-info', label: 'Access Info' },
     { id: 'reviews', label: 'Reviews' },
-    { id: 'policies', label: 'Policies' },
-    { id: 'location', label: 'Location' },
+    { id: 'policies', label: 'Policies' }
 ];
 
 export const SectionNav: React.FC = () => {

@@ -5,28 +5,55 @@ const STORAGE_KEYS = {
 };
 
 /**
+ * Notification Service
+ * 
+ * API ENDPOINTS (for backend implementation):
+ * - GET    /api/notifications?userId=xxx - Get user notifications
+ * - GET    /api/notifications/unread/count?userId=xxx - Get unread count
+ * - POST   /api/notifications - Create notification
+ * - PATCH  /api/notifications/:id/read - Mark as read
+ * - PATCH  /api/notifications/read-all?userId=xxx - Mark all as read
+ * - DELETE /api/notifications?userId=xxx - Clear all for user
+ */
+
+/**
  * Get all notifications for a user
+ * API: GET /api/notifications?userId=xxx
  */
 export const getNotifications = (userId: string): Notification[] => {
+    console.log('📤 API CALL: GET /api/notifications', { userId });
     const n = localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS);
     const notifications: Notification[] = n ? JSON.parse(n) : [];
-    return notifications
+    const userNotifs = notifications
         .filter(notif => notif.userId === userId)
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    console.log('✅ API RESPONSE: Retrieved', userNotifs.length, 'notifications');
+    return userNotifs;
 };
 
 /**
  * Get unread notification count
+ * API: GET /api/notifications/unread/count?userId=xxx
  */
 export const getUnreadCount = (userId: string): number => {
     const notifications = getNotifications(userId);
-    return notifications.filter(n => !n.read).length;
+    const count = notifications.filter(n => !n.read).length;
+    console.log('✅ Unread count:', count);
+    return count;
 };
 
 /**
  * Add a new notification
+ * API: POST /api/notifications
+ * Body: { userId, type, title, message, ... }
  */
 export const addNotification = (notification: Omit<Notification, 'id' | 'createdAt'>): void => {
+    console.log('📤 API CALL: POST /api/notifications', {
+        userId: notification.userId,
+        type: notification.type,
+        title: notification.title
+    });
+    
     const n = localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS);
     const notifications: Notification[] = n ? JSON.parse(n) : [];
 
@@ -38,12 +65,16 @@ export const addNotification = (notification: Omit<Notification, 'id' | 'created
 
     notifications.push(newNotification);
     localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(notifications));
+    
+    console.log('✅ API RESPONSE: Notification created', { id: newNotification.id });
 };
 
 /**
  * Mark a single notification as read
+ * API: PATCH /api/notifications/:id/read
  */
 export const markNotificationAsRead = (notificationId: string) => {
+    console.log('📤 API CALL: PATCH /api/notifications/' + notificationId + '/read');
     const n = localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS);
     const notifications: Notification[] = n ? JSON.parse(n) : [];
 
@@ -51,13 +82,16 @@ export const markNotificationAsRead = (notificationId: string) => {
     if (idx >= 0) {
         notifications[idx].read = true;
         localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(notifications));
+        console.log('✅ API RESPONSE: Notification marked as read');
     }
 };
 
 /**
  * Mark all notifications as read for a user
+ * API: PATCH /api/notifications/read-all?userId=xxx
  */
 export const markAllNotificationsAsRead = (userId: string) => {
+    console.log('📤 API CALL: PATCH /api/notifications/read-all', { userId });
     const n = localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS);
     const notifications: Notification[] = n ? JSON.parse(n) : [];
 
@@ -72,13 +106,16 @@ export const markAllNotificationsAsRead = (userId: string) => {
 
     if (hasUpdates) {
         localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(updatedNotifications));
+        console.log('✅ API RESPONSE: All notifications marked as read');
     }
 };
 
 /**
  * Clear all notifications for a user
+ * API: DELETE /api/notifications?userId=xxx
  */
 export const clearAllNotifications = (userId: string) => {
+    console.log('📤 API CALL: DELETE /api/notifications', { userId });
     const n = localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS);
     const notifications: Notification[] = n ? JSON.parse(n) : [];
 
@@ -86,4 +123,5 @@ export const clearAllNotifications = (userId: string) => {
     const remainingNotifications = notifications.filter(notif => notif.userId !== userId);
 
     localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(remainingNotifications));
+    console.log('✅ API RESPONSE: Notifications cleared');
 };

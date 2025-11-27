@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { cn } from '@fiilar/utils';
-import { Listing, User, Booking, BookingType } from '@fiilar/types';
+import { Listing, BookingType, Booking, User, PricingModel } from '@fiilar/types';
 import { ArrowLeft, Share, Heart } from 'lucide-react';
 import { PriceBreakdownModal } from '../components/ListingDetails/PriceBreakdownModal';
 import { SectionNav } from '../components/ListingDetails/SectionNav';
@@ -14,6 +14,7 @@ import { ListingHeader } from '../components/ListingDetails/ListingHeader';
 import { ListingImages } from '../components/ListingDetails/ListingImages';
 import { ListingDescription } from '../components/ListingDetails/ListingDescription';
 import { ListingAmenities } from '../components/ListingDetails/ListingAmenities';
+import { ListingAccessInfo } from '../components/ListingDetails/ListingAccessInfo';
 import { ListingReviews } from '../components/ListingDetails/ListingReviews';
 import { ListingPolicies } from '../components/ListingDetails/ListingPolicies';
 import { BookingModal } from '../components/ListingDetails/BookingModal';
@@ -164,12 +165,14 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
           <button
             onClick={handleShare}
             className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            aria-label="Share listing"
           >
             <Share size={18} className="text-gray-700" />
           </button>
           <button
             onClick={handleToggleFavorite}
             className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
           >
             <Heart size={18} className={isFavorite ? "fill-red-500 text-red-500" : "text-gray-700"} />
           </button>
@@ -181,7 +184,12 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
         <div className="flex flex-col items-start">
           <p className="text-lg font-bold text-gray-900">
             {formatCurrency(listing.price)}
-            <span className="text-sm font-normal text-gray-500">/{listing.priceUnit === BookingType.HOURLY ? 'hr' : 'day'}</span>
+            <span className="text-sm font-normal text-gray-500">/{
+              listing.pricingModel === PricingModel.NIGHTLY ? 'night' :
+                listing.pricingModel === PricingModel.DAILY ? 'day' :
+                  listing.pricingModel === PricingModel.HOURLY ? 'hr' :
+                    listing.priceUnit === BookingType.HOURLY ? 'hr' : 'night'
+            }</span>
           </p>
           <button
             onClick={() => setShowPriceBreakdownModal(true)}
@@ -236,6 +244,7 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
 
               <div id="amenities" className="border-b border-gray-100 pb-10">
                 <ListingAmenities listing={listing} />
+                <ListingAccessInfo listing={listing} />
               </div>
 
               <div id="reviews" className="border-b border-gray-100 pb-10">
@@ -264,7 +273,12 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
           <div className="flex flex-col">
             <div className="flex items-baseline gap-1">
               <span className="text-xl font-bold text-gray-900">{formatCurrency(listing.price)}</span>
-              <span className="text-sm text-gray-500">/{listing.priceUnit === BookingType.HOURLY ? 'hr' : 'day'}</span>
+              <span className="text-sm text-gray-500">/{
+                listing.pricingModel === PricingModel.NIGHTLY ? 'night' :
+                  listing.pricingModel === PricingModel.DAILY ? 'day' :
+                    listing.pricingModel === PricingModel.HOURLY ? 'hr' :
+                      listing.priceUnit === BookingType.HOURLY ? 'hr' : 'night'
+              }</span>
             </div>
             <div
               onClick={() => setShowPriceBreakdownModal(true)}

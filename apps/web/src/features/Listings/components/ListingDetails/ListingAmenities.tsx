@@ -41,13 +41,13 @@ export const ListingAmenities: React.FC<ListingAmenitiesProps> = ({ listing }) =
 
       {listing.amenities && listing.amenities.length > 0 && (
         <div className="space-y-6">
-          <div className="flex flex-wrap gap-3">
+          <div className="grid grid-cols-2 md:flex md:flex-wrap gap-3">
             {displayedAmenities?.map(amenity => (
-              <div key={amenity.name} className="group inline-flex items-center gap-3 px-4 py-3 rounded-xl border border-gray-100 bg-white hover:border-gray-200 hover:shadow-sm hover:scale-[1.02] transition-all duration-300 cursor-default w-auto">
+              <div key={amenity.name} className="group flex items-center gap-3 px-3 py-2.5 md:px-4 md:py-3 rounded-xl border border-gray-100 bg-white hover:border-gray-200 hover:shadow-sm hover:scale-[1.02] transition-all duration-300 cursor-default w-full md:w-auto">
                 <div className="w-8 h-8 rounded-lg bg-gray-50 group-hover:bg-brand-50 flex items-center justify-center text-gray-500 group-hover:text-brand-600 transition-colors shrink-0">
                   {getIcon(amenity.icon, 18)}
                 </div>
-                <span className="font-medium text-gray-700 group-hover:text-gray-900 transition-colors text-sm">{amenity.name}</span>
+                <span className="font-medium text-gray-700 group-hover:text-gray-900 transition-colors text-sm truncate">{amenity.name}</span>
               </div>
             ))}
           </div>

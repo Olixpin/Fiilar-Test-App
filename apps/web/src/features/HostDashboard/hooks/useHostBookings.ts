@@ -1,9 +1,10 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { User, Listing, Booking } from '@fiilar/types';
-import { getBookings, updateBooking, verifyHandshake, setModificationAllowed } from '@fiilar/storage';
+import { getBookings, updateBooking, verifyHandshake, setModificationAllowed, updateUserWalletBalance } from '@fiilar/storage';
 import { addNotification } from '@fiilar/notifications';
 import { useToast } from '@fiilar/ui';
+import { escrowService } from '@fiilar/escrow';
 
 export const useHostBookings = (user: User | null, listings: Listing[], refreshData: () => void) => {
     const toast = useToast();
@@ -67,27 +68,36 @@ export const useHostBookings = (user: User | null, listings: Listing[], refreshD
         }
     };
 
-    const handleRejectBooking = (booking: Booking) => {
+    const handleRejectBooking = async (booking: Booking) => {
         // If part of a group, reject all
         const bookingsToUpdate = booking.groupId
             ? hostBookings.filter(b => b.groupId === booking.groupId && b.status === 'Pending')
             : [booking];
 
-        bookingsToUpdate.forEach(b => {
+        // Process refund for each booking
+        for (const b of bookingsToUpdate) {
+            // Process full refund through escrow service
+            await escrowService.processRefund(b, b.userId, b.totalPrice, 'Host rejected booking');
+            
+            // Update user wallet balance
+            updateUserWalletBalance(b.userId, b.totalPrice);
+            
+            // Update booking status
             const updatedBooking = { ...b, status: 'Cancelled' as const };
             updateBooking(updatedBooking);
-        });
+        }
 
         // Send ONE notification for the group
         const listing = listings.find(l => l.id === booking.listingId);
+        const totalRefund = bookingsToUpdate.reduce((sum, b) => sum + b.totalPrice, 0);
         const message = bookingsToUpdate.length > 1
-            ? `Unfortunately, your recurring booking request(${bookingsToUpdate.length} sessions) for "${listing?.title || 'the property'}" was not accepted.`
-            : `Unfortunately, your booking request for "${listing?.title || 'the property'}" on ${booking.date} was not accepted.`;
+            ? `Unfortunately, your recurring booking request(${bookingsToUpdate.length} sessions) for "${listing?.title || 'the property'}" was not accepted. A full refund of $${totalRefund.toFixed(2)} has been processed.`
+            : `Unfortunately, your booking request for "${listing?.title || 'the property'}" on ${booking.date} was not accepted. A full refund of $${booking.totalPrice.toFixed(2)} has been processed.`;
 
         addNotification({
             userId: booking.userId,
             type: 'booking',
-            title: 'Booking Not Accepted',
+            title: 'Booking Not Accepted - Refund Processed',
             message: message,
             severity: 'warning',
             read: false,
@@ -102,13 +112,13 @@ export const useHostBookings = (user: User | null, listings: Listing[], refreshD
         fetchBookings(); // Refresh local state
 
         if (bookingsToUpdate.length > 1) {
-            toast.showToast({ message: `Recurring booking series rejected.`, type: 'info' });
+            toast.showToast({ message: `Recurring booking series rejected. Refund of $${totalRefund.toFixed(2)} processed.`, type: 'info' });
         } else {
-            toast.showToast({ message: `Booking rejected.`, type: 'info' });
+            toast.showToast({ message: `Booking rejected. Refund of $${booking.totalPrice.toFixed(2)} processed.`, type: 'info' });
         }
     };
 
-    const handleReleaseFunds = (bookingId: string) => {
+    const handleReleaseFunds = (_bookingId: string) => {
         toast.showToast({ message: `Funds released for booking`, type: 'success' });
     };
 

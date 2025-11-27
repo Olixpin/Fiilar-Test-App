@@ -65,6 +65,9 @@ export const ListingCalendar: React.FC<ListingCalendarProps> = ({
                     const isPartOfSeries = !!seriesMatch;
                     const isSeriesConflict = seriesMatch && seriesMatch.status !== 'AVAILABLE';
                     const isBaseDisabled = status !== 'AVAILABLE';
+                    const isBlockedByHost = status === 'BLOCKED_BY_HOST';
+                    const isBooked = status === 'ALREADY_BOOKED' || status === 'FULLY_BOOKED';
+                    const isPast = status === 'PAST';
 
                     // Styles
                     let bgClass = 'bg-white hover:bg-gray-50 border-transparent';
@@ -79,6 +82,15 @@ export const ListingCalendar: React.FC<ListingCalendarProps> = ({
                     } else if (isPartOfSeries) {
                         bgClass = 'bg-brand-100 border-brand-200';
                         textClass = 'text-brand-700 font-bold';
+                    } else if (isBooked) {
+                        bgClass = 'bg-gray-100 border-gray-200';
+                        textClass = 'text-gray-400 cursor-not-allowed line-through decoration-gray-400';
+                    } else if (isBlockedByHost) {
+                        bgClass = 'bg-amber-50 border-amber-200';
+                        textClass = 'text-amber-400 cursor-not-allowed';
+                    } else if (isPast) {
+                        bgClass = 'bg-gray-50';
+                        textClass = 'text-gray-300 cursor-not-allowed';
                     } else if (isBaseDisabled) {
                         bgClass = 'bg-gray-50';
                         textClass = 'text-gray-300 cursor-not-allowed line-through decoration-gray-300';
@@ -107,9 +119,10 @@ export const ListingCalendar: React.FC<ListingCalendarProps> = ({
             </div>
             <div className="mt-3 flex flex-wrap items-center justify-center gap-3 text-[10px] text-gray-500 border-t border-gray-100 pt-3">
                 <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-gray-900"></div> Available</div>
+                <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-gray-200"></div> Booked</div>
+                <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-amber-200 border border-amber-300"></div> Blocked</div>
                 {isRecurring && <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-brand-200 border border-brand-300"></div> Series</div>}
                 {isRecurring && <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-red-200 border border-red-300"></div> Conflict</div>}
-                <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-gray-200"></div> Booked</div>
             </div>
         </div>
     );

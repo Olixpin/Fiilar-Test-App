@@ -1,7 +1,7 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import Navbar from './components/common/Navbar';
 import { User, Role, Listing, Booking } from '@fiilar/types';
-import { initStorage, loginUser, getCurrentUser, logoutUser, getListings, getAllUsers, createBooking, STORAGE_KEYS, updateUserProfile } from '@fiilar/storage';
+import { initStorage, loginUser, getCurrentUser, logoutUser, getListings, getAllUsers, createSecureBooking, STORAGE_KEYS, updateUserProfile } from '@fiilar/storage';
 import { updateKYC, updateLiveness } from '@fiilar/kyc';
 import { escrowService } from '@fiilar/escrow';
 import { startAutoReleaseScheduler, stopAutoReleaseScheduler } from '@fiilar/escrow';
@@ -371,6 +371,7 @@ const App: React.FC = () => {
         date: date,
         duration: duration,
         hours: selectedHours, // Store the specific hours
+        bookingType: listing.priceUnit, // Use the listing's pricing model
         totalPrice: pricePerBooking,
         serviceFee: serviceFeePerBooking,
         cautionFee: cautionFeePerBooking,
@@ -390,8 +391,27 @@ const App: React.FC = () => {
         newBooking.transactionIds = paymentResult.transactionIds;
       }
 
-      const created = createBooking(newBooking);
-      createdBookings.push(created);
+      // Use secure booking creation with price validation
+      const bookingResult = createSecureBooking(newBooking, {
+        listing: listing,
+        datesCount: dates.length
+      });
+
+      if (!bookingResult.success) {
+        // Security error - log and show error to user
+        console.error('Booking creation failed:', bookingResult.error);
+        showToast({ 
+          message: bookingResult.securityError 
+            ? 'Booking failed: Security validation error. Please try again.'
+            : `Booking failed: ${bookingResult.error}`,
+          type: 'error' 
+        });
+        return createdBookings; // Return what we've created so far
+      }
+
+      if (bookingResult.booking) {
+        createdBookings.push(bookingResult.booking);
+      }
     }
 
     const message = dates.length > 1

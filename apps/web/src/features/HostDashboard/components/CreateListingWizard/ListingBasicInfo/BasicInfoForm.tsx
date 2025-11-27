@@ -1,7 +1,7 @@
 import React from 'react';
-import { Listing, SpaceType, BookingType } from '@fiilar/types';
+import { Listing, SpaceType, BookingType, PricingModel } from '@fiilar/types';
 import { Input, Select, TextArea } from '@fiilar/ui';
-import { Home, MapPin, DollarSign, Users } from 'lucide-react';
+import { Home, MapPin, DollarSign, Users, Moon, Calendar, Clock } from 'lucide-react';
 
 interface BasicInfoFormProps {
     newListing: Partial<Listing>;
@@ -77,8 +77,77 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({ newListing, setNewListing
                     fullWidth
                 />
 
-                {/* Price & Unit */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Pricing Model Selection */}
+                <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-3">How do guests book your space?</label>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {/* NIGHTLY */}
+                        <button
+                            type="button"
+                            onClick={() => setNewListing({
+                                ...newListing,
+                                pricingModel: PricingModel.NIGHTLY,
+                                priceUnit: BookingType.DAILY // For backward compatibility
+                            })}
+                            className={`p-4 rounded-xl border-2 transition-all text-left ${newListing.pricingModel === PricingModel.NIGHTLY
+                                    ? 'border-brand-500 bg-brand-50'
+                                    : 'border-gray-200 hover:border-gray-300'
+                                }`}
+                        >
+                            <div className="flex items-center gap-2 mb-2">
+                                <Moon size={20} className={newListing.pricingModel === PricingModel.NIGHTLY ? 'text-brand-600' : 'text-gray-400'} />
+                                <span className="font-bold text-gray-900">Overnight Stays</span>
+                            </div>
+                            <p className="text-xs text-gray-600">Perfect for apartments, houses, hotels</p>
+                            <p className="text-xs text-gray-500 mt-1">Guests book by the night</p>
+                        </button>
+
+                        {/* DAILY */}
+                        <button
+                            type="button"
+                            onClick={() => setNewListing({
+                                ...newListing,
+                                pricingModel: PricingModel.DAILY,
+                                priceUnit: BookingType.DAILY // For backward compatibility
+                            })}
+                            className={`p-4 rounded-xl border-2 transition-all text-left ${newListing.pricingModel === PricingModel.DAILY
+                                    ? 'border-brand-500 bg-brand-50'
+                                    : 'border-gray-200 hover:border-gray-300'
+                                }`}
+                        >
+                            <div className="flex items-center gap-2 mb-2">
+                                <Calendar size={20} className={newListing.pricingModel === PricingModel.DAILY ? 'text-brand-600' : 'text-gray-400'} />
+                                <span className="font-bold text-gray-900">Full Day Access</span>
+                            </div>
+                            <p className="text-xs text-gray-600">Perfect for event centers, wedding halls</p>
+                            <p className="text-xs text-gray-500 mt-1">Guests book the entire day</p>
+                        </button>
+
+                        {/* HOURLY */}
+                        <button
+                            type="button"
+                            onClick={() => setNewListing({
+                                ...newListing,
+                                pricingModel: PricingModel.HOURLY,
+                                priceUnit: BookingType.HOURLY // For backward compatibility
+                            })}
+                            className={`p-4 rounded-xl border-2 transition-all text-left ${newListing.pricingModel === PricingModel.HOURLY
+                                    ? 'border-brand-500 bg-brand-50'
+                                    : 'border-gray-200 hover:border-gray-300'
+                                }`}
+                        >
+                            <div className="flex items-center gap-2 mb-2">
+                                <Clock size={20} className={newListing.pricingModel === PricingModel.HOURLY ? 'text-brand-600' : 'text-gray-400'} />
+                                <span className="font-bold text-gray-900">By the Hour</span>
+                            </div>
+                            <p className="text-xs text-gray-600">Perfect for studios, meeting rooms</p>
+                            <p className="text-xs text-gray-500 mt-1">Guests book specific hours</p>
+                        </button>
+                    </div>
+                </div>
+
+                {/* Price Input */}
+                <div>
                     <Input
                         label="Price"
                         type="number"
@@ -91,20 +160,9 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({ newListing, setNewListing
                         icon={DollarSign}
                         iconPosition="left"
                         variant="glass"
-                        helperText="Set your base rate"
+                        helperText={`Set your base rate per ${newListing.pricingModel === PricingModel.NIGHTLY ? 'night' : newListing.pricingModel === PricingModel.DAILY ? 'day' : 'hour'}`}
                         fullWidth
                     />
-
-                    <Select
-                        label="Pricing Unit"
-                        value={newListing.priceUnit}
-                        onChange={(e) => setNewListing({ ...newListing, priceUnit: e.target.value as BookingType })}
-                        variant="glass"
-                        helperText="How do you charge guests?"
-                    >
-                        <option value={BookingType.DAILY}>Per Night</option>
-                        <option value={BookingType.HOURLY}>Per Hour</option>
-                    </Select>
                 </div>
 
                 {/* Capacity & Included Guests */}

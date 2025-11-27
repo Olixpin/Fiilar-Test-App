@@ -191,8 +191,25 @@ export const useListingDetails = ({ listing, user, onBook, onVerify, onLogin, on
         }
     };
 
+    // Helper to check availability for a multi-night stay starting on a given date
+    const checkMultiNightAvailability = (startDateStr: string, nights: number): string => {
+        const startDate = new Date(startDateStr);
+        for (let n = 0; n < nights; n++) {
+            const checkDate = new Date(startDate);
+            checkDate.setDate(startDate.getDate() + n);
+            const checkDateStr = checkDate.toISOString().split('T')[0];
+            const status = checkDateAvailability(checkDateStr);
+            if (status !== 'AVAILABLE') {
+                return status; // Return first non-available status found
+            }
+        }
+        return 'AVAILABLE';
+    };
+
     const bookingSeries = useMemo(() => {
-        const series = [{ date: selectedDate, status: checkDateAvailability(selectedDate) }];
+        // For multi-night bookings, check all nights in the stay
+        const nightsToCheck = !isHourly ? selectedDays : 1;
+        const series = [{ date: selectedDate, status: checkMultiNightAvailability(selectedDate, nightsToCheck) }];
         if (!isRecurring) return series;
 
         const start = new Date(selectedDate);
@@ -204,10 +221,10 @@ export const useListingDetails = ({ listing, user, onBook, onVerify, onLogin, on
                 nextDate.setDate(start.getDate() + (i * 7));
             }
             const dStr = nextDate.toISOString().split('T')[0];
-            series.push({ date: dStr, status: checkDateAvailability(dStr) });
+            series.push({ date: dStr, status: checkMultiNightAvailability(dStr, nightsToCheck) });
         }
         return series;
-    }, [selectedDate, isRecurring, recurrenceFreq, recurrenceCount, listing.availability, listingBookings]);
+    }, [selectedDate, isRecurring, recurrenceFreq, recurrenceCount, listing.availability, listingBookings, isHourly, selectedDays]);
 
     const calculateFees = () => {
         const datesCount = isRecurring ? recurrenceCount : 1;
@@ -297,6 +314,7 @@ export const useListingDetails = ({ listing, user, onBook, onVerify, onLogin, on
                             date: current.selectedDate,
                             duration: current.isHourly ? current.selectedHours.length : current.selectedDays,
                             hours: current.isHourly ? current.selectedHours : undefined,
+                            bookingType: current.listing.priceUnit, // Use the listing's pricing model
                             totalPrice: current.fees.total,
                             serviceFee: current.fees.serviceFee,
                             cautionFee: current.fees.cautionFee,
@@ -359,6 +377,22 @@ export const useListingDetails = ({ listing, user, onBook, onVerify, onLogin, on
                     return;
                 }
             }
+        } else if (selectedDays > 1) {
+            // For multi-night bookings, validate all nights in each occurrence
+            for (const item of bookingSeries) {
+                const startDate = new Date(item.date);
+                for (let n = 0; n < selectedDays; n++) {
+                    const checkDate = new Date(startDate);
+                    checkDate.setDate(startDate.getDate() + n);
+                    const checkDateStr = checkDate.toISOString().split('T')[0];
+                    const status = checkDateAvailability(checkDateStr);
+                    if (status !== 'AVAILABLE') {
+                        const nightLabel = n === 0 ? 'check-in date' : `night ${n + 1}`;
+                        toast.showToast({ message: `Cannot book ${item.date}: ${nightLabel} (${checkDateStr}) is ${status.toLowerCase().replace(/_/g, ' ')}.`, type: "error" });
+                        return;
+                    }
+                }
+            }
         }
 
         const listingRequiresVerification = listing.requiresIdentityVerification;
@@ -400,6 +434,7 @@ export const useListingDetails = ({ listing, user, onBook, onVerify, onLogin, on
             date: selectedDate,
             duration: isHourly ? selectedHours.length : selectedDays,
             hours: isHourly ? selectedHours : undefined,
+            bookingType: listing.priceUnit, // Use the listing's pricing model
             totalPrice: fees.total,
             serviceFee: fees.serviceFee,
             cautionFee: fees.cautionFee,

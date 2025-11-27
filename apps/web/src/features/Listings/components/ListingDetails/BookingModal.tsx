@@ -69,16 +69,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     setRecurrenceCount,
     bookingSeries,
     selectedHours,
-    _handleHourToggle,
     hostOpenHours,
     isSlotBooked,
     selectedDays,
-    _setSelectedDays,
     fees,
     isBookingLoading,
     handleBookClick,
-    _isSavedForLater,
-    _handleSaveToReserveList,
     currentMonth,
     setCurrentMonth,
     checkDateAvailability,
@@ -96,6 +92,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 {/* Close Button */}
                 <button
                     onClick={onClose}
+                    title="Close modal"
+                    aria-label="Close modal"
                     className="absolute top-4 right-4 z-10 p-2 bg-white/80 backdrop-blur rounded-full hover:bg-gray-100 transition-colors"
                 >
                     <X size={20} className="text-gray-500" />
@@ -131,6 +129,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                         type="button"
                                         onClick={() => setGuestCount(Math.max(1, guestCount - 1))}
                                         disabled={guestCount <= 1}
+                                        title="Decrease guests"
+                                        aria-label="Decrease guests"
                                         className="p-3 hover:bg-gray-100 rounded-lg disabled:opacity-50 transition-all active:scale-95"
                                     >
                                         <Minus size={18} />
@@ -147,6 +147,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                         type="button"
                                         onClick={() => setGuestCount(Math.min(listing.capacity || 10, guestCount + 1))}
                                         disabled={guestCount >= (listing.capacity || 10)}
+                                        title="Increase guests"
+                                        aria-label="Increase guests"
                                         className="p-3 hover:bg-gray-100 rounded-lg disabled:opacity-50 transition-all active:scale-95"
                                     >
                                         <Plus size={18} />
@@ -213,6 +215,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                         <select
                                             className="w-full p-4 bg-white border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-brand-500 focus:border-brand-500 hover:border-brand-500 outline-none transition-all appearance-none cursor-pointer"
                                             value={selectedHours.length > 0 ? Math.min(...selectedHours) : ''}
+                                            title="Select start time"
                                             onChange={(e) => {
                                                 const start = parseInt(e.target.value);
                                                 const currentEnd = selectedHours.length > 0 ? Math.max(...selectedHours) + 1 : start + 1;
@@ -250,6 +253,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                             className="w-full p-4 bg-white border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-brand-500 focus:border-brand-500 hover:border-brand-500 outline-none transition-all appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-50"
                                             value={selectedHours.length > 0 ? Math.max(...selectedHours) + 1 : ''}
                                             disabled={selectedHours.length === 0}
+                                            title="Select end time"
                                             onChange={(e) => {
                                                 const end = parseInt(e.target.value);
                                                 const currentStart = selectedHours.length > 0 ? Math.min(...selectedHours) : 0;
@@ -336,6 +340,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                                             max={recurrenceFreq === 'DAILY' ? 30 : 12}
                                                             value={Math.min(recurrenceCount, recurrenceFreq === 'DAILY' ? 30 : 12)}
                                                             onChange={(e) => setRecurrenceCount(parseInt(e.target.value))}
+                                                            title="Number of repeats"
                                                             className="flex-1 h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-brand-600"
                                                         />
                                                         <span className="text-sm font-bold w-6 text-center">{recurrenceCount}</span>
