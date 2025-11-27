@@ -1,5 +1,10 @@
 import { Listing } from '@fiilar/types';
 import { STORAGE_KEYS, MOCK_LISTINGS } from './constants';
+import { generateMockListings } from './utils/mockListingGenerator';
+
+// Set to true to generate 200+ listings for infinite scroll testing
+const ENABLE_BULK_LISTINGS = true;
+const BULK_LISTING_COUNT = 200;
 
 /**
  * Initialize storage with mock data
@@ -18,6 +23,17 @@ export const initStorage = () => {
             storedListings.push(mockListing);
         }
     });
+
+    // Add bulk generated listings for testing infinite scroll
+    if (ENABLE_BULK_LISTINGS) {
+        const hasGeneratedListings = storedListings.some(l => l.id.startsWith('generated-'));
+        if (!hasGeneratedListings) {
+            console.log(`[initStorage] Generating ${BULK_LISTING_COUNT} mock listings for infinite scroll testing...`);
+            const generatedListings = generateMockListings(BULK_LISTING_COUNT);
+            storedListings = [...storedListings, ...generatedListings];
+            console.log(`[initStorage] Total listings: ${storedListings.length}`);
+        }
+    }
 
     localStorage.setItem(STORAGE_KEYS.LISTINGS, JSON.stringify(storedListings));
 

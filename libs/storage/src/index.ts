@@ -23,5 +23,8 @@ export * from './phoneService';
 export * from './security';
 export * from './config';
 
+// Export utilities
+export * from './utils/mockListingGenerator';
+
 // Export STORAGE_KEYS for convenience
 export { STORAGE_KEYS } from './constants';

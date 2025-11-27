@@ -63,6 +63,11 @@ const Home: React.FC<HomeProps> = ({
     const [showMobileFilters, setShowMobileFilters] = React.useState(false);
     const [isLoading, setIsLoading] = React.useState(true);
     const [visibleCount, setVisibleCount] = React.useState(12);
+    
+    // Batch image loading tracking - cards reveal together per row (4 cards per batch)
+    const BATCH_SIZE = 4;
+    const [loadedImages, setLoadedImages] = React.useState<Set<string>>(new Set());
+    const [readyBatches, setReadyBatches] = React.useState<Set<number>>(new Set());
 
     const loadMoreRef = React.useRef<HTMLDivElement>(null);
     const categoriesRef = React.useRef<HTMLDivElement>(null);
@@ -115,6 +120,8 @@ const Home: React.FC<HomeProps> = ({
     // Reset pagination when filters change
     React.useEffect(() => {
         setVisibleCount(12);
+        setLoadedImages(new Set());
+        setReadyBatches(new Set());
     }, [activeCategory, filters, searchTerm]);
 
     // Sync prop searchTerm with filters and parse natural language
@@ -165,6 +172,36 @@ const Home: React.FC<HomeProps> = ({
         return filterListings(filtered, filters).filter(l => l.status === ListingStatus.LIVE);
     }, [listings, activeCategory, filters]);
 
+    // Handle image load callback from ListingCard
+    const handleImageLoad = React.useCallback((listingId: string) => {
+        setLoadedImages(prev => new Set(prev).add(listingId));
+    }, []);
+
+    // Check if batches are complete and mark them ready
+    React.useEffect(() => {
+        const visibleListings = displayListings.slice(0, visibleCount);
+        const newReadyBatches = new Set(readyBatches);
+        
+        for (let batchIndex = 0; batchIndex * BATCH_SIZE < visibleListings.length; batchIndex++) {
+            if (readyBatches.has(batchIndex)) continue; // Already marked ready
+            
+            const batchStart = batchIndex * BATCH_SIZE;
+            const batchEnd = Math.min(batchStart + BATCH_SIZE, visibleListings.length);
+            const batchListings = visibleListings.slice(batchStart, batchEnd);
+            
+            // Check if all images in this batch are loaded
+            const allLoaded = batchListings.every(l => loadedImages.has(l.id));
+            
+            if (allLoaded) {
+                newReadyBatches.add(batchIndex);
+            }
+        }
+        
+        if (newReadyBatches.size !== readyBatches.size) {
+            setReadyBatches(newReadyBatches);
+        }
+    }, [loadedImages, displayListings, visibleCount, readyBatches]);
+
     // Infinite scroll observer
     React.useEffect(() => {
         const observer = new IntersectionObserver(
@@ -202,11 +239,26 @@ const Home: React.FC<HomeProps> = ({
 
         // Slice the listings for display
         const visibleListings = displayListings.slice(0, visibleCount);
+        
+        // First 8 items get priority loading (above the fold)
+        const PRIORITY_COUNT = 8;
 
         visibleListings.forEach((l, index) => {
-            items.push(<ListingCard key={l.id} listing={l} />);
+            const batchIndex = Math.floor(index / BATCH_SIZE);
+            const isBatchReady = readyBatches.has(batchIndex);
+            
+            items.push(
+                <ListingCard 
+                    key={l.id} 
+                    listing={l} 
+                    priority={index < PRIORITY_COUNT}
+                    index={index % BATCH_SIZE} // Index within batch for stagger
+                    onImageLoad={handleImageLoad}
+                    batchReady={isBatchReady}
+                />
+            );
 
-            if (!user && !promoAdded && (index === 1 || (displayListings.length < 2 && index === displayListings.length - 1))) {
+            if (!user && !promoAdded && (index === 3 || (displayListings.length < 4 && index === displayListings.length - 1))) {
                 items.push(
                     <button
                         key="promo"
