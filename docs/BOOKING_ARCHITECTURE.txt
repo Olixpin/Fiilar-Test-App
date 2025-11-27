@@ -1,0 +1,1392 @@
+================================================================================
+                    FIILAR BOOKING PLATFORM - COMPLETE ARCHITECTURE
+================================================================================
+                         Version: 1.0 | Date: November 27, 2025
+================================================================================
+
+
+TABLE OF CONTENTS
+─────────────────
+1.  System Overview
+2.  User Roles & Permissions
+3.  Complete Booking Flow (End-to-End)
+4.  Data Models
+5.  API Endpoints Reference
+6.  Security Implementation
+7.  Financial Flow (Escrow System)
+8.  Notification System
+9.  Handshake Verification Protocol
+10. Dispute Resolution
+11. Status Transitions
+12. Configuration Management
+13. Database Schema (localStorage → Backend)
+14. Error Handling
+15. Future Considerations
+
+
+================================================================================
+1. SYSTEM OVERVIEW
+================================================================================
+
+Fiilar is a space rental marketplace connecting Guests with Hosts for:
+- Hourly rentals (studios, meeting rooms, co-working spaces)
+- Nightly/Daily rentals (apartments, vacation homes, event venues)
+
+TECH STACK
+──────────
+Frontend:     React 18 + TypeScript + Vite
+State:        React Context + localStorage (mock backend)
+Styling:      Tailwind CSS
+Monorepo:     pnpm workspaces
+Libraries:    
+  - @fiilar/types      → Shared TypeScript interfaces
+  - @fiilar/storage    → Data persistence layer
+  - @fiilar/escrow     → Payment & escrow management
+  - @fiilar/notifications → In-app notifications
+  - @fiilar/booking    → Booking logic & availability
+  - @fiilar/messaging  → Chat between users
+  - @fiilar/reviews    → Rating & review system
+  - @fiilar/kyc        → Identity verification
+  - @fiilar/admin      → Admin panel components
+  - @fiilar/ui         → Shared UI components
+
+
+================================================================================
+2. USER ROLES & PERMISSIONS
+================================================================================
+
+┌────────────┬────────────────────────────────────────────────────────────────┐
+│ ROLE       │ PERMISSIONS                                                    │
+├────────────┼────────────────────────────────────────────────────────────────┤
+│ GUEST      │ Browse listings only (not logged in)                          │
+├────────────┼────────────────────────────────────────────────────────────────┤
+│ USER       │ - Browse & book listings                                      │
+│            │ - Manage bookings (view, cancel, modify if allowed)           │
+│            │ - Add funds to wallet                                         │
+│            │ - View transaction history                                    │
+│            │ - Message hosts                                               │
+│            │ - Leave reviews                                               │
+│            │ - Save favorites                                              │
+├────────────┼────────────────────────────────────────────────────────────────┤
+│ HOST       │ - All USER permissions                                        │
+│            │ - Create & manage listings                                    │
+│            │ - Accept/Reject/Modify booking requests                       │
+│            │ - Verify guest handshake codes                                │
+│            │ - View earnings & payouts                                     │
+│            │ - Set availability calendar                                   │
+│            │ - Respond to reviews                                          │
+│            │ - KYC verification required                                   │
+├────────────┼────────────────────────────────────────────────────────────────┤
+│ ADMIN      │ - All HOST permissions                                        │
+│            │ - Approve/Reject listings                                     │
+│            │ - Verify KYC documents                                        │
+│            │ - Resolve disputes                                            │
+│            │ - View platform financials                                    │
+│            │ - Manage escrow releases                                      │
+│            │ - Access audit logs                                           │
+│            │ - System health checks                                        │
+└────────────┴────────────────────────────────────────────────────────────────┘
+
+
+================================================================================
+3. COMPLETE BOOKING FLOW (END-TO-END)
+================================================================================
+
+VISUAL FLOW DIAGRAM
+───────────────────
+
+    ┌─────────────────────────────────────────────────────────────────────┐
+    │                         BOOKING LIFECYCLE                           │
+    └─────────────────────────────────────────────────────────────────────┘
+
+    👤 GUEST/USER                  🏠 HOST                    👑 ADMIN
+    ─────────────                  ──────                     ───────
+
+    ┌─────────────────┐
+    │ 1. DISCOVERY    │
+    │ Browse listings │
+    │ Search/Filter   │
+    │ View details    │
+    └────────┬────────┘
+             │
+             ▼
+    ┌─────────────────┐
+    │ 2. SELECTION    │
+    │ Pick date/time  │
+    │ Select hours    │  ←── Hourly: Pick specific hours (e.g., 9,10,11)
+    │ Choose add-ons  │      Nightly: Pick check-in date + duration
+    │ Guest count     │
+    └────────┬────────┘
+             │
+             ▼
+    ┌─────────────────┐
+    │ 3. PRICING      │
+    │ CALCULATION     │
+    │                 │
+    │ Base Price      │  ←── $X per hour OR $X per night
+    │ + Extra Guests  │  ←── (guestCount - includedGuests) × pricePerExtra
+    │ + Add-ons       │  ←── Sum of selected add-on prices
+    │ = Subtotal      │
+    │ + Service Fee   │  ←── 10% of subtotal (BOOKING_CONFIG)
+    │ + Caution Fee   │  ←── Fixed per listing (refundable deposit)
+    │ = TOTAL         │
+    └────────┬────────┘
+             │
+             ▼
+    ┌─────────────────┐
+    │ 4. VALIDATION   │
+    │                 │
+    │ ✓ Price check   │  ←── validateBookingPriceDetailed()
+    │ ✓ Slot check    │  ←── checkSlotAvailability()
+    │ ✓ Duplicate     │  ←── checkBookingIdempotency()
+    │ ✓ Integrity     │  ←── validateBookingIntegrity()
+    └────────┬────────┘
+             │
+             ▼
+    ┌─────────────────┐      ┌─────────────────┐
+    │ 5. PAYMENT      │      │ ESCROW HOLDS    │
+    │                 │─────►│ FUNDS           │
+    │ Wallet or Card  │      │                 │
+    │                 │      │ Guest Payment   │
+    │                 │      │ Service Fee     │
+    └────────┬────────┘      └────────┬────────┘
+             │                        │
+             ▼                        │
+    ┌─────────────────┐               │
+    │ 6. BOOKING      │               │
+    │ CREATED         │               │
+    │                 │               │
+    │ Status: PENDING │               │
+    │ Guest Code: XXX │               │
+    │ Host Code: XXX  │               │
+    └────────┬────────┘               │
+             │                        │
+             │    ┌───────────────────┘
+             │    │
+             ▼    ▼
+             ┌─────────────────┐
+             │ NOTIFICATION    │
+             │ SENT TO HOST    │────────────────►  🏠 HOST RECEIVES
+             │                 │                   "New Booking Request"
+             └─────────────────┘
+
+                                      │
+                                      ▼
+                              ┌───────────────────┐
+                              │ 7. HOST DECISION  │
+                              │                   │
+                              │ ┌───────────────┐ │
+                              │ │   ACCEPT      │ │───► Status: CONFIRMED
+                              │ └───────────────┘ │     Guest notified
+                              │ ┌───────────────┐ │
+                              │ │   REJECT      │ │───► Status: CANCELLED
+                              │ └───────────────┘ │     Full refund processed
+                              │ ┌───────────────┐ │     Guest notified
+                              │ │ ALLOW MODIFY  │ │───► modificationAllowed: true
+                              │ └───────────────┘ │     Guest can edit booking
+                              └───────────────────┘
+
+                                      │ (if ACCEPTED)
+                                      ▼
+    ┌─────────────────┐       ┌───────────────────┐
+    │ 8. CONFIRMED    │       │ Host prepares     │
+    │ BOOKING         │       │ property          │
+    │                 │       │                   │
+    │ Guest sees:     │       │ Status: CONFIRMED │
+    │ - Guest Code    │       │                   │
+    │ - Booking date  │       │                   │
+    │ - Property info │       │                   │
+    └────────┬────────┘       └───────────────────┘
+             │
+             │  (On booking date)
+             ▼
+    ┌─────────────────┐       ┌───────────────────┐
+    │ 9. ARRIVAL      │       │ 10. HANDSHAKE     │
+    │                 │       │ VERIFICATION      │
+    │ Guest shows     │──────►│                   │
+    │ Guest Code      │       │ Host enters code  │
+    │                 │       │ OR scans QR       │
+    │                 │       │                   │
+    │                 │       │ If valid:         │
+    │                 │       │ handshakeStatus:  │
+    │                 │       │   VERIFIED        │
+    │                 │       │ Status: STARTED   │
+    └─────────────────┘       └────────┬──────────┘
+                                       │
+                                       ▼
+    ┌─────────────────┐       ┌───────────────────┐
+    │ 11. SESSION     │       │ Booking in        │
+    │                 │       │ progress...       │
+    │ Guest uses      │       │                   │
+    │ the space       │       │                   │
+    └────────┬────────┘       └───────────────────┘
+             │
+             │  (After checkout)
+             ▼
+    ┌─────────────────────────────────────────────┐
+    │ 12. COMPLETION                              │
+    │                                             │
+    │ Status: COMPLETED                           │
+    │                                             │
+    │ ┌─────────────────────────────────────────┐ │
+    │ │ 48-HOUR ESCROW HOLD                     │ │
+    │ │                                         │ │
+    │ │ Funds held for dispute window           │ │
+    │ │ escrowReleaseDate = checkoutTime + 48h  │ │
+    │ └─────────────────────────────────────────┘ │
+    └────────────────────┬────────────────────────┘
+                         │
+                         ▼
+    ┌─────────────────────────────────────────────┐
+    │ 13. AUTO-RELEASE                            │
+    │                                             │
+    │ Scheduler checks every minute               │
+    │ If escrowReleaseDate <= now:                │
+    │   → Release funds to host                   │
+    │   → paymentStatus: 'Released'               │
+    │   → Create HOST_PAYOUT transaction          │
+    └─────────────────────────────────────────────┘
+
+
+ALTERNATIVE PATHS
+─────────────────
+
+A. BOOKING EXPIRY (Host doesn't respond)
+   ─────────────────────────────────────
+   
+   ┌─────────────────┐
+   │ Status: PENDING │
+   │ for > 1 hour    │
+   └────────┬────────┘
+            │
+            ▼
+   ┌─────────────────┐
+   │ AUTO-EXPIRY     │
+   │                 │
+   │ Status: CANCELLED│
+   │ cancelledBy:    │
+   │   'system'      │
+   │ Full refund     │
+   │ processed       │
+   │ Guest notified  │
+   └─────────────────┘
+
+
+B. GUEST CANCELLATION
+   ───────────────────
+   
+   ┌─────────────────┐
+   │ Guest requests  │
+   │ cancellation    │
+   └────────┬────────┘
+            │
+            ▼
+   ┌─────────────────┐
+   │ CANCELLATION    │
+   │ POLICY CHECK    │
+   │                 │
+   │ FLEXIBLE:       │  ←── Full refund if 24h+ before
+   │ MODERATE:       │  ←── Full refund if 5 days+ before
+   │ STRICT:         │  ←── 50% refund
+   │ NON_REFUNDABLE: │  ←── No refund
+   └────────┬────────┘
+            │
+            ▼
+   ┌─────────────────┐
+   │ Process refund  │
+   │ (if applicable) │
+   │                 │
+   │ Status:CANCELLED│
+   └─────────────────┘
+
+
+C. DISPUTE FLOW
+   ─────────────
+   
+   ┌─────────────────┐
+   │ Guest or Host   │
+   │ opens dispute   │
+   │                 │
+   │ disputeStatus:  │
+   │   OPEN          │
+   └────────┬────────┘
+            │
+            ▼
+   ┌─────────────────┐
+   │ ADMIN REVIEW    │
+   │                 │
+   │ Evidence:       │
+   │ - Handshake     │
+   │   verification  │
+   │ - Messages      │
+   │ - Transaction   │
+   │   history       │
+   │ - Audit logs    │
+   └────────┬────────┘
+            │
+            ▼
+   ┌───────────────────────────────────────┐
+   │ ADMIN DECISION                        │
+   │                                       │
+   │ ┌─────────────────┐ ┌───────────────┐ │
+   │ │ REFUND_GUEST    │ │ RELEASE_HOST  │ │
+   │ │                 │ │               │ │
+   │ │ Full refund to  │ │ Funds go to   │ │
+   │ │ guest           │ │ host          │ │
+   │ │ Status:CANCELLED│ │ Status:       │ │
+   │ │                 │ │ COMPLETED     │ │
+   │ └─────────────────┘ └───────────────┘ │
+   │                                       │
+   │ disputeStatus: RESOLVED               │
+   └───────────────────────────────────────┘
+
+
+================================================================================
+4. DATA MODELS
+================================================================================
+
+USER
+────
+{
+  id: string;                    // Unique user ID (e.g., "user_123")
+  firstName: string;             // Required for dashboard access
+  lastName: string;              // Required for dashboard access
+  name: string;                  // Full name (auto-generated)
+  email: string;                 // Primary identifier
+  phone?: string;                // Optional phone
+  password?: string;             // Hashed password (if email auth)
+  role: Role;                    // GUEST | USER | HOST | ADMIN
+  isHost: boolean;               // Quick check for host status
+  createdAt: string;             // ISO timestamp
+  avatar?: string;               // Profile image URL
+  bio?: string;                  // User bio
+  walletBalance: number;         // Current wallet balance
+  emailVerified: boolean;        // Email verification status
+  phoneVerified?: boolean;       // Phone verification status
+  authProvider: 'email'|'google'|'phone';
+  
+  // Verification tokens
+  verificationToken?: string;
+  verificationTokenExpiry?: string;
+  verificationOtp?: string;      // 6-digit code
+  verificationOtpExpiry?: string;
+  
+  // KYC
+  kycVerified?: boolean;
+  kycStatus?: 'pending'|'verified'|'rejected'|'none';
+  kycDocument?: string;          // Document URL
+  livenessVerified?: boolean;
+  identityDocument?: string;     // ID document URL
+  
+  // Host-specific
+  badgeStatus?: 'standard'|'super_host'|'premium';
+  bankDetails?: BankDetails;
+  
+  // User preferences
+  favorites?: string[];          // Saved listing IDs
+  rating?: number;               // Average rating
+  reviewCount?: number;
+}
+
+LISTING
+───────
+{
+  id: string;                    // Unique listing ID
+  hostId: string;                // Owner's user ID
+  title: string;                 // Listing title
+  description: string;           // Full description
+  type: SpaceType;               // Apartment|Studio|Conference|etc.
+  price: number;                 // Base price per unit
+  priceUnit: BookingType;        // Hourly | Daily
+  images: string[];              // Image URLs
+  location: string;              // Public location (e.g., "Lekki Phase 1")
+  address?: string;              // Private address (shown after booking)
+  coordinates?: {lat, lng};      // Map coordinates
+  status: ListingStatus;         // Draft|Pending KYC|Pending Approval|Live|Rejected
+  tags: string[];                // Search tags
+  
+  // Availability
+  availability?: Record<string, number[]>;  // "YYYY-MM-DD": [9,10,11]
+  
+  // Capacity & Pricing
+  capacity?: number;             // Max guests
+  includedGuests?: number;       // Guests included in base price
+  pricePerExtraGuest?: number;   // Cost per extra guest
+  cautionFee?: number;           // Refundable deposit
+  
+  // Features
+  addOns?: ListingAddOn[];       // Optional extras
+  amenities?: Amenity[];         // WiFi, Parking, etc.
+  
+  // Policies
+  cancellationPolicy?: CancellationPolicy;
+  houseRules?: string[];
+  safetyItems?: string[];
+  approvalTime?: string;         // "0-15 mins", "1-2 hours"
+  
+  // Settings
+  settings?: {
+    allowRecurring: boolean;     // Enable recurring bookings
+    minDuration: number;         // Minimum booking duration
+    instantBook: boolean;        // Skip host approval
+  };
+  
+  requiresIdentityVerification?: boolean;
+  proofOfAddress?: string;
+  rejectionReason?: string;
+  
+  // Ratings
+  rating?: number;
+  reviewCount?: number;
+}
+
+BOOKING
+───────
+{
+  id: string;                    // Unique booking ID (e.g., "bk_1701234567_abc123")
+  listingId: string;             // Reference to listing
+  userId: string;                // Guest's user ID
+  date: string;                  // Booking date (YYYY-MM-DD)
+  duration: number;              // Hours or days
+  hours?: number[];              // Specific hours [9,10,11] for hourly
+  bookingType: BookingType;      // HOURLY | DAILY
+  
+  // Financials
+  totalPrice: number;            // Final amount paid
+  serviceFee: number;            // Platform fee (10%)
+  cautionFee: number;            // Security deposit
+  
+  // Status
+  status: 'Pending'|'Confirmed'|'Started'|'Completed'|'Cancelled'|'Reserved';
+  createdAt?: string;            // When booking was created
+  
+  // Recurring
+  groupId?: string;              // Links recurring bookings
+  
+  // Guest info
+  guestCount?: number;
+  selectedAddOns?: string[];     // Add-on IDs
+  
+  // Cancellation
+  cancellationReason?: string;
+  cancelledAt?: string;
+  cancelledBy?: string;          // userId or 'system'
+  refundAmount?: number;
+  refundProcessed?: boolean;
+  
+  // Payment
+  paymentStatus?: 'Pending'|'Held'|'Released'|'Refunded'|'Paid - Escrow';
+  escrowReleaseDate?: string;    // When funds can be released
+  transactionIds?: string[];     // Related transaction IDs
+  
+  // Security (Handshake Protocol)
+  guestCode?: string;            // 6-char code shown to guest
+  hostCode?: string;             // Code for host verification
+  handshakeStatus?: 'PENDING'|'VERIFIED'|'FAILED';
+  verifiedAt?: string;           // When handshake completed
+  
+  // Dispute
+  disputeStatus?: 'NONE'|'OPEN'|'RESOLVED';
+  modificationAllowed?: boolean; // Host allows guest to modify
+}
+
+ESCROW TRANSACTION
+──────────────────
+{
+  id: string;                    // Transaction ID
+  bookingId: string;             // Related booking
+  type: 'GUEST_PAYMENT'|'HOST_PAYOUT'|'REFUND'|'SERVICE_FEE';
+  amount: number;
+  status: 'PENDING'|'COMPLETED'|'FAILED';
+  paystackReference?: string;    // Payment gateway reference
+  timestamp: string;
+  fromUserId?: string;           // For payments
+  toUserId?: string;             // For payouts
+  metadata?: {
+    listingId?: string;
+    notes?: string;
+    [key: string]: any;
+  };
+}
+
+NOTIFICATION
+────────────
+{
+  id: string;
+  userId: string;                // Recipient
+  type: 'booking'|'payment'|'message'|'system';
+  title: string;
+  message: string;
+  severity: 'info'|'warning'|'error'|'success';
+  read: boolean;
+  actionRequired: boolean;
+  createdAt: string;
+  metadata?: {
+    bookingId?: string;
+    link?: string;
+    [key: string]: any;
+  };
+}
+
+
+================================================================================
+5. API ENDPOINTS REFERENCE
+================================================================================
+
+AUTHENTICATION
+──────────────
+POST   /api/auth/login           Login with email/phone
+POST   /api/auth/register        Create new account
+POST   /api/auth/logout          End session
+POST   /api/auth/otp/send        Send OTP code
+POST   /api/auth/otp/verify      Verify OTP code
+GET    /api/auth/session         Validate current session
+
+USERS
+─────
+GET    /api/users/:id            Get user profile
+PUT    /api/users/:id            Update user profile
+GET    /api/users/:id/wallet     Get wallet balance
+POST   /api/users/:id/wallet/add Add funds to wallet
+POST   /api/users/:id/wallet/withdraw  Withdraw funds
+GET    /api/users/:id/favorites  Get saved listings
+POST   /api/users/:id/favorites/:listingId  Toggle favorite
+
+LISTINGS
+────────
+GET    /api/listings             Get all listings (with filters)
+GET    /api/listings/:id         Get listing details
+POST   /api/listings             Create new listing
+PUT    /api/listings/:id         Update listing
+DELETE /api/listings/:id         Delete listing
+GET    /api/listings/:id/availability  Get availability calendar
+PUT    /api/listings/:id/availability  Update availability
+POST   /api/listings/:id/approve Admin approve listing
+POST   /api/listings/:id/reject  Admin reject listing
+
+BOOKINGS
+────────
+GET    /api/bookings             Get all bookings (filtered)
+GET    /api/bookings/:id         Get booking by ID
+POST   /api/bookings             Create new booking
+PUT    /api/bookings/:id         Update booking
+DELETE /api/bookings/:id         Cancel/delete booking
+POST   /api/bookings/:id/accept  Host accepts booking
+POST   /api/bookings/:id/reject  Host rejects booking
+POST   /api/bookings/:id/handshake  Verify handshake code
+GET    /api/bookings/code/:code  Find booking by guest code
+POST   /api/bookings/:id/modify/allow  Enable modification
+POST   /api/bookings/:id/dispute Open dispute
+
+ESCROW / PAYMENTS
+─────────────────
+POST   /api/escrow/payment       Process guest payment
+POST   /api/escrow/release       Release funds to host
+POST   /api/escrow/refund        Process refund
+GET    /api/escrow/transactions  Get all transactions
+GET    /api/escrow/financials    Get platform financials
+POST   /api/escrow/dispute/resolve  Admin resolve dispute
+
+NOTIFICATIONS
+─────────────
+GET    /api/notifications        Get user notifications
+POST   /api/notifications        Create notification
+PATCH  /api/notifications/:id/read  Mark as read
+PATCH  /api/notifications/read-all  Mark all as read
+DELETE /api/notifications        Clear all notifications
+
+KYC
+───
+POST   /api/kyc/submit           Submit KYC documents
+GET    /api/kyc/status/:userId   Get KYC status
+POST   /api/kyc/verify/:userId   Admin verify KYC
+POST   /api/kyc/reject/:userId   Admin reject KYC
+
+REVIEWS
+───────
+GET    /api/reviews/listing/:listingId  Get listing reviews
+GET    /api/reviews/user/:userId  Get user reviews
+POST   /api/reviews              Create review
+PUT    /api/reviews/:id          Update review
+DELETE /api/reviews/:id          Delete review
+
+MESSAGING
+─────────
+GET    /api/conversations        Get user conversations
+GET    /api/conversations/:id    Get conversation messages
+POST   /api/conversations        Start new conversation
+POST   /api/conversations/:id/message  Send message
+
+ADMIN
+─────
+GET    /api/admin/dashboard      Get admin dashboard data
+GET    /api/admin/users          Get all users
+GET    /api/admin/bookings       Get all bookings
+GET    /api/admin/listings       Get all listings
+GET    /api/admin/audit-log      Get audit log
+GET    /api/admin/health-check   System health status
+
+
+================================================================================
+6. SECURITY IMPLEMENTATION
+================================================================================
+
+AUTHENTICATION SECURITY
+───────────────────────
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ SECURITY LAYER                                                              │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  OTP Rate Limiting                                                          │
+│  ─────────────────                                                          │
+│  • Max 5 OTP attempts per identifier                                        │
+│  • Lockout: 15 minutes after exceeded                                       │
+│  • Auto-reset after lockout period                                          │
+│                                                                             │
+│  Session Management                                                         │
+│  ──────────────────                                                         │
+│  • Session expiry: 24 hours                                                 │
+│  • Secure token generation (crypto.getRandomValues)                         │
+│  • Device fingerprinting                                                    │
+│  • Single active session per device                                         │
+│                                                                             │
+│  Password/Token Security                                                    │
+│  ───────────────────────                                                    │
+│  • OTP: 6-digit cryptographically random                                    │
+│  • OTP expiry: 3 minutes                                                    │
+│  • Hashing: SHA-256 (async) or djb2+salt (sync)                            │
+│  • Token length: 32 characters                                              │
+│                                                                             │
+│  Input Validation                                                           │
+│  ────────────────                                                           │
+│  • XSS prevention (sanitizeInput)                                           │
+│  • Email format validation                                                  │
+│  • Phone format validation (10-15 digits)                                   │
+│  • Max string length: 1000 chars                                            │
+│  • Dangerous pattern detection (<script>, javascript:, etc.)                │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+BOOKING SECURITY
+────────────────
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ VALIDATION CHECKS (createSecureBooking)                                     │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  1. PRICE VALIDATION                                                        │
+│     ─────────────────                                                       │
+│     • Server recalculates total price                                       │
+│     • Compares with client-submitted price                                  │
+│     • Tolerance: $0.01 (floating point)                                     │
+│     • Validates service fee (10%)                                           │
+│     • Validates caution fee                                                 │
+│     • Logs PRICE_VALIDATION_FAILED if mismatch                              │
+│                                                                             │
+│  2. IDEMPOTENCY CHECK                                                       │
+│     ─────────────────                                                       │
+│     • Prevents duplicate bookings                                           │
+│     • Key: userId + listingId + date + hours                                │
+│     • Expiry: 24 hours                                                      │
+│     • Logs DUPLICATE_BOOKING_ATTEMPT if exists                              │
+│                                                                             │
+│  3. SLOT AVAILABILITY                                                       │
+│     ─────────────────                                                       │
+│     • Prevents double-booking (race condition)                              │
+│     • Checks ALL existing bookings for conflicts                            │
+│     • Hourly: checks hour overlaps                                          │
+│     • Daily: checks date range overlaps                                     │
+│     • Logs SLOT_ALREADY_BOOKED if conflict                                  │
+│                                                                             │
+│  4. INTEGRITY VALIDATION                                                    │
+│     ────────────────────                                                    │
+│     • Required fields: id, userId, listingId, date, totalPrice              │
+│     • Price sanity: > 0, < 100,000,000                                      │
+│     • Guest count: >= 1                                                     │
+│     • Duration: >= 1                                                        │
+│     • Hours: non-empty array for hourly                                     │
+│     • Date: not in past                                                     │
+│     • Logs BOOKING_INTEGRITY_FAILED if invalid                              │
+│                                                                             │
+│  5. STATUS TRANSITION VALIDATION                                            │
+│     ────────────────────────────                                            │
+│     • Pending → Confirmed, Cancelled                                        │
+│     • Confirmed → Completed, Cancelled                                      │
+│     • Completed → (terminal, no changes)                                    │
+│     • Cancelled → (terminal, no changes)                                    │
+│     • Logs SECURITY_VIOLATION if invalid transition                         │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+AUDIT LOGGING
+─────────────
+All security events are logged to audit log:
+• LOGIN / LOGOUT
+• OTP_SENT / OTP_VERIFIED / OTP_FAILED
+• ACCOUNT_LOCKED
+• BOOKING_CREATED
+• PAYMENT_PROCESSED
+• ADMIN_BYPASS_ATTEMPT
+• SESSION_EXPIRED
+• SECURITY_VIOLATION
+
+
+================================================================================
+7. FINANCIAL FLOW (ESCROW SYSTEM)
+================================================================================
+
+MONEY FLOW DIAGRAM
+──────────────────
+
+    ┌─────────────────────────────────────────────────────────────────────────┐
+    │                         PAYMENT FLOW                                    │
+    └─────────────────────────────────────────────────────────────────────────┘
+
+    GUEST                    PLATFORM                      HOST
+    ─────                    ────────                      ────
+
+    💳 Payment
+       │
+       │ totalPrice = base + serviceFee + cautionFee
+       │
+       ▼
+    ┌──────────────┐
+    │ Pay $150     │
+    │              │
+    │ Base: $120   │
+    │ Fee:  $12    │──────────►┌─────────────────────────┐
+    │ Caution: $18 │           │ ESCROW ACCOUNT          │
+    └──────────────┘           │                         │
+                               │ Holds: $150             │
+                               │                         │
+                               │ ┌─────────────────────┐ │
+                               │ │ GUEST_PAYMENT: $150 │ │
+                               │ └─────────────────────┘ │
+                               │ ┌─────────────────────┐ │
+                               │ │ SERVICE_FEE: $12    │ │
+                               │ │ (Platform Revenue)  │ │
+                               │ └─────────────────────┘ │
+                               └────────────┬────────────┘
+                                            │
+                     ┌──────────────────────┼──────────────────────┐
+                     │                      │                      │
+                     ▼                      ▼                      ▼
+           ┌─────────────────┐   ┌─────────────────┐   ┌─────────────────┐
+           │ IF COMPLETED    │   │ IF REJECTED     │   │ IF DISPUTED     │
+           │                 │   │ OR EXPIRED      │   │                 │
+           │ After 48 hours: │   │                 │   │ Admin decides:  │
+           │                 │   │ Full refund     │   │                 │
+           │ HOST_PAYOUT:    │   │ REFUND: $150    │   │ REFUND_GUEST or │
+           │ $120 to Host    │   │ to Guest        │   │ RELEASE_TO_HOST │
+           │                 │   │                 │   │                 │
+           │ Caution: $18    │   │                 │   │                 │
+           │ returned or     │   │                 │   │                 │
+           │ held for damage │   │                 │   │                 │
+           └────────┬────────┘   └────────┬────────┘   └────────┬────────┘
+                    │                     │                     │
+                    ▼                     ▼                     ▼
+              ┌──────────┐          ┌──────────┐          ┌──────────┐
+              │ 🏠 HOST  │          │ 👤 GUEST │          │ Winner   │
+              │ receives │          │ receives │          │ receives │
+              │ $120     │          │ $150     │          │ funds    │
+              └──────────┘          └──────────┘          └──────────┘
+
+
+TRANSACTION TYPES
+─────────────────
+
+┌───────────────┬───────────────────────────────────────────────────────────┐
+│ Type          │ Description                                               │
+├───────────────┼───────────────────────────────────────────────────────────┤
+│ GUEST_PAYMENT │ Guest pays for booking (total amount)                     │
+│ SERVICE_FEE   │ Platform's 10% cut (extracted from payment)               │
+│ HOST_PAYOUT   │ Host receives their portion after escrow release          │
+│ REFUND        │ Guest refunded (cancellation/rejection/dispute)           │
+└───────────────┴───────────────────────────────────────────────────────────┘
+
+
+ESCROW RELEASE CALCULATION
+──────────────────────────
+
+For Hourly Bookings:
+  bookingEnd = bookingDate + lastHour + 1 hour
+  escrowReleaseDate = bookingEnd + 48 hours
+
+For Daily/Nightly Bookings:
+  bookingEnd = checkInDate + duration days + 11:00 AM (checkout)
+  escrowReleaseDate = bookingEnd + 48 hours
+
+Example:
+  Booking: Dec 1, 2025, hours [14, 15, 16] (2pm-5pm)
+  bookingEnd: Dec 1, 2025 at 5:00 PM
+  escrowReleaseDate: Dec 3, 2025 at 5:00 PM
+
+
+================================================================================
+8. NOTIFICATION SYSTEM
+================================================================================
+
+NOTIFICATION TRIGGERS
+─────────────────────
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ EVENT                      │ RECIPIENT │ NOTIFICATION                       │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Booking Created            │ Host      │ "New booking request for [listing]"│
+│ Booking Created            │ Guest     │ "Booking request sent!"            │
+│ Host Accepts               │ Guest     │ "Booking confirmed!"               │
+│ Host Rejects               │ Guest     │ "Booking not accepted - Refunded"  │
+│ Booking Expired            │ Guest     │ "Request expired - Refunded"       │
+│ Modification Allowed       │ Guest     │ "Host invited you to modify"       │
+│ Handshake Verified         │ Both      │ "Check-in confirmed!"              │
+│ Funds Released             │ Host      │ "Payment released to your account" │
+│ Dispute Opened             │ Both      │ "Dispute opened for booking"       │
+│ Dispute Resolved           │ Both      │ "Dispute resolved"                 │
+│ New Message                │ Recipient │ "New message from [sender]"        │
+│ New Review                 │ Host      │ "New review on [listing]"          │
+│ KYC Approved               │ Host      │ "Identity verified!"               │
+│ KYC Rejected               │ Host      │ "Verification failed"              │
+│ Listing Approved           │ Host      │ "[Listing] is now live!"           │
+│ Listing Rejected           │ Host      │ "[Listing] was rejected"           │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+NOTIFICATION STRUCTURE
+──────────────────────
+{
+  userId: "user_123",           // Recipient
+  type: "booking",              // Category
+  title: "Booking Confirmed!",  // Short title
+  message: "Your booking...",   // Full message
+  severity: "info",             // info|warning|error|success
+  read: false,                  // Read status
+  actionRequired: false,        // Needs user action?
+  metadata: {
+    bookingId: "bk_123",
+    link: "/dashboard?tab=bookings"
+  }
+}
+
+
+================================================================================
+9. HANDSHAKE VERIFICATION PROTOCOL
+================================================================================
+
+PURPOSE
+───────
+Provides cryptographic proof that guest was granted entry to the property.
+This is critical evidence for dispute resolution.
+
+FLOW
+────
+
+    BOOKING CREATED
+           │
+           ▼
+    ┌──────────────────────────────────────┐
+    │ CODES GENERATED                      │
+    │                                      │
+    │ guestCode: "A3X7K9"  ←── Shown to Guest (in app)
+    │ hostCode:  "B2Y8M1"  ←── For host internal use
+    │ handshakeStatus: "PENDING"           │
+    └──────────────────────────────────────┘
+           │
+           │ (On arrival day)
+           ▼
+    ┌──────────────────────────────────────┐
+    │ GUEST ARRIVES                        │
+    │                                      │
+    │ Guest shows guestCode to Host        │
+    │ (displayed in app or QR code)        │
+    └──────────────────────────────────────┘
+           │
+           ▼
+    ┌──────────────────────────────────────┐
+    │ HOST VERIFIES                        │
+    │                                      │
+    │ Option 1: Type code in Host app      │
+    │ Option 2: Scan QR code               │
+    │                                      │
+    │ System calls: verifyHandshake(       │
+    │   bookingId,                         │
+    │   enteredCode                        │
+    │ )                                    │
+    └──────────────────────────────────────┘
+           │
+           ▼
+    ┌──────────────────────────────────────┐
+    │ VERIFICATION RESULT                  │
+    │                                      │
+    │ IF code matches guestCode:           │
+    │   ✓ handshakeStatus = "VERIFIED"     │
+    │   ✓ verifiedAt = timestamp           │
+    │   ✓ status = "Started"               │
+    │   ✓ Entry granted                    │
+    │                                      │
+    │ IF code doesn't match:               │
+    │   ✗ handshakeStatus = "FAILED"       │
+    │   ✗ Entry denied                     │
+    │   ✗ Investigate potential fraud      │
+    └──────────────────────────────────────┘
+
+CODE GENERATION
+───────────────
+• Uses crypto.getRandomValues() for security
+• Format: 6 alphanumeric characters (e.g., "A3X7K9")
+• Generated at booking creation time
+• Unique per booking
+
+SECURITY CONSIDERATIONS
+───────────────────────
+• Codes are hidden until booking is confirmed
+• Guest code only shown to guest
+• Host code stored for audit purposes
+• Verification timestamp recorded for disputes
+• Failed attempts logged for fraud detection
+
+
+================================================================================
+10. DISPUTE RESOLUTION
+================================================================================
+
+WHEN DISPUTES OCCUR
+───────────────────
+• Guest claims they couldn't access property
+• Host claims guest caused damage
+• Guest claims listing was misrepresented
+• Payment/refund disagreements
+
+EVIDENCE AVAILABLE TO ADMIN
+───────────────────────────
+1. Handshake Status
+   • VERIFIED = Strong evidence guest was granted entry
+   • PENDING = No proof of entry
+   • verifiedAt timestamp
+
+2. Transaction History
+   • All payments, refunds, payouts
+   • Timestamps and references
+
+3. Message Thread
+   • Communication between guest and host
+
+4. Audit Log
+   • All security events
+   • Login times, IP addresses
+
+5. Booking Timeline
+   • createdAt, confirmedAt, verifiedAt, completedAt
+
+RESOLUTION OPTIONS
+──────────────────
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ DECISION: REFUND_GUEST                                                      │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ • Full refund processed to guest                                            │
+│ • Booking status → CANCELLED                                                │
+│ • Funds NOT released to host                                                │
+│ • Both parties notified                                                     │
+│ • Dispute closed                                                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ DECISION: RELEASE_TO_HOST                                                   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ • Funds released to host                                                    │
+│ • Booking status → COMPLETED                                                │
+│ • Guest refund denied                                                       │
+│ • Both parties notified                                                     │
+│ • Dispute closed                                                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+
+================================================================================
+11. STATUS TRANSITIONS
+================================================================================
+
+BOOKING STATUS STATE MACHINE
+────────────────────────────
+
+                    ┌─────────────────────────────────────┐
+                    │           STATUS FLOW               │
+                    └─────────────────────────────────────┘
+
+                                 CREATED
+                                    │
+                                    ▼
+                            ┌───────────────┐
+                            │    PENDING    │◄────────────────────────┐
+                            └───────┬───────┘                         │
+                                    │                                 │
+               ┌────────────────────┼────────────────────┐            │
+               │                    │                    │            │
+               ▼                    ▼                    ▼            │
+    ┌──────────────────┐  ┌─────────────────┐  ┌─────────────────┐   │
+    │    CONFIRMED     │  │   CANCELLED     │  │    RESERVED     │   │
+    │                  │  │   (Terminal)    │  │  (Save for      │───┘
+    │ Host accepted    │  │                 │  │   later)        │
+    └────────┬─────────┘  │ • Host rejected │  └─────────────────┘
+             │            │ • Guest cancel  │
+             │            │ • System expiry │
+             ▼            └─────────────────┘
+    ┌──────────────────┐
+    │     STARTED      │
+    │                  │
+    │ Handshake OK     │
+    └────────┬─────────┘
+             │
+             ├──────────────────────────────────┐
+             │                                  │
+             ▼                                  ▼
+    ┌──────────────────┐              ┌─────────────────┐
+    │    COMPLETED     │              │   CANCELLED     │
+    │   (Terminal)     │              │   (Terminal)    │
+    │                  │              │                 │
+    │ Funds released   │              │ Late cancel     │
+    │ after 48h        │              │ or dispute      │
+    └──────────────────┘              └─────────────────┘
+
+
+VALID TRANSITIONS TABLE
+───────────────────────
+
+┌────────────────┬───────────────────────────────────────────────────────────┐
+│ FROM           │ TO (Allowed)                                              │
+├────────────────┼───────────────────────────────────────────────────────────┤
+│ Pending        │ Confirmed, Cancelled                                      │
+│ Confirmed      │ Started, Completed, Cancelled                             │
+│ Started        │ Completed, Cancelled                                      │
+│ Completed      │ (none - terminal state)                                   │
+│ Cancelled      │ (none - terminal state)                                   │
+│ Reserved       │ Pending, Cancelled                                        │
+└────────────────┴───────────────────────────────────────────────────────────┘
+
+
+================================================================================
+12. CONFIGURATION MANAGEMENT
+================================================================================
+
+CENTRALIZED CONFIG LOCATION
+───────────────────────────
+/libs/storage/src/config/appConfig.ts
+
+AUTH_CONFIG
+───────────
+{
+  MAX_LOGIN_ATTEMPTS: 5,         // Before lockout
+  LOCKOUT_DURATION_MINUTES: 15,  // Lockout period
+  OTP_EXPIRY_MINUTES: 3,         // OTP valid for
+  SESSION_EXPIRY_HOURS: 24,      // Session duration
+  ADMIN_EMAILS: ['admin@fiilar.com']
+}
+
+BOOKING_CONFIG
+──────────────
+{
+  SERVICE_FEE_PERCENTAGE: 0.10,  // 10% platform fee
+  ESCROW_RELEASE_HOURS: 48,      // Hold after completion
+  BOOKING_EXPIRY_HOURS: 1,       // Auto-expire pending
+  IDEMPOTENCY_KEY_EXPIRY_HOURS: 24,
+  MAX_BOOKING_DAYS_AHEAD: 365,   // Max future booking
+  MIN_PRICE: 1                   // Minimum booking price
+}
+
+CANCELLATION_CONFIG
+───────────────────
+{
+  FLEXIBLE: {
+    FULL_REFUND_HOURS: 24,
+    PENALTY_PERCENT: 0
+  },
+  MODERATE: {
+    FULL_REFUND_DAYS: 5,
+    PENALTY_PERCENT: 0
+  },
+  STRICT: {
+    PENALTY_PERCENT: 50
+  },
+  NON_REFUNDABLE: {
+    PENALTY_PERCENT: 100
+  }
+}
+
+DEMO_CONFIG
+───────────
+{
+  MOCK_USER_ID: 'user_123',
+  MOCK_HOST_ID: 'host_123',
+  DEMO_EMAILS: {
+    HOST: 'jane@example.com',
+    USER: 'john@example.com',
+    HOST2: 'sarah@example.com'
+  },
+  API_DELAY_MS: 500
+}
+
+
+================================================================================
+13. DATABASE SCHEMA (localStorage → Backend Migration)
+================================================================================
+
+CURRENT STATE (localStorage)
+────────────────────────────
+• fiilar_user           → Current logged-in user
+• fiilar_users_db       → All users
+• fiilar_listings       → All listings
+• fiilar_bookings       → All bookings
+• fiilar_escrow_transactions → Payment records
+• fiilar_notifications  → User notifications
+• fiilar_messages       → Chat messages
+• fiilar_conversations  → Chat threads
+• fiilar_reviews        → Reviews
+• fiilar_sessions       → Active sessions
+• fiilar_otp_attempts   → Rate limiting
+• fiilar_audit_log      → Security events
+
+BACKEND MIGRATION (Suggested Schema)
+────────────────────────────────────
+
+-- Users Table
+CREATE TABLE users (
+  id UUID PRIMARY KEY,
+  first_name VARCHAR(100),
+  last_name VARCHAR(100),
+  email VARCHAR(255) UNIQUE NOT NULL,
+  phone VARCHAR(20),
+  password_hash VARCHAR(255),
+  role ENUM('GUEST','USER','HOST','ADMIN'),
+  is_host BOOLEAN DEFAULT FALSE,
+  wallet_balance DECIMAL(12,2) DEFAULT 0,
+  email_verified BOOLEAN DEFAULT FALSE,
+  phone_verified BOOLEAN DEFAULT FALSE,
+  auth_provider ENUM('email','google','phone'),
+  kyc_verified BOOLEAN DEFAULT FALSE,
+  kyc_status ENUM('pending','verified','rejected','none'),
+  avatar_url TEXT,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP
+);
+
+-- Listings Table
+CREATE TABLE listings (
+  id UUID PRIMARY KEY,
+  host_id UUID REFERENCES users(id),
+  title VARCHAR(255) NOT NULL,
+  description TEXT,
+  type ENUM('Apartment','Studio','Conference Room',...),
+  price DECIMAL(10,2) NOT NULL,
+  price_unit ENUM('Hourly','Daily'),
+  location VARCHAR(255),
+  address VARCHAR(255),
+  latitude DECIMAL(10,8),
+  longitude DECIMAL(11,8),
+  status ENUM('Draft','Pending KYC','Pending Approval','Live','Rejected'),
+  capacity INTEGER,
+  included_guests INTEGER DEFAULT 1,
+  price_per_extra_guest DECIMAL(10,2),
+  caution_fee DECIMAL(10,2),
+  cancellation_policy ENUM('Flexible','Moderate','Strict','Non-refundable'),
+  allow_recurring BOOLEAN DEFAULT TRUE,
+  instant_book BOOLEAN DEFAULT FALSE,
+  requires_identity_verification BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP
+);
+
+-- Bookings Table
+CREATE TABLE bookings (
+  id UUID PRIMARY KEY,
+  listing_id UUID REFERENCES listings(id),
+  user_id UUID REFERENCES users(id),
+  date DATE NOT NULL,
+  duration INTEGER NOT NULL,
+  hours INTEGER[], -- For hourly bookings
+  booking_type ENUM('Hourly','Daily'),
+  total_price DECIMAL(10,2) NOT NULL,
+  service_fee DECIMAL(10,2) NOT NULL,
+  caution_fee DECIMAL(10,2) DEFAULT 0,
+  status ENUM('Pending','Confirmed','Started','Completed','Cancelled','Reserved'),
+  guest_count INTEGER DEFAULT 1,
+  group_id UUID, -- For recurring bookings
+  guest_code VARCHAR(10),
+  host_code VARCHAR(10),
+  handshake_status ENUM('PENDING','VERIFIED','FAILED'),
+  verified_at TIMESTAMP,
+  dispute_status ENUM('NONE','OPEN','RESOLVED') DEFAULT 'NONE',
+  payment_status ENUM('Pending','Held','Released','Refunded','Paid - Escrow'),
+  escrow_release_date TIMESTAMP,
+  cancellation_reason TEXT,
+  cancelled_at TIMESTAMP,
+  cancelled_by UUID,
+  modification_allowed BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP
+);
+
+-- Transactions Table
+CREATE TABLE escrow_transactions (
+  id UUID PRIMARY KEY,
+  booking_id UUID REFERENCES bookings(id),
+  type ENUM('GUEST_PAYMENT','HOST_PAYOUT','REFUND','SERVICE_FEE'),
+  amount DECIMAL(10,2) NOT NULL,
+  status ENUM('PENDING','COMPLETED','FAILED'),
+  paystack_reference VARCHAR(100),
+  from_user_id UUID REFERENCES users(id),
+  to_user_id UUID REFERENCES users(id),
+  metadata JSONB,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Notifications Table
+CREATE TABLE notifications (
+  id UUID PRIMARY KEY,
+  user_id UUID REFERENCES users(id),
+  type VARCHAR(50),
+  title VARCHAR(255),
+  message TEXT,
+  severity ENUM('info','warning','error','success'),
+  read BOOLEAN DEFAULT FALSE,
+  action_required BOOLEAN DEFAULT FALSE,
+  metadata JSONB,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Audit Log Table
+CREATE TABLE audit_log (
+  id UUID PRIMARY KEY,
+  action VARCHAR(100) NOT NULL,
+  user_id UUID,
+  identifier VARCHAR(255),
+  success BOOLEAN,
+  metadata JSONB,
+  ip_address INET,
+  user_agent TEXT,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Indexes
+CREATE INDEX idx_bookings_user ON bookings(user_id);
+CREATE INDEX idx_bookings_listing ON bookings(listing_id);
+CREATE INDEX idx_bookings_status ON bookings(status);
+CREATE INDEX idx_bookings_date ON bookings(date);
+CREATE INDEX idx_listings_host ON listings(host_id);
+CREATE INDEX idx_listings_status ON listings(status);
+CREATE INDEX idx_notifications_user ON notifications(user_id, read);
+CREATE INDEX idx_transactions_booking ON escrow_transactions(booking_id);
+
+
+================================================================================
+14. ERROR HANDLING
+================================================================================
+
+ERROR CATEGORIES
+────────────────
+
+┌────────────────────────┬──────────────────────────────────────────────────┐
+│ Category               │ Handling                                         │
+├────────────────────────┼──────────────────────────────────────────────────┤
+│ Validation Errors      │ Return { success: false, error: message }        │
+│                        │ Show toast to user                               │
+│                        │ Log to audit if security-related                 │
+├────────────────────────┼──────────────────────────────────────────────────┤
+│ Security Errors        │ Return { securityError: true }                   │
+│                        │ Log to audit with full details                   │
+│                        │ Block operation                                  │
+│                        │ Consider rate limiting                           │
+├────────────────────────┼──────────────────────────────────────────────────┤
+│ Payment Errors         │ Retry with exponential backoff                   │
+│                        │ Notify user of failure                           │
+│                        │ Log transaction attempt                          │
+│                        │ Admin alert for repeated failures                │
+├────────────────────────┼──────────────────────────────────────────────────┤
+│ Network Errors         │ Show offline indicator                           │
+│                        │ Queue operations for retry                       │
+│                        │ Local storage fallback                           │
+├────────────────────────┼──────────────────────────────────────────────────┤
+│ Unexpected Errors      │ ErrorBoundary catches React errors               │
+│                        │ console.error for debugging                      │
+│                        │ User-friendly error message                      │
+│                        │ Option to reload/retry                           │
+└────────────────────────┴──────────────────────────────────────────────────┘
+
+BOOKING ERROR RESPONSES
+───────────────────────
+
+{
+  success: false,
+  error: "Price validation failed: Total mismatch",
+  securityError: true
+}
+
+{
+  success: false,
+  error: "A booking for this date/time already exists",
+  securityError: true
+}
+
+{
+  success: false,
+  error: "The following hours are already booked: 14, 15",
+  securityError: true
+}
+
+{
+  success: false,
+  error: "Invalid status transition from Completed to Pending",
+  securityError: false
+}
+
+
+================================================================================
+15. FUTURE CONSIDERATIONS
+================================================================================
+
+RECOMMENDED ENHANCEMENTS
+────────────────────────
+
+1. REAL PAYMENT INTEGRATION
+   • Paystack/Stripe integration for real transactions
+   • Webhook handlers for payment status updates
+   • Virtual account generation for each host
+
+2. REAL-TIME FEATURES
+   • WebSocket for instant notifications
+   • Live availability updates
+   • Chat message delivery status
+
+3. ADVANCED VERIFICATION
+   • Dojah integration for KYC
+   • Liveness detection
+   • Bank account verification
+
+4. ANALYTICS
+   • Host earnings dashboard
+   • Booking conversion rates
+   • Popular time slots
+   • Revenue forecasting
+
+5. MOBILE APP
+   • React Native version
+   • Push notifications
+   • QR code scanning for handshake
+
+6. SCALABILITY
+   • Move from localStorage to PostgreSQL/MongoDB
+   • Redis for session caching
+   • Microservices architecture
+   • CDN for images
+
+7. COMPLIANCE
+   • GDPR data handling
+   • Tax reporting integration
+   • Legal document management
+   • Audit trail retention policy
+
+
+================================================================================
+                              END OF DOCUMENT
+================================================================================
+                        Generated: November 27, 2025
+                        For: Fiilar Booking Platform
+================================================================================
