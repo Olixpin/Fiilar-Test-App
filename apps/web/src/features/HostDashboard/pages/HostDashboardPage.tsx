@@ -19,7 +19,9 @@ import HostVerify from '../components/HostVerify';
 import CreateListingWizard from '../components/CreateListingWizard';
 import HostSidebar from '../components/HostSidebar';
 import HostMobileMenu from '../components/HostMobileMenu';
+
 import HostMessages from '../components/HostMessages';
+import HostPhoneCollectionModal from '../components/HostPhoneCollectionModal';
 
 // Legacy Components (to be refactored later if needed)
 import HostEarnings from '../components/HostEarnings';
@@ -60,6 +62,7 @@ const HostDashboardPage: React.FC<HostDashboardPageProps> = ({ user, listings, r
 
     // Mobile menu state
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [showPhoneModal, setShowPhoneModal] = useState(false);
 
     // Editing State
     const [editingListing, setEditingListing] = useState<Listing | null>(null);
@@ -95,6 +98,10 @@ const HostDashboardPage: React.FC<HostDashboardPageProps> = ({ user, listings, r
     };
 
     const handleStartNewListing = () => {
+        if (!user.phone) {
+            setShowPhoneModal(true);
+            return;
+        }
         setEditingListing(null);
         setView('create');
     };
@@ -106,6 +113,20 @@ const HostDashboardPage: React.FC<HostDashboardPageProps> = ({ user, listings, r
 
     return (
         <div className="bg-gray-50 min-h-screen">
+            {/* Phone Collection Modal */}
+            <HostPhoneCollectionModal
+                user={user}
+                isOpen={showPhoneModal}
+                onClose={() => setShowPhoneModal(false)}
+                onUpdateUser={() => {
+                    refreshData();
+                    setShowPhoneModal(false);
+                    // Automatically proceed to create listing after saving phone
+                    setEditingListing(null);
+                    setView('create');
+                }}
+            />
+
             {/* Sidebar */}
             {!hideUI && (
                 <HostSidebar

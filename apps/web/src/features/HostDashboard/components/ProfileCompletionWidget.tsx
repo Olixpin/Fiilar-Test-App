@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { User } from '@fiilar/types';
-import { CheckCircle, Circle, ArrowRight, User as UserIcon, FileText, Mail, Phone, ShieldCheck } from 'lucide-react';
+import { ArrowRight, User as UserIcon, FileText, Mail, Phone, ShieldCheck } from 'lucide-react';
 import { Button } from '@fiilar/ui';
 
 interface ProfileCompletionWidgetProps {

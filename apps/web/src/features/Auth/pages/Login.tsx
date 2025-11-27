@@ -6,7 +6,7 @@ import { useToast, Form } from '@fiilar/ui';
 import LoginOptions from '../components/Login/LoginOptions';
 import EmailLogin from '../components/Login/EmailLogin';
 import OtpVerification from '../components/Login/OtpVerification';
-import { sendVerificationEmail, verifyEmailOtp, sendVerificationSms, verifyPhoneOtp } from '@fiilar/storage';
+import { sendVerificationEmail, verifyEmailOtp } from '@fiilar/storage';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -23,7 +23,6 @@ interface LoginProps {
 
 const Login: React.FC<LoginProps> = ({ onLogin, onBack }) => {
     const [step, setStep] = useState(0);
-    const [country, setCountry] = useState('ng');
     const [otp, setOtp] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -34,25 +33,6 @@ const Login: React.FC<LoginProps> = ({ onLogin, onBack }) => {
         email: z.string().email({ message: "Please enter a valid email address" }),
     });
 
-    const phoneSchema = z.object({
-        phone: z.string().superRefine((val, ctx) => {
-            if (country === 'ng') {
-                if (val.length !== 10) {
-                    ctx.addIssue({
-                        code: z.ZodIssueCode.custom,
-                        message: "Phone number must be exactly 10 digits",
-                    });
-                }
-            } else {
-                if (val.length < 10) {
-                    ctx.addIssue({
-                        code: z.ZodIssueCode.custom,
-                        message: "Phone number must be at least 10 digits",
-                    });
-                }
-            }
-        }),
-    });
 
     // Forms
     const emailForm = useForm<z.infer<typeof emailSchema>>({
@@ -62,18 +42,6 @@ const Login: React.FC<LoginProps> = ({ onLogin, onBack }) => {
         },
     });
 
-    const phoneForm = useForm<z.infer<typeof phoneSchema>>({
-        resolver: zodResolver(phoneSchema),
-        defaultValues: {
-            phone: "",
-        },
-    });
-
-    const countryCodes: Record<string, string> = {
-        ng: '+234',
-        us: '+1',
-        uk: '+44',
-    };
 
     const handleStepChange = (newStep: number) => {
         setStep(newStep);
@@ -99,15 +67,6 @@ const Login: React.FC<LoginProps> = ({ onLogin, onBack }) => {
                     setError(result.message || 'Invalid verification code');
                     setIsLoading(false);
                 }
-            } else {
-                const fullPhone = `${countryCodes[country] || ''}${phoneForm.getValues().phone}`;
-                const result = verifyPhoneOtp(fullPhone, code);
-                if (result.success) {
-                    onLogin(Role.USER, provider, fullPhone);
-                } else {
-                    setError(result.message || 'Invalid verification code');
-                    setIsLoading(false);
-                }
             }
         }, 1500);
     };
@@ -116,10 +75,6 @@ const Login: React.FC<LoginProps> = ({ onLogin, onBack }) => {
         // Simulate resending code
         if (provider === 'email') {
             const code = sendVerificationEmail(emailForm.getValues().email, 'mock-token', '');
-            showToast({ message: `Demo Code: ${code}`, type: 'info', duration: 5000 });
-        } else {
-            const fullPhone = `${countryCodes[country] || ''}${phoneForm.getValues().phone}`;
-            const code = sendVerificationSms(fullPhone);
             showToast({ message: `Demo Code: ${code}`, type: 'info', duration: 5000 });
         }
     };
@@ -163,26 +118,15 @@ const Login: React.FC<LoginProps> = ({ onLogin, onBack }) => {
 
                 <div className="max-w-[420px] w-full mx-auto">
                     {step === 0 && (
-                        <Form {...phoneForm}>
-                            <LoginOptions
-                                country={country}
-                                setCountry={setCountry}
-                                phoneForm={phoneForm}
-                                onContinue={phoneForm.handleSubmit((data) => {
-                                    const fullPhone = `${countryCodes[country] || ''}${data.phone}`;
-                                    const code = sendVerificationSms(fullPhone);
-                                    showToast({ message: `Demo Code: ${code}`, type: 'info', duration: 5000 });
-                                    handleStepChange(2);
-                                })}
-                                onEmailLogin={() => handleStepChange(1)}
-                                onGoogleLogin={() => onLogin(Role.USER, 'google', 'jessica.lee@gmail.example.com', {
-                                    firstName: 'Jessica',
-                                    lastName: 'Lee',
-                                    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=JessicaLee'
-                                })}
-                                onAdminLogin={() => onLogin(Role.ADMIN)}
-                            />
-                        </Form>
+                        <LoginOptions
+                            onEmailLogin={() => handleStepChange(1)}
+                            onGoogleLogin={() => onLogin(Role.USER, 'google', 'jessica.lee@gmail.example.com', {
+                                firstName: 'Jessica',
+                                lastName: 'Lee',
+                                avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=JessicaLee'
+                            })}
+                            onAdminLogin={() => onLogin(Role.ADMIN)}
+                        />
                     )}
 
                     {step === 1 && (
@@ -199,19 +143,6 @@ const Login: React.FC<LoginProps> = ({ onLogin, onBack }) => {
                         </Form>
                     )}
 
-                    {step === 2 && (
-                        <OtpVerification
-                            target={`${countryCodes[country] || ''} ${phoneForm.getValues().phone}`}
-                            type="phone"
-                            otp={otp}
-                            setOtp={setOtp}
-                            onBack={() => handleStepChange(0)}
-                            onVerify={(code) => handleVerify('phone', code)}
-                            onResend={() => handleResend('phone')}
-                            isLoading={isLoading}
-                            error={error}
-                        />
-                    )}
 
                     {step === 3 && (
                         <OtpVerification
