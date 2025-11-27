@@ -33,23 +33,21 @@ const CompleteProfileHost: React.FC<CompleteProfileHostProps> = ({ onComplete })
     return (
         <div className="min-h-screen flex bg-white">
             {/* Left Side - Visual (Desktop Only) */}
-            <div className="hidden lg:flex lg:w-1/2 relative bg-gradient-to-br from-brand-600 to-purple-600 overflow-hidden">
+            <div className="hidden lg:flex lg:w-1/2 relative bg-gray-900 overflow-hidden">
                 <img
                     src="https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?q=80&w=2000&auto=format&fit=crop"
                     alt="Become a Host"
-                    className="absolute inset-0 w-full h-full object-cover opacity-20 scale-105 hover:scale-100 transition-transform duration-[20s]"
+                    className="absolute inset-0 w-full h-full object-cover opacity-80 scale-105 hover:scale-100 transition-transform duration-[20s]"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
 
                 <div className="relative z-10 flex flex-col justify-end p-16 text-white h-full max-w-2xl">
                     <div className="mb-8">
                         <div className="w-16 h-16 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center mb-6 border border-white/20">
-                            <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                            </svg>
+                            <img src="https://drive.google.com/thumbnail?id=11AM3I7DLtyDpwgduNdtbUaZXJUYpvruC&sz=w400" className="w-10 h-10 object-contain" alt="Logo" />
                         </div>
                         <h1 className="text-5xl font-bold mb-6 leading-tight tracking-tight">Start Hosting on Fiilar!</h1>
-                        <p className="text-lg text-gray-100 leading-relaxed">Share your space, earn income, and join our community of trusted hosts.</p>
+                        <p className="text-lg text-gray-300 leading-relaxed">Share your space, earn income, and join our community of trusted hosts.</p>
                     </div>
                     <div className="flex gap-2">
                         <div className="h-1 w-2 bg-white/30 rounded-full"></div>
