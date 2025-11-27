@@ -2,6 +2,16 @@ import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import HostSettings from '../../../../features/HostDashboard/components/HostSettings';
 import { User, Role } from '@fiilar/types';
+import { LocaleProvider } from '@fiilar/ui';
+
+// Helper to wrap component with necessary providers
+const renderWithProviders = (ui: React.ReactElement) => {
+    return render(
+        <LocaleProvider>
+            {ui}
+        </LocaleProvider>
+    );
+};
 
 describe('HostSettings', () => {
     const mockUser: User = {
@@ -28,14 +38,14 @@ describe('HostSettings', () => {
     });
 
     it('renders account settings by default', () => {
-        render(<HostSettings user={mockUser} onUpdateUser={mockOnUpdateUser} />);
+        renderWithProviders(<HostSettings user={mockUser} onUpdateUser={mockOnUpdateUser} />);
         expect(screen.getByText('Host Profile')).toBeInTheDocument();
         expect(screen.getByDisplayValue('Test Host')).toBeInTheDocument();
         expect(screen.getByDisplayValue('host@test.com')).toBeInTheDocument();
     });
 
     it('switches tabs correctly', () => {
-        render(<HostSettings user={mockUser} />);
+        renderWithProviders(<HostSettings user={mockUser} />);
         
         fireEvent.click(screen.getByText('Support'));
         expect(screen.getByText('Host Support')).toBeInTheDocument();
@@ -48,7 +58,7 @@ describe('HostSettings', () => {
     });
 
     it('handles profile editing', async () => {
-        render(<HostSettings user={mockUser} onUpdateUser={mockOnUpdateUser} />);
+        renderWithProviders(<HostSettings user={mockUser} onUpdateUser={mockOnUpdateUser} />);
         
         // Start editing
         fireEvent.click(screen.getByText('Edit Profile'));
@@ -81,7 +91,7 @@ describe('HostSettings', () => {
     });
 
     it('cancels profile editing', () => {
-        render(<HostSettings user={mockUser} onUpdateUser={mockOnUpdateUser} />);
+        renderWithProviders(<HostSettings user={mockUser} onUpdateUser={mockOnUpdateUser} />);
         
         fireEvent.click(screen.getByText('Edit Profile'));
         
@@ -97,14 +107,14 @@ describe('HostSettings', () => {
 
     it('renders user initials when avatar is missing', () => {
         const userWithoutAvatar = { ...mockUser, avatar: undefined };
-        render(<HostSettings user={userWithoutAvatar} onUpdateUser={mockOnUpdateUser} />);
+        renderWithProviders(<HostSettings user={userWithoutAvatar} onUpdateUser={mockOnUpdateUser} />);
         
         expect(screen.getByText('T')).toBeInTheDocument(); // First letter of "Test Host"
         expect(screen.queryByRole('img', { name: 'Test Host' })).not.toBeInTheDocument();
     });
 
     it('handles notification preferences', () => {
-        render(<HostSettings user={mockUser} />);
+        renderWithProviders(<HostSettings user={mockUser} />);
         
         const checkboxes = [
             'Email notifications for new booking requests',
@@ -132,7 +142,7 @@ describe('HostSettings', () => {
     });
 
     it('handles feedback submission with category change', async () => {
-        render(<HostSettings user={mockUser} />);
+        renderWithProviders(<HostSettings user={mockUser} />);
         
         fireEvent.click(screen.getByText('Feedback'));
         
@@ -157,7 +167,7 @@ describe('HostSettings', () => {
 
     it('resets feedback form after submission', async () => {
         vi.useFakeTimers();
-        render(<HostSettings user={mockUser} />);
+        renderWithProviders(<HostSettings user={mockUser} />);
         
         fireEvent.click(screen.getByText('Feedback'));
         
@@ -191,7 +201,7 @@ describe('HostSettings', () => {
             value: { href: '' }
         });
 
-        render(<HostSettings user={mockUser} />);
+        renderWithProviders(<HostSettings user={mockUser} />);
         
         // Open modal
         fireEvent.click(screen.getByText('Delete My Account'));
@@ -220,7 +230,7 @@ describe('HostSettings', () => {
     });
 
     it('toggles FAQ details', () => {
-        render(<HostSettings user={mockUser} />);
+        renderWithProviders(<HostSettings user={mockUser} />);
         
         fireEvent.click(screen.getByText('Support'));
         
@@ -238,7 +248,7 @@ describe('HostSettings', () => {
     });
 
     it('renders support links correctly', () => {
-        render(<HostSettings user={mockUser} />);
+        renderWithProviders(<HostSettings user={mockUser} />);
         
         fireEvent.click(screen.getByText('Support'));
         
@@ -254,7 +264,7 @@ describe('HostSettings', () => {
             throw new Error('Update failed');
         });
 
-        render(<HostSettings user={errorUser} onUpdateUser={errorCallback} />);
+        renderWithProviders(<HostSettings user={errorUser} onUpdateUser={errorCallback} />);
         
         fireEvent.click(screen.getByText('Edit Profile'));
         fireEvent.click(screen.getByText('Save Changes'));
@@ -274,7 +284,7 @@ describe('HostSettings', () => {
     });
 
     it('renders delete modal content correctly', () => {
-        render(<HostSettings user={mockUser} />);
+        renderWithProviders(<HostSettings user={mockUser} />);
         
         fireEvent.click(screen.getByText('Delete My Account'));
         
@@ -290,7 +300,7 @@ describe('HostSettings', () => {
     });
 
     it('disables delete button if confirmation text is incorrect', () => {
-        render(<HostSettings user={mockUser} />);
+        renderWithProviders(<HostSettings user={mockUser} />);
         
         fireEvent.click(screen.getByText('Delete My Account'));
         
@@ -313,7 +323,7 @@ describe('HostSettings', () => {
     });
 
     it('renders avatar upload button when editing', () => {
-        render(<HostSettings user={mockUser} onUpdateUser={mockOnUpdateUser} />);
+        renderWithProviders(<HostSettings user={mockUser} onUpdateUser={mockOnUpdateUser} />);
         
         // Enter edit mode
         fireEvent.click(screen.getByText('Edit Profile'));
@@ -324,7 +334,7 @@ describe('HostSettings', () => {
     });
 
     it('cancels account deletion and clears input', () => {
-        render(<HostSettings user={mockUser} />);
+        renderWithProviders(<HostSettings user={mockUser} />);
         
         fireEvent.click(screen.getByText('Delete My Account'));
         

@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
-import { User, Listing, ListingStatus, Booking, EscrowTransaction, PlatformFinancials, Role } from '@fiilar/types';
-import { getBookings, saveListing, getAllUsers, saveUser, getCurrentUser, authorizeAdminOperation } from '@fiilar/storage';
+import { User, Listing, ListingStatus, Booking, EscrowTransaction, PlatformFinancials } from '@fiilar/types';
+import { getBookings, saveListing, getAllUsers, saveUser, authorizeAdminOperation } from '@fiilar/storage';
 import { updateKYC } from '@fiilar/kyc';
 import { escrowService } from '@fiilar/escrow';
 
@@ -35,10 +35,10 @@ export const useAdminData = ({ users, listings, refreshData }: UseAdminDataProps
         }
     }, []);
 
-    // Derived Data
-    const unverifiedHosts = users.filter(u => !u.kycVerified && u.role === 'HOST');
-    const pendingListings = listings.filter(l => l.status === ListingStatus.PENDING_APPROVAL);
-    const openDisputes = bookings.filter(b => b.disputeStatus === 'OPEN');
+    // Derived Data - with null safety
+    const unverifiedHosts = (users || []).filter(u => !u.kycVerified && u.role === 'HOST');
+    const pendingListings = (listings || []).filter(l => l.status === ListingStatus.PENDING_APPROVAL);
+    const openDisputes = (bookings || []).filter(b => b.disputeStatus === 'OPEN');
 
     // Load financial data when financials or escrow tab is active
     useEffect(() => {

@@ -5,6 +5,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { User, Role } from '@fiilar/types';
 import * as storageService from '@fiilar/storage';
 import * as notificationService from '@fiilar/notifications';
+import { ToastProvider } from '@fiilar/ui';
 
 // Mock storage service
 vi.mock('@fiilar/storage', () => ({
@@ -23,9 +24,21 @@ vi.mock('../../features/Notifications/components/NotificationCenter', () => ({
   default: () => <div data-testid="notification-center">Notification Center</div>,
 }));
 
+// Helper to wrap component with necessary providers
+const renderWithProviders = (ui: React.ReactElement) => {
+  return render(
+    <BrowserRouter>
+      <ToastProvider>
+        {ui}
+      </ToastProvider>
+    </BrowserRouter>
+  );
+};
+
 const mockUser: User = {
   id: 'user1',
   name: 'Test User',
+  firstName: 'Test',
   email: 'test@example.com',
   password: 'password',
   role: Role.USER,
@@ -49,34 +62,26 @@ describe('Navbar', () => {
   });
 
   it('renders correctly for guest user', () => {
-    render(
-      <BrowserRouter>
-        <Navbar user={null} onLogout={vi.fn()} />
-      </BrowserRouter>
-    );
+    renderWithProviders(<Navbar user={null} onLogout={vi.fn()} />);
+
+    // Open the account menu to see guest options
+    const accountButton = screen.getByRole('button', { name: /account/i });
+    fireEvent.click(accountButton);
 
     expect(screen.getByText('Become a host')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /account/i })).toBeInTheDocument();
   });
 
   it('renders correctly for logged in user', () => {
-    render(
-      <BrowserRouter>
-        <Navbar user={mockUser} onLogout={vi.fn()} />
-      </BrowserRouter>
-    );
+    renderWithProviders(<Navbar user={mockUser} onLogout={vi.fn()} />);
 
-    expect(screen.queryByText('Become a host')).not.toBeInTheDocument();
-    expect(screen.getByText('Test')).toBeInTheDocument(); // First name
-    expect(screen.getByRole('img', { name: /profile/i })).toHaveAttribute('src', 'avatar.jpg');
+    // First name is shown in the UI - it appears in the button aria-label and title
+    expect(screen.getByRole('button', { name: /Account menu — Test/i })).toBeInTheDocument();
+    // Avatar image has alt text of user's firstName
+    expect(screen.getByRole('img', { name: 'Test' })).toHaveAttribute('src', 'avatar.jpg');
   });
 
   it('opens account menu when clicked', () => {
-    render(
-      <BrowserRouter>
-        <Navbar user={mockUser} onLogout={vi.fn()} />
-      </BrowserRouter>
-    );
+    renderWithProviders(<Navbar user={mockUser} onLogout={vi.fn()} />);
 
     const accountButton = screen.getByRole('button', { name: /account/i });
     fireEvent.click(accountButton);
@@ -87,11 +92,7 @@ describe('Navbar', () => {
 
   it('calls onLogout when logout is clicked', () => {
     const handleLogout = vi.fn();
-    render(
-      <BrowserRouter>
-        <Navbar user={mockUser} onLogout={handleLogout} />
-      </BrowserRouter>
-    );
+    renderWithProviders(<Navbar user={mockUser} onLogout={handleLogout} />);
 
     fireEvent.click(screen.getByRole('button', { name: /account/i }));
     fireEvent.click(screen.getByText('Log out'));
@@ -101,11 +102,7 @@ describe('Navbar', () => {
 
   it('calls onSearch when search input changes', () => {
     const handleSearch = vi.fn();
-    render(
-      <BrowserRouter>
-        <Navbar user={mockUser} onLogout={vi.fn()} onSearch={handleSearch} searchTerm="" />
-      </BrowserRouter>
-    );
+    renderWithProviders(<Navbar user={mockUser} onLogout={vi.fn()} onSearch={handleSearch} searchTerm="" />);
 
     const input = screen.getByPlaceholderText(/try 'studio in lagos/i);
     fireEvent.change(input, { target: { value: 'test search' } });
@@ -116,21 +113,13 @@ describe('Navbar', () => {
   it('shows notification badge when there are unread notifications', () => {
     (notificationService.getUnreadCount as any).mockReturnValue(5);
     
-    render(
-      <BrowserRouter>
-        <Navbar user={mockUser} onLogout={vi.fn()} />
-      </BrowserRouter>
-    );
+    renderWithProviders(<Navbar user={mockUser} onLogout={vi.fn()} />);
 
     expect(screen.getByText('5')).toBeInTheDocument();
   });
 
   it('opens notification center when bell is clicked', () => {
-    render(
-      <BrowserRouter>
-        <Navbar user={mockUser} onLogout={vi.fn()} />
-      </BrowserRouter>
-    );
+    renderWithProviders(<Navbar user={mockUser} onLogout={vi.fn()} />);
 
     const bellButton = screen.getByTitle('Notifications');
     fireEvent.click(bellButton);
@@ -141,11 +130,7 @@ describe('Navbar', () => {
   // --- New Tests for Coverage ---
 
   it('toggles mobile menu', () => {
-    render(
-      <BrowserRouter>
-        <Navbar user={mockUser} onLogout={vi.fn()} />
-      </BrowserRouter>
-    );
+    renderWithProviders(<Navbar user={mockUser} onLogout={vi.fn()} />);
 
     const toggleButton = screen.getByTitle('Toggle menu');
     fireEvent.click(toggleButton);
@@ -160,11 +145,7 @@ describe('Navbar', () => {
   });
 
   it('renders mobile menu for guest', () => {
-    render(
-      <BrowserRouter>
-        <Navbar user={null} onLogout={vi.fn()} />
-      </BrowserRouter>
-    );
+    renderWithProviders(<Navbar user={null} onLogout={vi.fn()} />);
 
     const toggleButton = screen.getByTitle('Toggle menu');
     fireEvent.click(toggleButton);
@@ -175,11 +156,7 @@ describe('Navbar', () => {
   it('handles mobile search modal', () => {
     const handleSearch = vi.fn();
     const handleNavigate = vi.fn();
-    render(
-      <BrowserRouter>
-        <Navbar user={mockUser} onLogout={vi.fn()} onSearch={handleSearch} onNavigate={handleNavigate} searchTerm="" />
-      </BrowserRouter>
-    );
+    renderWithProviders(<Navbar user={mockUser} onLogout={vi.fn()} onSearch={handleSearch} onNavigate={handleNavigate} searchTerm="" />);
 
     // Open mobile search
     const searchButton = screen.getByTitle('Search');
@@ -202,11 +179,7 @@ describe('Navbar', () => {
 
   it('clears mobile search', () => {
     const handleSearch = vi.fn();
-    render(
-      <BrowserRouter>
-        <Navbar user={mockUser} onLogout={vi.fn()} onSearch={handleSearch} searchTerm="something" />
-      </BrowserRouter>
-    );
+    renderWithProviders(<Navbar user={mockUser} onLogout={vi.fn()} onSearch={handleSearch} searchTerm="something" />);
 
     const searchButton = screen.getByTitle('Search');
     fireEvent.click(searchButton);
@@ -217,11 +190,7 @@ describe('Navbar', () => {
   });
 
   it('closes mobile search on cancel', () => {
-    render(
-      <BrowserRouter>
-        <Navbar user={mockUser} onLogout={vi.fn()} />
-      </BrowserRouter>
-    );
+    renderWithProviders(<Navbar user={mockUser} onLogout={vi.fn()} />);
 
     fireEvent.click(screen.getByTitle('Search'));
     expect(screen.getByRole('dialog')).toBeInTheDocument();
@@ -232,11 +201,7 @@ describe('Navbar', () => {
 
   it('renders guest account menu items', () => {
     const handleLogin = vi.fn();
-    render(
-      <BrowserRouter>
-        <Navbar user={null} onLogout={vi.fn()} onLogin={handleLogin} />
-      </BrowserRouter>
-    );
+    renderWithProviders(<Navbar user={null} onLogout={vi.fn()} onLogin={handleLogin} />);
 
     fireEvent.click(screen.getByRole('button', { name: /account/i }));
 
@@ -249,11 +214,7 @@ describe('Navbar', () => {
 
   it('handles role switching', () => {
     const handleSwitchRole = vi.fn();
-    render(
-      <BrowserRouter>
-        <Navbar user={mockUser} onLogout={vi.fn()} onSwitchRole={handleSwitchRole} />
-      </BrowserRouter>
-    );
+    renderWithProviders(<Navbar user={mockUser} onLogout={vi.fn()} onSwitchRole={handleSwitchRole} />);
 
     fireEvent.click(screen.getByRole('button', { name: /account/i }));
     const switchBtn = screen.getByText('Switch to hosting');
@@ -264,11 +225,7 @@ describe('Navbar', () => {
 
   it('handles role switching for host', () => {
     const handleSwitchRole = vi.fn();
-    render(
-      <BrowserRouter>
-        <Navbar user={mockHostUser} onLogout={vi.fn()} onSwitchRole={handleSwitchRole} />
-      </BrowserRouter>
-    );
+    renderWithProviders(<Navbar user={mockHostUser} onLogout={vi.fn()} onSwitchRole={handleSwitchRole} />);
 
     fireEvent.click(screen.getByRole('button', { name: /account/i }));
     const switchBtn = screen.getByText('Switch to traveling');
@@ -278,11 +235,7 @@ describe('Navbar', () => {
   });
 
   it('closes account menu on Escape key', () => {
-    render(
-      <BrowserRouter>
-        <Navbar user={mockUser} onLogout={vi.fn()} />
-      </BrowserRouter>
-    );
+    renderWithProviders(<Navbar user={mockUser} onLogout={vi.fn()} />);
 
     fireEvent.click(screen.getByRole('button', { name: /account/i }));
     expect(screen.getByText('Log out')).toBeInTheDocument();
@@ -292,11 +245,7 @@ describe('Navbar', () => {
   });
 
   it('closes account menu when clicking outside', () => {
-    render(
-      <BrowserRouter>
-        <Navbar user={mockUser} onLogout={vi.fn()} />
-      </BrowserRouter>
-    );
+    renderWithProviders(<Navbar user={mockUser} onLogout={vi.fn()} />);
 
     fireEvent.click(screen.getByRole('button', { name: /account/i }));
     expect(screen.getByText('Log out')).toBeInTheDocument();
@@ -307,11 +256,7 @@ describe('Navbar', () => {
 
   it('loads guest favorites count from localStorage', () => {
     localStorage.setItem('fiilar_guest_favorites', JSON.stringify(['1', '2']));
-    render(
-      <BrowserRouter>
-        <Navbar user={null} onLogout={vi.fn()} />
-      </BrowserRouter>
-    );
+    renderWithProviders(<Navbar user={null} onLogout={vi.fn()} />);
     
     // We need to open the menu to see the count? No, the count is in the menu which is conditionally rendered.
     // But the state is set in useEffect.
@@ -346,11 +291,7 @@ describe('Navbar', () => {
     (storageService.getAllUsers as any).mockReturnValue([{ id: 'user1', avatar: '' }]);
     (storageService.getCurrentUser as any).mockReturnValue({ id: 'user1', avatar: '' });
 
-    render(
-      <BrowserRouter>
-        <Navbar user={mockUser} onLogout={vi.fn()} />
-      </BrowserRouter>
-    );
+    renderWithProviders(<Navbar user={mockUser} onLogout={vi.fn()} />);
 
     fireEvent.click(screen.getByRole('button', { name: /account/i }));
     
@@ -374,11 +315,7 @@ describe('Navbar', () => {
 
   it('navigates on Enter in mobile search', () => {
     const handleNavigate = vi.fn();
-    render(
-      <BrowserRouter>
-        <Navbar user={mockUser} onLogout={vi.fn()} onNavigate={handleNavigate} searchTerm="test" />
-      </BrowserRouter>
-    );
+    renderWithProviders(<Navbar user={mockUser} onLogout={vi.fn()} onNavigate={handleNavigate} searchTerm="test" />);
 
     fireEvent.click(screen.getByTitle('Search'));
     const input = screen.getAllByPlaceholderText(/try 'studio in lagos/i)[1];
@@ -389,11 +326,7 @@ describe('Navbar', () => {
 
   it('navigates on clicking result in mobile search', () => {
     const handleNavigate = vi.fn();
-    render(
-      <BrowserRouter>
-        <Navbar user={mockUser} onLogout={vi.fn()} onNavigate={handleNavigate} searchTerm="test" />
-      </BrowserRouter>
-    );
+    renderWithProviders(<Navbar user={mockUser} onLogout={vi.fn()} onNavigate={handleNavigate} searchTerm="test" />);
 
     fireEvent.click(screen.getByTitle('Search'));
     const resultBtn = screen.getByText(/See results for "test"/i);
@@ -403,11 +336,7 @@ describe('Navbar', () => {
   });
 
   it('closes notification center when clicking outside', () => {
-    render(
-      <BrowserRouter>
-        <Navbar user={mockUser} onLogout={vi.fn()} />
-      </BrowserRouter>
-    );
+    renderWithProviders(<Navbar user={mockUser} onLogout={vi.fn()} />);
 
     fireEvent.click(screen.getByTitle('Notifications'));
     expect(screen.getByTestId('notification-center')).toBeInTheDocument();

@@ -9,7 +9,7 @@ import {
     logSecurityEvent 
 } from '../security/bookingSecurity';
 import { logAuditEvent } from '../security/authSecurity';
-import { authorizeBookingModification, getAuthenticatedUser } from '../security/authorization';
+import { authorizeBookingModification } from '../security/authorization';
 
 // Types for booking results
 export interface BookingResult {

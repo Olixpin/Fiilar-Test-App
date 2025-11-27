@@ -3,14 +3,32 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import HostDashboardPage from '../../../features/HostDashboard/pages/HostDashboardPage';
 import { User, Role, ListingStatus } from '@fiilar/types';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import { ToastProvider } from '@fiilar/ui';
 
+// Helper to wrap component with necessary providers
+const renderWithProviders = (ui: React.ReactElement, initialEntries: string[] = ['/host/dashboard']) => {
+  return render(
+    <MemoryRouter initialEntries={initialEntries}>
+      <ToastProvider>
+        <Routes>
+          <Route path="/host/dashboard" element={ui} />
+        </Routes>
+      </ToastProvider>
+    </MemoryRouter>
+  );
+};
 
 // Mock hooks
 const mockHandleDeleteListing = vi.fn();
+const mockConfirmDelete = vi.fn();
+const mockCancelDelete = vi.fn();
 
 vi.mock('../../../features/HostDashboard/hooks/useListingActions', () => ({
   useListingActions: () => ({
-    handleDeleteListing: mockHandleDeleteListing
+    handleDeleteListing: mockHandleDeleteListing,
+    deleteConfirm: { isOpen: false, listingId: null, message: '' },
+    confirmDelete: mockConfirmDelete,
+    cancelDelete: mockCancelDelete
   })
 }));
 
@@ -112,28 +130,16 @@ describe('HostDashboardPage', () => {
   });
 
   it('renders overview by default', () => {
-    render(
-      <MemoryRouter initialEntries={['/host/dashboard']}>
-        <Routes>
-          <Route path="/host/dashboard" element={
-            <HostDashboardPage user={mockUser} listings={[]} refreshData={vi.fn()} />
-          } />
-        </Routes>
-      </MemoryRouter>
+    renderWithProviders(
+      <HostDashboardPage user={mockUser} listings={[]} refreshData={vi.fn()} />
     );
 
     expect(screen.getByTestId('host-overview')).toBeInTheDocument();
   });
 
   it('navigates to listings view when tab is clicked', () => {
-    render(
-      <MemoryRouter initialEntries={['/host/dashboard']}>
-        <Routes>
-          <Route path="/host/dashboard" element={
-            <HostDashboardPage user={mockUser} listings={[]} refreshData={vi.fn()} />
-          } />
-        </Routes>
-      </MemoryRouter>
+    renderWithProviders(
+      <HostDashboardPage user={mockUser} listings={[]} refreshData={vi.fn()} />
     );
 
     const listingsTab = screen.getByRole('button', { name: /listings/i });
@@ -144,14 +150,8 @@ describe('HostDashboardPage', () => {
   });
 
   it('navigates to bookings view when tab is clicked', () => {
-    render(
-      <MemoryRouter initialEntries={['/host/dashboard']}>
-        <Routes>
-          <Route path="/host/dashboard" element={
-            <HostDashboardPage user={mockUser} listings={[]} refreshData={vi.fn()} />
-          } />
-        </Routes>
-      </MemoryRouter>
+    renderWithProviders(
+      <HostDashboardPage user={mockUser} listings={[]} refreshData={vi.fn()} />
     );
 
     const bookingsTab = screen.getByRole('button', { name: /bookings/i });
@@ -161,14 +161,9 @@ describe('HostDashboardPage', () => {
   });
 
   it('renders correct view based on URL query param', () => {
-    render(
-      <MemoryRouter initialEntries={['/host/dashboard?view=earnings']}>
-        <Routes>
-          <Route path="/host/dashboard" element={
-            <HostDashboardPage user={mockUser} listings={[]} refreshData={vi.fn()} />
-          } />
-        </Routes>
-      </MemoryRouter>
+    renderWithProviders(
+      <HostDashboardPage user={mockUser} listings={[]} refreshData={vi.fn()} />,
+      ['/host/dashboard?view=earnings']
     );
 
     expect(screen.getByTestId('host-earnings')).toBeInTheDocument();
@@ -177,53 +172,33 @@ describe('HostDashboardPage', () => {
   // --- New Tests ---
 
   it('renders settings view', () => {
-    render(
-      <MemoryRouter initialEntries={['/host/dashboard?view=settings']}>
-        <Routes>
-          <Route path="/host/dashboard" element={
-            <HostDashboardPage user={mockUser} listings={[]} refreshData={vi.fn()} />
-          } />
-        </Routes>
-      </MemoryRouter>
+    renderWithProviders(
+      <HostDashboardPage user={mockUser} listings={[]} refreshData={vi.fn()} />,
+      ['/host/dashboard?view=settings']
     );
     expect(screen.getByTestId('host-settings')).toBeInTheDocument();
   });
 
   it('renders notifications view', () => {
-    render(
-      <MemoryRouter initialEntries={['/host/dashboard?view=notifications']}>
-        <Routes>
-          <Route path="/host/dashboard" element={
-            <HostDashboardPage user={mockUser} listings={[]} refreshData={vi.fn()} />
-          } />
-        </Routes>
-      </MemoryRouter>
+    renderWithProviders(
+      <HostDashboardPage user={mockUser} listings={[]} refreshData={vi.fn()} />,
+      ['/host/dashboard?view=notifications']
     );
     expect(screen.getByTestId('notifications-page')).toBeInTheDocument();
   });
 
   it('renders create listing wizard', () => {
-    render(
-      <MemoryRouter initialEntries={['/host/dashboard?view=create']}>
-        <Routes>
-          <Route path="/host/dashboard" element={
-            <HostDashboardPage user={mockUser} listings={[]} refreshData={vi.fn()} />
-          } />
-        </Routes>
-      </MemoryRouter>
+    renderWithProviders(
+      <HostDashboardPage user={mockUser} listings={[]} refreshData={vi.fn()} />,
+      ['/host/dashboard?view=create']
     );
     expect(screen.getByTestId('create-listing-wizard')).toBeInTheDocument();
   });
 
   it('renders messages view', () => {
-    render(
-      <MemoryRouter initialEntries={['/host/dashboard?view=messages']}>
-        <Routes>
-          <Route path="/host/dashboard" element={
-            <HostDashboardPage user={mockUser} listings={[]} refreshData={vi.fn()} />
-          } />
-        </Routes>
-      </MemoryRouter>
+    renderWithProviders(
+      <HostDashboardPage user={mockUser} listings={[]} refreshData={vi.fn()} />,
+      ['/host/dashboard?view=messages']
     );
     expect(screen.getByTestId('chat-list')).toBeInTheDocument();
     // Chat window is hidden initially on desktop if no conversation selected?
@@ -232,14 +207,8 @@ describe('HostDashboardPage', () => {
   });
 
   it('triggers new listing creation', () => {
-    render(
-      <MemoryRouter initialEntries={['/host/dashboard']}>
-        <Routes>
-          <Route path="/host/dashboard" element={
-            <HostDashboardPage user={mockUser} listings={[]} refreshData={vi.fn()} />
-          } />
-        </Routes>
-      </MemoryRouter>
+    renderWithProviders(
+      <HostDashboardPage user={mockUser} listings={[]} refreshData={vi.fn()} />
     );
 
     const newListingBtns = screen.getAllByRole('button', { name: /new listing/i });
@@ -249,14 +218,8 @@ describe('HostDashboardPage', () => {
   });
 
   it('shows badges for pending items', () => {
-    render(
-      <MemoryRouter initialEntries={['/host/dashboard']}>
-        <Routes>
-          <Route path="/host/dashboard" element={
-            <HostDashboardPage user={mockUser} listings={mockListings} refreshData={vi.fn()} />
-          } />
-        </Routes>
-      </MemoryRouter>
+    renderWithProviders(
+      <HostDashboardPage user={mockUser} listings={mockListings} refreshData={vi.fn()} />
     );
 
     // Pending listings badge (1)
@@ -273,14 +236,8 @@ describe('HostDashboardPage', () => {
   });
 
   it('toggles mobile menu and navigates', () => {
-    render(
-      <MemoryRouter initialEntries={['/host/dashboard']}>
-        <Routes>
-          <Route path="/host/dashboard" element={
-            <HostDashboardPage user={mockUser} listings={[]} refreshData={vi.fn()} />
-          } />
-        </Routes>
-      </MemoryRouter>
+    renderWithProviders(
+      <HostDashboardPage user={mockUser} listings={[]} refreshData={vi.fn()} />
     );
 
     const menuBtn = screen.getByLabelText('Toggle menu');
@@ -340,27 +297,17 @@ describe('HostDashboardPage', () => {
   });
 
   it('renders payouts view', () => {
-    render(
-      <MemoryRouter initialEntries={['/host/dashboard?view=payouts']}>
-        <Routes>
-          <Route path="/host/dashboard" element={
-            <HostDashboardPage user={mockUser} listings={[]} refreshData={vi.fn()} />
-          } />
-        </Routes>
-      </MemoryRouter>
+    renderWithProviders(
+      <HostDashboardPage user={mockUser} listings={[]} refreshData={vi.fn()} />,
+      ['/host/dashboard?view=payouts']
     );
     expect(screen.getByTestId('host-financials')).toBeInTheDocument();
   });
 
   it('handles conversation selection in messages view', () => {
-    render(
-      <MemoryRouter initialEntries={['/host/dashboard?view=messages']}>
-        <Routes>
-          <Route path="/host/dashboard" element={
-            <HostDashboardPage user={mockUser} listings={[]} refreshData={vi.fn()} />
-          } />
-        </Routes>
-      </MemoryRouter>
+    renderWithProviders(
+      <HostDashboardPage user={mockUser} listings={[]} refreshData={vi.fn()} />,
+      ['/host/dashboard?view=messages']
     );
 
     // Initially no conversation selected
@@ -376,14 +323,8 @@ describe('HostDashboardPage', () => {
   });
 
   it('navigates to specific booking from overview', () => {
-    render(
-      <MemoryRouter initialEntries={['/host/dashboard']}>
-        <Routes>
-          <Route path="/host/dashboard" element={
-            <HostDashboardPage user={mockUser} listings={[]} refreshData={vi.fn()} />
-          } />
-        </Routes>
-      </MemoryRouter>
+    renderWithProviders(
+      <HostDashboardPage user={mockUser} listings={[]} refreshData={vi.fn()} />
     );
 
     fireEvent.click(screen.getByText('Go to Booking'));
@@ -394,14 +335,9 @@ describe('HostDashboardPage', () => {
   });
 
   it('passes actions to HostListings', () => {
-    render(
-      <MemoryRouter initialEntries={['/host/dashboard?view=listings']}>
-        <Routes>
-          <Route path="/host/dashboard" element={
-            <HostDashboardPage user={mockUser} listings={[]} refreshData={vi.fn()} />
-          } />
-        </Routes>
-      </MemoryRouter>
+    renderWithProviders(
+      <HostDashboardPage user={mockUser} listings={[]} refreshData={vi.fn()} />,
+      ['/host/dashboard?view=listings']
     );
 
     fireEvent.click(screen.getByText('Edit Listing'));

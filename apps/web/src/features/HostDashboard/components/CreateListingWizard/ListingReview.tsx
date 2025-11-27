@@ -1,5 +1,5 @@
 import React from 'react';
-import { Listing, ListingStatus, BookingType, User, PricingModel } from '@fiilar/types';
+import { Listing, ListingStatus, User, PricingModel } from '@fiilar/types';
 import { useLocale } from '@fiilar/ui';
 import {
     Settings, Shield, ImageIcon, MapPin, Repeat, Users, PackagePlus, CheckCircle, AlertCircle, AlertTriangle, Loader2

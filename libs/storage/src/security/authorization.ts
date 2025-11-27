@@ -21,18 +21,33 @@ export interface AuthorizationResult {
 
 // Internal helpers to avoid circular imports
 const _getCurrentUser = (): User | null => {
-    const u = localStorage.getItem(STORAGE_KEYS.USER);
-    return u ? JSON.parse(u) : null;
+    try {
+        const u = localStorage.getItem(STORAGE_KEYS.USER);
+        return u ? JSON.parse(u) : null;
+    } catch (e) {
+        console.error('Failed to parse current user from localStorage:', e);
+        return null;
+    }
 };
 
 const _getBookings = (): Booking[] => {
-    const b = localStorage.getItem(STORAGE_KEYS.BOOKINGS);
-    return b ? JSON.parse(b) : [];
+    try {
+        const b = localStorage.getItem(STORAGE_KEYS.BOOKINGS);
+        return b ? JSON.parse(b) : [];
+    } catch (e) {
+        console.error('Failed to parse bookings from localStorage:', e);
+        return [];
+    }
 };
 
 const _getListings = (): Listing[] => {
-    const l = localStorage.getItem(STORAGE_KEYS.LISTINGS);
-    return l ? JSON.parse(l) : [];
+    try {
+        const l = localStorage.getItem(STORAGE_KEYS.LISTINGS);
+        return l ? JSON.parse(l) : [];
+    } catch (e) {
+        console.error('Failed to parse listings from localStorage:', e);
+        return [];
+    };
 };
 
 /**

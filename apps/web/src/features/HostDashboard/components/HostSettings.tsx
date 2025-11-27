@@ -14,7 +14,7 @@ interface HostSettingsProps {
 type SettingsTab = 'account' | 'support' | 'about' | 'feedback';
 
 const HostSettings: React.FC<HostSettingsProps> = ({ user, onUpdateUser }) => {
-    const { locale, country, setCountry } = useLocale();
+    const { locale, country } = useLocale();
     const [activeTab, setActiveTab] = useState<SettingsTab>('account');
 
     // Profile Form State

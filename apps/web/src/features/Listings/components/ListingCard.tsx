@@ -34,7 +34,7 @@ const ListingCard: React.FC<ListingCardProps> = ({
   listing, 
   badgeVariant = 'white', 
   priority = false, 
-  index = 0,
+  index: _index = 0,
   onImageLoad,
   batchReady = false,
 }) => {

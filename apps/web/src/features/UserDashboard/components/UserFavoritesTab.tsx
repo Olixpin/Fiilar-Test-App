@@ -28,7 +28,7 @@ export const UserFavoritesTab: React.FC<UserFavoritesTabProps> = ({ user, listin
       case 'price-desc':
         return b.price - a.price;
       case 'capacity-desc':
-        return b.capacity - a.capacity;
+        return (b.capacity ?? 0) - (a.capacity ?? 0);
       default:
         return 0;
     }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Listing, BookingType, PricingModel, CancellationPolicy } from '@fiilar/types';
+import { Listing, PricingModel, CancellationPolicy } from '@fiilar/types';
 import { useLocale } from '@fiilar/ui';
 import {
     Sparkles, CheckCircle, Clock, ImageIcon, MapPin, Users, Repeat, Shield, PackagePlus, FileText, Calendar as CalendarIcon,

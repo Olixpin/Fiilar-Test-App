@@ -48,7 +48,7 @@ export const updateKYC = (userId: string, status: KYCStatus, documentUrl?: strin
     // In production, this would be handled by Dojah webhook callback
     if (!SIMULATION_MODE) {
         // If user is updating their own status, they can only submit (set to pending)
-        if (isOwnKyc && status !== 'pending' && status !== 'submitted') {
+        if (isOwnKyc && status !== 'pending') {
             console.error('🚨 SECURITY: User tried to self-approve KYC');
             return { success: false, error: 'Cannot self-approve KYC' };
         }

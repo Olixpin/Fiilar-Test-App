@@ -1,6 +1,6 @@
 import { Listing, Review, BookingType, Role } from '@fiilar/types';
 import { STORAGE_KEYS } from '../constants';
-import { authorizeListingModification, getAuthenticatedUser, authorizeAdminOperation } from '../security/authorization';
+import { authorizeListingModification, getAuthenticatedUser } from '../security/authorization';
 import { logAuditEvent } from '../security/authSecurity';
 
 /**

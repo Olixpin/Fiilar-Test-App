@@ -9,6 +9,7 @@ import { AdminKYC } from './AdminKYC';
 import { AdminHosts } from './AdminHosts';
 import { AdminListings } from './AdminListings';
 import { useAdminData } from './useAdminData';
+import { AlertTriangle, RefreshCw } from 'lucide-react';
 
 interface AdminPanelProps {
   users: User[]; // In a real app, fetch via API
@@ -24,6 +25,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ users, listings, refreshData })
     bookings,
     transactions,
     loading,
+    authError,
     unverifiedHosts,
     pendingListings,
     openDisputes,
@@ -34,7 +36,31 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ users, listings, refreshData })
     openRejectionModal,
     handleRejectionSubmit,
     presetPhotographyOffer
-  } = useAdminData({ users, listings, refreshData });
+  } = useAdminData({ users: users || [], listings: listings || [], refreshData });
+
+  // Show error state if authorization failed
+  if (authError) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-6">
+        <div className="max-w-md w-full text-center">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <AlertTriangle size={32} className="text-red-600" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-3">Access Denied</h1>
+          <p className="text-gray-600 mb-6">
+            {authError}. Please log in with an admin account.
+          </p>
+          <button
+            onClick={() => window.location.href = '/login'}
+            className="inline-flex items-center gap-2 px-6 py-3 bg-brand-600 text-white font-medium rounded-lg hover:bg-brand-700 transition-all"
+          >
+            <RefreshCw size={18} />
+            Go to Login
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-gray-50 min-h-screen">
