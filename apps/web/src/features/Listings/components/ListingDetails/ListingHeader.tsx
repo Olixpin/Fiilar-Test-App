@@ -30,10 +30,18 @@ export const ListingHeader: React.FC<ListingHeaderProps> = ({ listing }) => {
         </div>
 
         {/* Instant Book */}
-        <div className="inline-flex items-center gap-1.5 bg-green-50 text-green-700 px-3 py-1.5 rounded-lg text-xs font-semibold border border-green-200">
-          <Zap size={14} className="text-green-600 fill-green-600" />
-          <span>Instant Book</span>
-        </div>
+        {/* Instant Book or Approval Time */}
+        {listing.settings?.instantBook ? (
+          <div className="inline-flex items-center gap-1.5 bg-green-50 text-green-700 px-3 py-1.5 rounded-lg text-xs font-semibold border border-green-200">
+            <Zap size={14} className="text-green-600 fill-green-600" />
+            <span>Instant Book</span>
+          </div>
+        ) : listing.approvalTime ? (
+          <div className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg text-xs font-semibold border border-blue-200">
+            <Clock size={14} className="text-blue-600" />
+            <span>Responds in {listing.approvalTime}</span>
+          </div>
+        ) : null}
       </div>
 
       <div className="flex flex-row flex-wrap items-center gap-3 text-sm">

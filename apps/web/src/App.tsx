@@ -61,7 +61,10 @@ const ListingDetailsRoute: React.FC<{
   );
 };
 
+import { useBookingExpiry } from './features/Bookings/hooks/useBookingExpiry';
+
 const App: React.FC = () => {
+  useBookingExpiry();
   const [user, setUser] = useState<User | null>(null);
   const [listings, setListings] = useState<Listing[]>([]);
   const [allUsers, setAllUsers] = useState<User[]>([]);

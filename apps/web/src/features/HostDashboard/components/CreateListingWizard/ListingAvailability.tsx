@@ -2,7 +2,7 @@ import React from 'react';
 import { Listing, BookingType, Booking, CancellationPolicy } from '@fiilar/types';
 import { Button } from '@fiilar/ui';
 import {
-    ArrowRight, Briefcase, X, Plus, FileText, PackagePlus, Settings, Repeat, Zap, Shield, Image
+    ArrowRight, Briefcase, X, Plus, FileText, PackagePlus, Settings, Repeat, Zap, Shield, Image, Clock
 } from 'lucide-react';
 
 const SAFETY_OPTIONS = ['Smoke Alarm', 'Carbon Monoxide Alarm', 'Fire Extinguisher', 'First Aid Kit', 'Emergency Exit'];
@@ -292,230 +292,260 @@ inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow
                                         />
                                     </button>
                                 </div>
-
-                                {/* Cancellation Policy Dropdown */}
-                                <div>
-                                    <label className="text-sm font-medium text-gray-900 mb-2 flex items-center gap-2">
-                                        <Shield size={16} className="text-gray-400" /> Cancellation Policy
-                                    </label>
-                                    <div className="relative">
-                                        <select
-                                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none appearance-none bg-white transition-all hover:border-gray-300 cursor-pointer text-sm"
-                                            value={newListing.cancellationPolicy || CancellationPolicy.MODERATE}
-                                            onChange={(e) => setNewListing({ ...newListing, cancellationPolicy: e.target.value as CancellationPolicy })}
-                                            title="Cancellation Policy"
-                                        >
-                                            <option value={CancellationPolicy.FLEXIBLE}>Flexible (Full refund 24h prior)</option>
-                                            <option value={CancellationPolicy.MODERATE}>Moderate (Full refund 5 days prior)</option>
-                                            <option value={CancellationPolicy.STRICT}>Strict (No refund)</option>
-                                            <option value={CancellationPolicy.NON_REFUNDABLE}>Non-refundable</option>
-                                        </select>
-                                        <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none">
-                                            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                            </svg>
-                                        </div>
-                                    </div>
-                                    <p className="text-xs text-gray-500 mt-1.5">
-                                        {newListing.cancellationPolicy === CancellationPolicy.FLEXIBLE && "Guests get a full refund if they cancel at least 24 hours before check-in."}
-                                        {newListing.cancellationPolicy === CancellationPolicy.MODERATE && "Guests get a full refund if they cancel at least 5 days before check-in."}
-                                        {newListing.cancellationPolicy === CancellationPolicy.STRICT && "No refunds are provided for cancellations."}
-                                        {newListing.cancellationPolicy === CancellationPolicy.NON_REFUNDABLE && "Bookings are non-refundable under any circumstances."}
-                                        {!newListing.cancellationPolicy && "Guests get a full refund if they cancel at least 5 days before check-in."}
-                                    </p>
-                                </div>
                             </div>
                         </div>
 
-                        {/* House Rules Card */}
-                        <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-sm overflow-hidden">
-                            <div className="bg-linear-to-r from-gray-50 to-gray-100 px-5 py-4 border-b border-gray-200">
-                                <label className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                                    <FileText size={16} className="text-brand-600" />
-                                    House Rules
+                        {/* Approval Time (Only if Instant Book is OFF) */}
+                        {!newListing.settings?.instantBook && (
+                            <div className="animate-in fade-in slide-in-from-top-2">
+                                <label className="text-sm font-medium text-gray-900 mb-2 flex items-center gap-2">
+                                    <Clock size={16} className="text-gray-400" /> Approval Time
                                 </label>
-                                <p className="text-xs text-gray-600 mt-1">Set clear expectations for your guests</p>
-                            </div>
-                            <div className="p-5">
-                                <div className="flex gap-2 mb-4">
-                                    <input
-                                        type="text"
-                                        className="flex-1 p-3 text-sm border-2 border-gray-200 rounded-xl outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-all"
-                                        placeholder="e.g. No smoking, No pets..."
-                                        value={tempRule}
-                                        onChange={(e) => setTempRule(e.target.value)}
-                                        onKeyDown={(e) => e.key === 'Enter' && handleAddRule()}
-                                    />
-                                    <Button
-                                        onClick={handleAddRule}
-                                        variant="primary"
-                                        className="p-3"
-                                        title="Add rule"
+                                <div className="relative">
+                                    <select
+                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none appearance-none bg-white transition-all hover:border-gray-300 cursor-pointer text-sm"
+                                        value={newListing.approvalTime || ''}
+                                        onChange={(e) => setNewListing({ ...newListing, approvalTime: e.target.value })}
+                                        title="Approval Time"
                                     >
-                                        <Plus size={20} />
-                                    </Button>
-                                </div>
-                                <div className="space-y-2">
-                                    {newListing.houseRules?.map((rule, idx) => (
-                                        <div key={idx} className="flex items-center justify-between p-3.5 bg-linear-to-r from-gray-50 to-gray-100 rounded-xl text-sm group hover:shadow-sm transition-all border border-gray-200">
-                                            <span className="font-medium text-gray-900">{rule}</span>
-                                            <Button
-                                                onClick={() => handleRemoveRule(idx)}
-                                                variant="ghost"
-                                                size="sm"
-                                                className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all hover:scale-110 p-1 h-auto min-w-0"
-                                                title="Remove rule"
-                                            >
-                                                <X size={18} />
-                                            </Button>
-                                        </div>
-                                    ))}
-                                    {(!newListing.houseRules || newListing.houseRules.length === 0) && (
-                                        <p className="text-xs text-gray-400 italic text-center py-4">No rules added yet. Add your first rule above.</p>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Optional Add-Ons Card */}
-                        <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-sm overflow-hidden">
-                            <div className="bg-linear-to-r from-gray-50 to-gray-100 px-5 py-4 border-b border-gray-200">
-                                <label className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                                    <PackagePlus size={16} className="text-brand-600" />
-                                    Optional Extras
-                                </label>
-                                <p className="text-xs text-gray-600 mt-1">Add items or services guests can rent (e.g. Cameras, Lighting, Cleaning).</p>
-                            </div>
-                            <div className="p-5">
-                                <div className="flex flex-col gap-3 mb-4">
-                                    <div className="flex gap-3">
-                                        {/* Image Upload */}
-                                        <div className="relative w-12 h-12 bg-gray-100 rounded-xl overflow-hidden border-2 border-gray-200 flex items-center justify-center shrink-0 hover:border-brand-300 transition-colors group">
-                                            {tempAddOn.image ? (
-                                                <img src={tempAddOn.image} alt="Preview" className="w-full h-full object-cover" />
-                                            ) : (
-                                                <Image size={20} className="text-gray-400 group-hover:text-brand-500" />
-                                            )}
-                                            <input
-                                                type="file"
-                                                accept="image/*"
-                                                className="absolute inset-0 opacity-0 cursor-pointer"
-                                                onChange={(e) => {
-                                                    const file = e.target.files?.[0];
-                                                    if (file) {
-                                                        const reader = new FileReader();
-                                                        reader.onloadend = () => {
-                                                            setTempAddOn({ ...tempAddOn, image: reader.result as string });
-                                                        };
-                                                        reader.readAsDataURL(file);
-                                                    }
-                                                }}
-                                                title="Upload image"
-                                            />
-                                        </div>
-
-                                        {/* Name Input */}
-                                        <input
-                                            type="text"
-                                            className="flex-1 p-3 text-sm border-2 border-gray-200 rounded-xl outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-all"
-                                            placeholder="Item Name (e.g. Camera, Cleaning)"
-                                            value={tempAddOn.name}
-                                            onChange={(e) => setTempAddOn({ ...tempAddOn, name: e.target.value })}
-                                        />
-                                    </div>
-
-                                    <div className="flex gap-3">
-                                        {/* Price Input */}
-                                        <div className="relative flex-1">
-                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-sm">$</span>
-                                            <input
-                                                type="number"
-                                                className="w-full pl-8 pr-3 py-3 text-sm border-2 border-gray-200 rounded-xl outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-all"
-                                                placeholder="Price"
-                                                value={tempAddOn.price}
-                                                onChange={(e) => setTempAddOn({ ...tempAddOn, price: e.target.value })}
-                                            />
-                                        </div>
-
-                                        {/* Add Button */}
-                                        <Button
-                                            onClick={handleAddAddOn}
-                                            variant="primary"
-                                            leftIcon={<Plus size={20} />}
-                                            className="px-6"
-                                        >
-                                            Add
-                                        </Button>
+                                        <option value="" disabled>Select typical response time</option>
+                                        <option value="0-15 mins">0-15 mins</option>
+                                        <option value="15-30 mins">15-30 mins</option>
+                                        <option value="30-60 mins">30-60 mins</option>
+                                    </select>
+                                    <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none">
+                                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                        </svg>
                                     </div>
                                 </div>
-                                <div className="space-y-2">
-                                    {newListing.addOns?.map((addon) => (
-                                        <div key={addon.id} className="flex items-center justify-between p-3.5 bg-linear-to-r from-green-50 to-emerald-50 rounded-xl text-sm group hover:shadow-sm transition-all border border-green-200">
-                                            <div className="flex items-center gap-3">
-                                                {addon.image && (
-                                                    <img src={addon.image} alt={addon.name} className="w-10 h-10 rounded-lg object-cover border border-green-200" />
-                                                )}
-                                                <div>
-                                                    <span className="font-semibold text-gray-900 block">{addon.name}</span>
-                                                    <span className="text-green-700 font-bold">${addon.price}</span>
-                                                </div>
-                                            </div>
-                                            <Button
-                                                onClick={() => handleRemoveAddOn(addon.id)}
-                                                variant="ghost"
-                                                size="sm"
-                                                className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all hover:scale-110 p-1 h-auto min-w-0"
-                                                title="Remove add-on"
-                                            >
-                                                <X size={18} />
-                                            </Button>
-                                        </div>
-                                    ))}
-                                    {(!newListing.addOns || newListing.addOns.length === 0) && (
-                                        <p className="text-xs text-gray-400 italic text-center py-4">No add-ons yet. Offer extras like equipment or services.</p>
-                                    )}
-                                </div>
+                                <p className="text-xs text-gray-500 mt-1.5">
+                                    Let guests know how quickly you usually respond to booking requests.
+                                </p>
                             </div>
-                        </div>
+                        )}
 
-                        {/* Safety Items */}
+                        {/* Cancellation Policy Dropdown */}
                         <div>
-                            <label className="block text-sm font-bold text-gray-900 mb-2">Safety Items</label>
-                            <div className="flex flex-wrap gap-2 mb-3">
-                                {SAFETY_OPTIONS.map(item => (
-                                    <button
-                                        key={item}
-                                        onClick={() => toggleSafetyItem(item)}
-                                        className={`px-3 py-1 text-xs rounded-full border transition-colors ${newListing.safetyItems?.includes(item) ? 'bg-brand-600 text-white border-brand-600' : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'}`}
-                                    >
-                                        {item}
-                                    </button>
-                                ))}
+                            <label className="text-sm font-medium text-gray-900 mb-2 flex items-center gap-2">
+                                <Shield size={16} className="text-gray-400" /> Cancellation Policy
+                            </label>
+                            <div className="relative">
+                                <select
+                                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none appearance-none bg-white transition-all hover:border-gray-300 cursor-pointer text-sm"
+                                    value={newListing.cancellationPolicy || CancellationPolicy.MODERATE}
+                                    onChange={(e) => setNewListing({ ...newListing, cancellationPolicy: e.target.value as CancellationPolicy })}
+                                    title="Cancellation Policy"
+                                >
+                                    <option value={CancellationPolicy.FLEXIBLE}>Flexible (Full refund 24h prior)</option>
+                                    <option value={CancellationPolicy.MODERATE}>Moderate (Full refund 5 days prior)</option>
+                                    <option value={CancellationPolicy.STRICT}>Strict (No refund)</option>
+                                    <option value={CancellationPolicy.NON_REFUNDABLE}>Non-refundable</option>
+                                </select>
+                                <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none">
+                                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </div>
                             </div>
-                            <div className="flex gap-2">
-                                <input
-                                    type="text"
-                                    className="flex-1 p-2 text-sm border border-gray-300 rounded-lg outline-none"
-                                    placeholder="Add custom safety item..."
-                                    value={customSafety}
-                                    onChange={(e) => setCustomSafety(e.target.value)}
-                                    onKeyDown={(e) => e.key === 'Enter' && handleAddCustomSafety()}
-                                />
-                                <button onClick={handleAddCustomSafety} className="p-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200" title="Add custom safety item"><Plus size={18} /></button>
-                            </div>
-
-                            {/* Display Custom Items */}
-                            <div className="flex flex-wrap gap-2 mt-2">
-                                {newListing.safetyItems?.filter(i => !SAFETY_OPTIONS.includes(i)).map((item, i) => (
-                                    <div key={i} className="flex items-center gap-1 px-2 py-1 bg-brand-50 text-brand-800 rounded-full text-xs border border-brand-100">
-                                        <span>{item}</span>
-                                        <button onClick={() => toggleSafetyItem(item)} className="hover:text-red-600" title="Remove custom safety item"><X size={10} /></button>
-                                    </div>
-                                ))}
-                            </div>
+                            <p className="text-xs text-gray-500 mt-1.5">
+                                {newListing.cancellationPolicy === CancellationPolicy.FLEXIBLE && "Guests get a full refund if they cancel at least 24 hours before check-in."}
+                                {newListing.cancellationPolicy === CancellationPolicy.MODERATE && "Guests get a full refund if they cancel at least 5 days before check-in."}
+                                {newListing.cancellationPolicy === CancellationPolicy.STRICT && "No refunds are provided for cancellations."}
+                                {newListing.cancellationPolicy === CancellationPolicy.NON_REFUNDABLE && "Bookings are non-refundable under any circumstances."}
+                                {!newListing.cancellationPolicy && "Guests get a full refund if they cancel at least 5 days before check-in."}
+                            </p>
                         </div>
                     </div>
                 )}
+
+                {/* House Rules Card */}
+                <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-sm overflow-hidden">
+                    <div className="bg-linear-to-r from-gray-50 to-gray-100 px-5 py-4 border-b border-gray-200">
+                        <label className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                            <FileText size={16} className="text-brand-600" />
+                            House Rules
+                        </label>
+                        <p className="text-xs text-gray-600 mt-1">Set clear expectations for your guests</p>
+                    </div>
+                    <div className="p-5">
+                        <div className="flex gap-2 mb-4">
+                            <input
+                                type="text"
+                                className="flex-1 p-3 text-sm border-2 border-gray-200 rounded-xl outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-all"
+                                placeholder="e.g. No smoking, No pets..."
+                                value={tempRule}
+                                onChange={(e) => setTempRule(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && handleAddRule()}
+                            />
+                            <Button
+                                onClick={handleAddRule}
+                                variant="primary"
+                                className="p-3"
+                                title="Add rule"
+                            >
+                                <Plus size={20} />
+                            </Button>
+                        </div>
+                        <div className="space-y-2">
+                            {newListing.houseRules?.map((rule, idx) => (
+                                <div key={idx} className="flex items-center justify-between p-3.5 bg-linear-to-r from-gray-50 to-gray-100 rounded-xl text-sm group hover:shadow-sm transition-all border border-gray-200">
+                                    <span className="font-medium text-gray-900">{rule}</span>
+                                    <Button
+                                        onClick={() => handleRemoveRule(idx)}
+                                        variant="ghost"
+                                        size="sm"
+                                        className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all hover:scale-110 p-1 h-auto min-w-0"
+                                        title="Remove rule"
+                                    >
+                                        <X size={18} />
+                                    </Button>
+                                </div>
+                            ))}
+                            {(!newListing.houseRules || newListing.houseRules.length === 0) && (
+                                <p className="text-xs text-gray-400 italic text-center py-4">No rules added yet. Add your first rule above.</p>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Optional Add-Ons Card */}
+                <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-sm overflow-hidden">
+                    <div className="bg-linear-to-r from-gray-50 to-gray-100 px-5 py-4 border-b border-gray-200">
+                        <label className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                            <PackagePlus size={16} className="text-brand-600" />
+                            Optional Extras
+                        </label>
+                        <p className="text-xs text-gray-600 mt-1">Add items or services guests can rent (e.g. Cameras, Lighting, Cleaning).</p>
+                    </div>
+                    <div className="p-5">
+                        <div className="flex flex-col gap-3 mb-4">
+                            <div className="flex gap-3">
+                                {/* Image Upload */}
+                                <div className="relative w-12 h-12 bg-gray-100 rounded-xl overflow-hidden border-2 border-gray-200 flex items-center justify-center shrink-0 hover:border-brand-300 transition-colors group">
+                                    {tempAddOn.image ? (
+                                        <img src={tempAddOn.image} alt="Preview" className="w-full h-full object-cover" />
+                                    ) : (
+                                        <Image size={20} className="text-gray-400 group-hover:text-brand-500" />
+                                    )}
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        className="absolute inset-0 opacity-0 cursor-pointer"
+                                        onChange={(e) => {
+                                            const file = e.target.files?.[0];
+                                            if (file) {
+                                                const reader = new FileReader();
+                                                reader.onloadend = () => {
+                                                    setTempAddOn({ ...tempAddOn, image: reader.result as string });
+                                                };
+                                                reader.readAsDataURL(file);
+                                            }
+                                        }}
+                                        title="Upload image"
+                                    />
+                                </div>
+
+                                {/* Name Input */}
+                                <input
+                                    type="text"
+                                    className="flex-1 p-3 text-sm border-2 border-gray-200 rounded-xl outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-all"
+                                    placeholder="Item Name (e.g. Camera, Cleaning)"
+                                    value={tempAddOn.name}
+                                    onChange={(e) => setTempAddOn({ ...tempAddOn, name: e.target.value })}
+                                />
+                            </div>
+
+                            <div className="flex gap-3">
+                                {/* Price Input */}
+                                <div className="relative flex-1">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-sm">$</span>
+                                    <input
+                                        type="number"
+                                        className="w-full pl-8 pr-3 py-3 text-sm border-2 border-gray-200 rounded-xl outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-all"
+                                        placeholder="Price"
+                                        value={tempAddOn.price}
+                                        onChange={(e) => setTempAddOn({ ...tempAddOn, price: e.target.value })}
+                                    />
+                                </div>
+
+                                {/* Add Button */}
+                                <Button
+                                    onClick={handleAddAddOn}
+                                    variant="primary"
+                                    leftIcon={<Plus size={20} />}
+                                    className="px-6"
+                                >
+                                    Add
+                                </Button>
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            {newListing.addOns?.map((addon) => (
+                                <div key={addon.id} className="flex items-center justify-between p-3.5 bg-linear-to-r from-green-50 to-emerald-50 rounded-xl text-sm group hover:shadow-sm transition-all border border-green-200">
+                                    <div className="flex items-center gap-3">
+                                        {addon.image && (
+                                            <img src={addon.image} alt={addon.name} className="w-10 h-10 rounded-lg object-cover border border-green-200" />
+                                        )}
+                                        <div>
+                                            <span className="font-semibold text-gray-900 block">{addon.name}</span>
+                                            <span className="text-green-700 font-bold">${addon.price}</span>
+                                        </div>
+                                    </div>
+                                    <Button
+                                        onClick={() => handleRemoveAddOn(addon.id)}
+                                        variant="ghost"
+                                        size="sm"
+                                        className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all hover:scale-110 p-1 h-auto min-w-0"
+                                        title="Remove add-on"
+                                    >
+                                        <X size={18} />
+                                    </Button>
+                                </div>
+                            ))}
+                            {(!newListing.addOns || newListing.addOns.length === 0) && (
+                                <p className="text-xs text-gray-400 italic text-center py-4">No add-ons yet. Offer extras like equipment or services.</p>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Safety Items */}
+                <div>
+                    <label className="block text-sm font-bold text-gray-900 mb-2">Safety Items</label>
+                    <div className="flex flex-wrap gap-2 mb-3">
+                        {SAFETY_OPTIONS.map(item => (
+                            <button
+                                key={item}
+                                onClick={() => toggleSafetyItem(item)}
+                                className={`px-3 py-1 text-xs rounded-full border transition-colors ${newListing.safetyItems?.includes(item) ? 'bg-brand-600 text-white border-brand-600' : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'}`}
+                            >
+                                {item}
+                            </button>
+                        ))}
+                    </div>
+                    <div className="flex gap-2">
+                        <input
+                            type="text"
+                            className="flex-1 p-2 text-sm border border-gray-300 rounded-lg outline-none"
+                            placeholder="Add custom safety item..."
+                            value={customSafety}
+                            onChange={(e) => setCustomSafety(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleAddCustomSafety()}
+                        />
+                        <button onClick={handleAddCustomSafety} className="p-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200" title="Add custom safety item"><Plus size={18} /></button>
+                    </div>
+
+                    {/* Display Custom Items */}
+                    <div className="flex flex-wrap gap-2 mt-2">
+                        {newListing.safetyItems?.filter(i => !SAFETY_OPTIONS.includes(i)).map((item, i) => (
+                            <div key={i} className="flex items-center gap-1 px-2 py-1 bg-brand-50 text-brand-800 rounded-full text-xs border border-brand-100">
+                                <span>{item}</span>
+                                <button onClick={() => toggleSafetyItem(item)} className="hover:text-red-600" title="Remove custom safety item"><X size={10} /></button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
             </div>
 
             {/* Navigation */}

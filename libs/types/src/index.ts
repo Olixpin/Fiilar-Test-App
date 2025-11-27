@@ -139,6 +139,7 @@ export interface Listing {
   cancellationPolicy?: CancellationPolicy;
   houseRules?: string[];
   safetyItems?: string[];
+  approvalTime?: string; // e.g. "0-15 mins", "1-2 hours"
 
   // Ratings
   rating?: number;
