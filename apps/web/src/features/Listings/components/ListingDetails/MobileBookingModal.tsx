@@ -192,7 +192,7 @@ export const MobileBookingModal: React.FC<MobileBookingModalProps> = ({
                         <div key={i} className={`flex items-center gap-1 truncate ${item.status !== 'AVAILABLE' ? 'text-red-500 font-medium' : 'text-gray-500'}`}>
                           {item.status === 'AVAILABLE' ? <CheckCircle size={10} className="text-green-500" /> : <X size={10} />}
                           <span>{item.date.slice(5)}</span>
-                          {item.status !== 'AVAILABLE' && <span className="text-[8px] uppercase ml-auto border border-red-200 px-1 rounded">Blocked</span>}
+                          {item.status !== 'AVAILABLE' && <span className="text-[8px] uppercase ml-auto border border-red-200 px-1 rounded">Booked</span>}
                         </div>
                       ))}
                     </div>

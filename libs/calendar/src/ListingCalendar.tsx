@@ -106,10 +106,10 @@ export const ListingCalendar: React.FC<ListingCalendarProps> = ({
                 })}
             </div>
             <div className="mt-3 flex flex-wrap items-center justify-center gap-3 text-[10px] text-gray-500 border-t border-gray-100 pt-3">
-                <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-gray-900"></div> Start</div>
+                <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-gray-900"></div> Available</div>
                 {isRecurring && <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-brand-200 border border-brand-300"></div> Series</div>}
                 {isRecurring && <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-red-200 border border-red-300"></div> Conflict</div>}
-                <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-gray-200"></div> Blocked</div>
+                <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-gray-200"></div> Booked</div>
             </div>
         </div>
     );

@@ -368,7 +368,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                                                     <span className="truncate">{item.date.slice(5)}</span>
                                                                     {item.status !== 'AVAILABLE' && (
                                                                         <span className="ml-auto text-[10px] uppercase bg-red-50 text-red-600 px-1.5 py-0.5 rounded border border-red-200">
-                                                                            BLOCKED
+                                                                            BOOKED
                                                                         </span>
                                                                     )}
                                                                 </div>
