@@ -160,14 +160,29 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onSearch, searchTerm, o
 
           {/* Right Side */}
           <div className="hidden md:flex items-center gap-2 justify-end min-w-[150px] lg:min-w-[200px] xl:min-w-[250px]">
-            {!user && (
+            {!user ? (
+              <>
+                <button
+                  onClick={onBecomeHost}
+                  className="text-gray-900 hover:bg-gray-100 px-4 py-2 rounded-full text-sm font-semibold transition-colors"
+                >
+                  Host your home
+                </button>
+                <button
+                  onClick={onLogin}
+                  className="text-gray-900 hover:bg-gray-100 px-4 py-2 rounded-full text-sm font-semibold transition-colors"
+                >
+                  Log in
+                </button>
+              </>
+            ) : user.role === Role.USER ? (
               <button
-                onClick={onBecomeHost}
+                onClick={() => onSwitchRole?.(Role.HOST)}
                 className="text-gray-900 hover:bg-gray-100 px-4 py-2 rounded-full text-sm font-semibold transition-colors"
               >
-                Become a host
+                Switch to hosting
               </button>
-            )}
+            ) : null}
 
             {/* Notification Bell */}
             {user && (
