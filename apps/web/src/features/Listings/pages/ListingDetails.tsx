@@ -156,6 +156,7 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
           <button
             onClick={onBack}
             className="p-2 -ml-2 hover:bg-gray-100 rounded-full transition-colors"
+            aria-label="Go back"
           >
             <ArrowLeft size={20} className="text-gray-700" />
           </button>
