@@ -33,6 +33,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ users, listings, refreshData })
     handleVerifyUser,
     handleUpdateBadgeStatus,
     handleApproveListing,
+    handleDeleteListing,
     openRejectionModal,
     handleRejectionSubmit,
     presetPhotographyOffer
@@ -111,10 +112,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ users, listings, refreshData })
 
             {activeTab === 'listings' && (
               <AdminListings
-                pendingListings={pendingListings}
                 listings={listings}
                 users={users}
                 handleApproveListing={handleApproveListing}
+                handleDeleteListing={handleDeleteListing}
                 openRejectionModal={openRejectionModal}
                 rejectionModal={rejectionModal}
                 setRejectionModal={setRejectionModal}

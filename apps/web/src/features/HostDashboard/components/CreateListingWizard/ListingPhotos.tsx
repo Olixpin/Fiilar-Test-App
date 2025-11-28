@@ -90,22 +90,43 @@ const ListingPhotos: React.FC<ListingPhotosProps> = ({
                 </div>
             ) : (
                 <div className="space-y-6">
-                    {/* Photo Grid */}
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                        {newListing.images.map((img, index) => (
-                            <div
-                                key={index}
-                                className={`
-                                relative rounded-2xl overflow-hidden group cursor-move bg-white border border-gray-200 shadow-sm
-                                ${draggedImageIndex === index ? 'opacity-50 ring-4 ring-brand-500 scale-95' : 'hover:shadow-xl hover:scale-[1.02] transition-all duration-300'}
-                                ${index === 0 ? 'col-span-2 row-span-2 aspect-video' : 'aspect-square'}
-                            `}
-                                draggable
-                                onDragStart={() => handleImageDragStart(index)}
-                                onDragOver={(e) => handleImageDragOver(e, index)}
-                                onDragEnd={handleImageDragEnd}
-                            >
-                                <img src={img} alt={`Listing photo ${index + 1}`} className="w-full h-full object-cover" />
+                    {/* Bento-style Photo Grid */}
+                    <div className="grid grid-cols-6 auto-rows-[120px] gap-2">
+                        {newListing.images.map((img, index) => {
+                            // Bento layout: first image is large, rest fill remaining space
+                            let gridClass = '';
+                            if (index === 0) {
+                                // Cover photo - large left side
+                                gridClass = 'col-span-4 row-span-3';
+                            } else if (index === 1 || index === 2) {
+                                // Two stacked on right of cover
+                                gridClass = 'col-span-2 row-span-1';
+                            } else if (index === 3) {
+                                // Third image - spans 2 rows on right
+                                gridClass = 'col-span-2 row-span-1';
+                            } else {
+                                // Remaining images - standard squares
+                                gridClass = 'col-span-2 row-span-1';
+                            }
+
+                            return (
+                                <div
+                                    key={index}
+                                    className={`
+                                        relative rounded-xl overflow-hidden group cursor-move bg-gray-100 
+                                        ${draggedImageIndex === index ? 'opacity-50 ring-4 ring-brand-500 scale-95' : 'hover:shadow-xl hover:scale-[1.01] transition-all duration-300'}
+                                        ${gridClass}
+                                    `}
+                                    draggable
+                                    onDragStart={() => handleImageDragStart(index)}
+                                    onDragOver={(e) => handleImageDragOver(e, index)}
+                                    onDragEnd={handleImageDragEnd}
+                                >
+                                    <img 
+                                        src={img} 
+                                        alt={`Listing photo ${index + 1}`} 
+                                        className="w-full h-full object-cover"
+                                    />
 
                                 {/* Overlay Actions */}
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -141,19 +162,23 @@ const ListingPhotos: React.FC<ListingPhotosProps> = ({
                                     </div>
                                 )}
                             </div>
-                        ))}
+                            );
+                        })}
 
-                        {/* Add More Button */}
-                        <label className={`
-                        aspect-square border-3 border-dashed border-gray-300 rounded-2xl flex flex-col items-center justify-center cursor-pointer 
-                        hover:border-brand-500 hover:bg-brand-50/30 transition-all duration-300 group bg-white/50 backdrop-blur-sm
-                        ${newListing.images.length === 0 ? 'hidden' : ''}
-                    `}>
+                        {/* Add More Button - Matches grid cell */}
+                        <label 
+                            className={`
+                                relative rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer 
+                                hover:border-brand-500 hover:bg-brand-50/30 transition-all duration-300 group bg-white/50 backdrop-blur-sm
+                                col-span-2 row-span-1
+                                ${newListing.images.length === 0 ? 'hidden' : ''}
+                            `}
+                        >
                             <input type="file" multiple accept="image/*" className="hidden" onChange={handleImageUpload} />
-                            <div className="p-4 bg-white rounded-full shadow-md group-hover:scale-110 transition-transform mb-3">
-                                <Plus size={24} className="text-brand-600" />
+                            <div className="p-3 bg-white rounded-full shadow-md group-hover:scale-110 transition-transform mb-1">
+                                <Plus size={20} className="text-brand-600" />
                             </div>
-                            <span className="text-sm text-gray-600 font-bold group-hover:text-brand-600 transition-colors">Add More</span>
+                            <span className="text-xs text-gray-600 font-bold group-hover:text-brand-600 transition-colors">Add More</span>
                         </label>
                     </div>
                 </div>

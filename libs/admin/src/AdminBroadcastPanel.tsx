@@ -3,12 +3,14 @@ import { Megaphone, Send, AlertTriangle, Info, CheckCircle } from 'lucide-react'
 import { addNotification } from '@fiilar/notifications';
 import { getAllUsers } from '@fiilar/storage';
 import { User } from '@fiilar/types';
+import { useToast } from '@fiilar/ui';
 
 interface AdminBroadcastPanelProps {
     adminId: string;
 }
 
 const AdminBroadcastPanel: React.FC<AdminBroadcastPanelProps> = ({ adminId }) => {
+    const { showToast } = useToast();
     const [title, setTitle] = useState('');
     const [message, setMessage] = useState('');
     const [severity, setSeverity] = useState<'info' | 'warning' | 'urgent'>('info');
@@ -20,7 +22,7 @@ const AdminBroadcastPanel: React.FC<AdminBroadcastPanelProps> = ({ adminId }) =>
         e.preventDefault();
 
         if (!title.trim() || !message.trim()) {
-            alert('Please fill in all fields');
+            showToast({ message: 'Please fill in all fields', type: 'error' });
             return;
         }
 
@@ -48,6 +50,7 @@ const AdminBroadcastPanel: React.FC<AdminBroadcastPanelProps> = ({ adminId }) =>
             });
 
             setSuccess(true);
+            showToast({ message: 'Broadcast sent successfully to all users', type: 'success' });
             setTimeout(() => {
                 setSuccess(false);
                 setTitle('');
@@ -56,7 +59,7 @@ const AdminBroadcastPanel: React.FC<AdminBroadcastPanelProps> = ({ adminId }) =>
                 setActionRequired(false);
             }, 3000);
         } catch (error) {
-            alert('Failed to send broadcast');
+            showToast({ message: 'Failed to send broadcast', type: 'error' });
             console.error(error);
         } finally {
             setIsSending(false);

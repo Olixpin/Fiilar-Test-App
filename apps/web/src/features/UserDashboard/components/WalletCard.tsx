@@ -4,12 +4,15 @@ import { paymentService } from '@fiilar/escrow';
 import { Transaction } from '@fiilar/types';
 import { ArrowDownToLine } from 'lucide-react';
 
+import { User } from '@fiilar/types';
+
 interface WalletCardProps {
+    user?: User | null;
     onTransactionComplete?: (transaction: Transaction) => void;
     refreshTrigger?: number;
 }
 
-export const WalletCard: React.FC<WalletCardProps> = ({ onTransactionComplete, refreshTrigger }) => {
+export const WalletCard: React.FC<WalletCardProps> = ({ user, onTransactionComplete, refreshTrigger }) => {
     const toast = useToast();
     const [balance, setBalance] = useState<number>(0);
     const [loading, setLoading] = useState(true);
@@ -44,6 +47,26 @@ export const WalletCard: React.FC<WalletCardProps> = ({ onTransactionComplete, r
             setBalance(prev => prev + Number(amount));
             setAmount('');
             if (onTransactionComplete) onTransactionComplete(tx);
+
+            // Create Notification
+            try {
+                const { addNotification } = await import('@fiilar/notifications');
+                addNotification({
+                    userId: user?.id || 'user_1', // Use actual user ID if available
+                    type: 'platform_update',
+                    title: 'Wallet Funded',
+                    message: `You have successfully added ₦${Number(amount).toLocaleString()} to your wallet.`,
+                    severity: 'info',
+                    read: false,
+                    actionRequired: false,
+                    metadata: {
+                        amount: Number(amount)
+                    }
+                });
+            } catch (err) {
+                console.error('Failed to create notification', err);
+            }
+
             toast.showToast({ message: 'Funds added successfully!', type: 'info' });
         } catch (error) {
             console.error('Failed to add funds', error);

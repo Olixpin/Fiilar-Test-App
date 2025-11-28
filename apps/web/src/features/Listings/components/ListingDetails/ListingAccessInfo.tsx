@@ -146,6 +146,46 @@ export const ListingAccessInfo: React.FC<ListingAccessInfoProps> = ({ listing })
                     </>
                 )}
             </div>
-        </div>
+
+            {/* Accessibility Features */}
+            {
+                listing.amenities && listing.amenities.some(a => ['Wheelchair Accessible', 'Step-free Access', 'Elevator', 'Wide Doorways'].includes(a.name)) && (
+                    <div className="mt-8">
+                        <h3 className="text-lg font-bold text-gray-900 mb-4">Accessibility</h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {listing.amenities
+                                .filter(a => ['Wheelchair Accessible', 'Step-free Access', 'Elevator', 'Wide Doorways'].includes(a.name))
+                                .map((amenity, index) => (
+                                    <div key={index} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
+                                        <div className="p-2 bg-white rounded-lg shadow-sm text-brand-600">
+                                            {/* You might want to map specific icons here */}
+                                            <span className="text-xl">♿</span>
+                                        </div>
+                                        <span className="font-medium text-gray-900">{amenity.name}</span>
+                                    </div>
+                                ))}
+                        </div>
+                    </div>
+                )
+            }
+
+            {/* Private Access Instructions (Host or Confirmed Guest only) */}
+            {
+                listing.accessInfo && (
+                    <div className="mt-8 p-6 bg-amber-50 rounded-2xl border border-amber-100">
+                        <h3 className="text-lg font-bold text-amber-900 mb-2 flex items-center gap-2">
+                            <span className="bg-amber-100 p-1.5 rounded-lg">🔑</span>
+                            Access Instructions
+                        </h3>
+                        <p className="text-sm text-amber-800 mb-4 font-medium">
+                            Private information for confirmed guests only.
+                        </p>
+                        <div className="bg-white/60 p-4 rounded-xl border border-amber-100 text-gray-800 whitespace-pre-wrap">
+                            {listing.accessInfo}
+                        </div>
+                    </div>
+                )
+            }
+        </div >
     );
 };

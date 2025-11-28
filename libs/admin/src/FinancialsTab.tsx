@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Listing, Booking, EscrowTransaction, PlatformFinancials } from '@fiilar/types';
-import { DollarSign, TrendingUp, Clock, ArrowUpRight, Download, RefreshCw } from 'lucide-react';
+import { DollarSign, TrendingUp, Clock, ArrowUpRight, Download, RefreshCw, ChevronDown, ChevronRight } from 'lucide-react';
 import { triggerManualReleaseCheck } from '@fiilar/escrow';
-import { useLocale } from '@fiilar/ui';
+import { useLocale, useToast } from '@fiilar/ui';
 
 interface FinancialsTabProps {
     financials: PlatformFinancials | null;
@@ -14,7 +14,9 @@ interface FinancialsTabProps {
 
 const FinancialsTab: React.FC<FinancialsTabProps> = ({ financials, bookings, transactions, listings, loading }) => {
     const { locale } = useLocale();
+    const { showToast } = useToast();
     const [isTriggering, setIsTriggering] = useState(false);
+    const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
     const handleManualRelease = async () => {
         setIsTriggering(true);
@@ -22,10 +24,10 @@ const FinancialsTab: React.FC<FinancialsTabProps> = ({ financials, bookings, tra
             await triggerManualReleaseCheck((bookingId, amount) => {
                 console.log(`✅ Manually released $${amount} for booking ${bookingId}`);
             });
-            alert('✅ Release check completed! Check console for details.');
+            showToast({ message: 'Release check completed! Check console for details.', type: 'success' });
             window.location.reload();
         } catch (error) {
-            alert('❌ Failed to trigger release check');
+            showToast({ message: 'Failed to trigger release check', type: 'error' });
             console.error(error);
         } finally {
             setIsTriggering(false);
@@ -121,31 +123,86 @@ const FinancialsTab: React.FC<FinancialsTabProps> = ({ financials, bookings, tra
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
-                            {bookings.filter(b => b.paymentStatus === 'Paid - Escrow').length === 0 ? (
-                                <tr>
-                                    <td colSpan={6} className="px-4 py-8 text-center text-gray-500">No funds in escrow</td>
-                                </tr>
-                            ) : (
-                                bookings.filter(b => b.paymentStatus === 'Paid - Escrow').map(booking => {
-                                    const listing = listings.find(l => l.id === booking.listingId);
+                            {(() => {
+                                const escrowBookings = bookings.filter(b => b.paymentStatus === 'Paid - Escrow');
+                                if (escrowBookings.length === 0) {
                                     return (
-                                        <tr key={booking.id} className="hover:bg-gray-50/50 transition-colors">
-                                            <td className="px-4 py-3 text-sm font-mono text-gray-600">{booking.id.slice(0, 8)}...</td>
-                                            <td className="px-4 py-3 text-sm text-gray-900">{listing?.title || 'Unknown'}</td>
-                                            <td className="px-4 py-3 text-sm text-gray-600">{new Date(booking.date).toLocaleDateString()}</td>
-                                            <td className="px-4 py-3 text-sm font-bold text-gray-900">{locale.currencySymbol}{booking.totalPrice.toFixed(2)}</td>
-                                            <td className="px-4 py-3">
-                                                <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-bold rounded-full">
-                                                    {booking.paymentStatus}
-                                                </span>
-                                            </td>
-                                            <td className="px-4 py-3 text-sm text-gray-600">
-                                                {booking.escrowReleaseDate ? new Date(booking.escrowReleaseDate).toLocaleString() : 'N/A'}
-                                            </td>
+                                        <tr>
+                                            <td colSpan={6} className="px-4 py-8 text-center text-gray-500">No funds in escrow</td>
                                         </tr>
                                     );
-                                })
-                            )}
+                                }
+
+                                const processedGroups = new Set<string>();
+                                return escrowBookings.map(booking => {
+                                    if (booking.groupId && processedGroups.has(booking.groupId)) return null;
+
+                                    const isGroup = !!booking.groupId;
+                                    const group = isGroup ? escrowBookings.filter(b => b.groupId === booking.groupId) : [booking];
+
+                                    if (isGroup) processedGroups.add(booking.groupId!);
+
+                                    const listing = listings.find(l => l.id === booking.listingId);
+                                    const totalAmount = group.reduce((sum, b) => sum + b.totalPrice, 0);
+                                    const isExpanded = isGroup && expandedGroups.has(booking.groupId!);
+
+                                    const toggleGroup = () => {
+                                        if (!booking.groupId) return;
+                                        const newExpanded = new Set(expandedGroups);
+                                        if (isExpanded) newExpanded.delete(booking.groupId);
+                                        else newExpanded.add(booking.groupId);
+                                        setExpandedGroups(newExpanded);
+                                    };
+
+                                    return (
+                                        <React.Fragment key={booking.id}>
+                                            <tr
+                                                className={`hover:bg-gray-50/50 transition-colors ${isGroup ? 'cursor-pointer bg-gray-50/30' : ''}`}
+                                                onClick={isGroup ? toggleGroup : undefined}
+                                            >
+                                                <td className="px-4 py-3 text-sm font-mono text-gray-600 flex items-center gap-2">
+                                                    {isGroup && (
+                                                        <button className="p-1 hover:bg-gray-200 rounded">
+                                                            {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                                                        </button>
+                                                    )}
+                                                    {isGroup ? `Group: ${booking.groupId?.slice(0, 8)}...` : `${booking.id.slice(0, 8)}...`}
+                                                </td>
+                                                <td className="px-4 py-3 text-sm text-gray-900">
+                                                    {listing?.title || 'Unknown'}
+                                                    {isGroup && <span className="ml-2 text-xs text-gray-500">({group.length} Sessions)</span>}
+                                                </td>
+                                                <td className="px-4 py-3 text-sm text-gray-600">
+                                                    {isGroup ? 'Multiple Dates' : new Date(booking.date).toLocaleDateString()}
+                                                </td>
+                                                <td className="px-4 py-3 text-sm font-bold text-gray-900">{locale.currencySymbol}{totalAmount.toFixed(2)}</td>
+                                                <td className="px-4 py-3">
+                                                    <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-bold rounded-full">
+                                                        Paid - Escrow
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 py-3 text-sm text-gray-600">
+                                                    {isGroup ? 'Various' : (booking.escrowReleaseDate ? new Date(booking.escrowReleaseDate).toLocaleString() : 'N/A')}
+                                                </td>
+                                            </tr>
+                                            {isExpanded && group.map(subBooking => (
+                                                <tr key={subBooking.id} className="bg-gray-50/50 border-l-4 border-brand-200">
+                                                    <td className="px-4 py-2 text-xs font-mono text-gray-500 pl-12">
+                                                        {subBooking.id.slice(0, 8)}...
+                                                    </td>
+                                                    <td className="px-4 py-2 text-xs text-gray-500">Session</td>
+                                                    <td className="px-4 py-2 text-xs text-gray-500">{new Date(subBooking.date).toLocaleDateString()}</td>
+                                                    <td className="px-4 py-2 text-xs font-medium text-gray-700">{locale.currencySymbol}{subBooking.totalPrice.toFixed(2)}</td>
+                                                    <td className="px-4 py-2"></td>
+                                                    <td className="px-4 py-2 text-xs text-gray-500">
+                                                        {subBooking.escrowReleaseDate ? new Date(subBooking.escrowReleaseDate).toLocaleString() : 'N/A'}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </React.Fragment>
+                                    );
+                                });
+                            })()}
                         </tbody>
                     </table>
                 </div>

@@ -144,12 +144,32 @@ export const UserBookingsTab: React.FC<UserBookingsTabProps> = ({
     }
   });
 
+  const getCount = (filterId: BookingFilter) => {
+    if (filterId === 'all') return displayItems.length;
+
+    return displayItems.filter(({ booking: b }) => {
+      const isPast = new Date(b.date) < new Date();
+      switch (filterId) {
+        case 'upcoming':
+          return (b.status === 'Confirmed' || b.status === 'Started') && !isPast;
+        case 'pending':
+          return b.status === 'Pending';
+        case 'completed':
+          return b.status === 'Completed' || (b.status === 'Confirmed' && isPast);
+        case 'cancelled':
+          return b.status === 'Cancelled';
+        default:
+          return false;
+      }
+    }).length;
+  };
+
   const filters: { id: BookingFilter; label: string }[] = [
-    { id: 'all', label: 'All Bookings' },
-    { id: 'upcoming', label: 'Upcoming' },
-    { id: 'pending', label: 'Pending' },
-    { id: 'completed', label: 'Completed' },
-    { id: 'cancelled', label: 'Cancelled' },
+    { id: 'all', label: `All Bookings (${getCount('all')})` },
+    { id: 'upcoming', label: `Upcoming (${getCount('upcoming')})` },
+    { id: 'pending', label: `Pending (${getCount('pending')})` },
+    { id: 'completed', label: `Completed (${getCount('completed')})` },
+    { id: 'cancelled', label: `Cancelled (${getCount('cancelled')})` },
   ];
 
   return (
@@ -337,7 +357,12 @@ export const UserBookingsTab: React.FC<UserBookingsTabProps> = ({
                         <div>
                           <p className="text-xs font-medium text-gray-500 uppercase">Date</p>
                           {isGroup ? (
-                            <p className="text-sm font-medium text-gray-900 mt-0.5">{group.length} Sessions</p>
+                            <div className="flex flex-col gap-1 mt-0.5">
+                              <p className="text-sm font-medium text-gray-900">{group.length} Sessions</p>
+                              <p className="text-xs text-gray-600 leading-relaxed">
+                                {group.map(s => new Date(s.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })).join(', ')}
+                              </p>
+                            </div>
                           ) : (
                             <p className="text-sm font-medium text-gray-900 mt-0.5">{new Date(b.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</p>
                           )}

@@ -12,6 +12,7 @@ import { analytics } from './services/analytics';
 import { LocaleProvider, useToast } from '@fiilar/ui';
 import { formatCurrency } from './utils/currency';
 import ScrollToTop from './components/common/ScrollToTop';
+import SupportModal from './components/common/SupportModal';
 
 const HostDashboard = lazy(() => import('./features/HostDashboard/pages/HostDashboardPage'));
 const UserDashboard = lazy(() => import('./features/UserDashboard/pages/UserDashboard'));
@@ -41,6 +42,7 @@ const ListingDetailsRoute: React.FC<{
 }> = ({ user, onBook, onVerify, onLogin, onRefreshUser }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [showSupportModal, setShowSupportModal] = useState(false);
 
   // IMPORTANT: Fetch listing directly from localStorage for freshest data
   // This ensures new tabs see the latest data, not stale React state
@@ -81,7 +83,58 @@ const ListingDetailsRoute: React.FC<{
   }, [id, user]);
 
   if (!listing) {
-    return <div>Listing not found</div>;
+    return (
+      <div className="min-h-[70vh] flex items-center justify-center px-4">
+        <div className="text-center max-w-md">
+          {/* Illustration */}
+          <div className="relative w-48 h-48 mx-auto mb-8">
+            <div className="absolute inset-0 bg-gradient-to-br from-orange-100 to-rose-100 rounded-full animate-pulse" />
+            <div className="absolute inset-4 bg-white rounded-full shadow-lg flex items-center justify-center">
+              <svg className="w-20 h-20 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              </svg>
+            </div>
+            <div className="absolute -top-2 -right-2 w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+              <svg className="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </div>
+          </div>
+
+          {/* Text Content */}
+          <h1 className="text-2xl font-bold text-gray-900 mb-3">
+            Listing Not Found
+          </h1>
+          <p className="text-gray-500 mb-8 leading-relaxed">
+            Oops! The space you're looking for doesn't exist or may have been removed by the host. Let's find you another amazing place.
+          </p>
+
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <button
+              onClick={() => navigate('/')}
+              className="px-6 py-3 bg-brand-600 text-white font-semibold rounded-xl hover:bg-brand-700 transition-colors shadow-lg shadow-brand-500/20"
+            >
+              Explore Spaces
+            </button>
+            <button
+              onClick={() => navigate(-1)}
+              className="px-6 py-3 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-colors"
+            >
+              Go Back
+            </button>
+          </div>
+
+          {/* Help Link */}
+          <p className="mt-8 text-sm text-gray-400">
+            Need help? <button onClick={() => setShowSupportModal(true)} className="text-brand-600 hover:underline">Contact Support</button>
+          </p>
+
+          {/* Support Modal */}
+          <SupportModal isOpen={showSupportModal} onClose={() => setShowSupportModal(false)} />
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -292,14 +345,14 @@ const App: React.FC = () => {
     analytics.trackLogin(provider);
 
     // Only navigate if profile is complete
-    if (role === Role.HOST) {
+    if (u.role === Role.HOST) {
       // If host is not verified, guide them
       if (!u.kycVerified && !u.identityDocument) {
         navigate('/kyc');
       } else {
         navigate('/host/dashboard');
       }
-    } else if (role === Role.ADMIN) {
+    } else if (u.role === Role.ADMIN) {
       navigate('/admin');
     } else {
       // Role.USER

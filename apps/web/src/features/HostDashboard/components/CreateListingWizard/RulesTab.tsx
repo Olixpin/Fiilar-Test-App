@@ -743,6 +743,27 @@ const RulesTab: React.FC<RulesTabProps> = ({
                     ))}
                 </div>
             </div>
+
+            {/* Access Instructions (Private) */}
+            <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-sm overflow-hidden">
+                <div className="bg-linear-to-r from-amber-50 to-amber-100 px-5 py-4 border-b border-gray-200">
+                    <label className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                        <Settings size={16} className="text-amber-600" />
+                        Check-in Instructions (Private)
+                    </label>
+                    <p className="text-xs text-gray-600 mt-1">
+                        These details are only shared with confirmed guests.
+                    </p>
+                </div>
+                <div className="p-5">
+                    <textarea
+                        className="w-full p-4 border-2 border-gray-200 rounded-xl outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-all min-h-[120px] text-sm"
+                        placeholder="e.g. The key is in the lockbox code 1234. Enter through the side gate..."
+                        value={newListing.accessInfo || ''}
+                        onChange={(e) => setNewListing({ ...newListing, accessInfo: e.target.value })}
+                    />
+                </div>
+            </div>
         </div>
     );
 };

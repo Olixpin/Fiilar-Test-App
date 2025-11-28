@@ -53,18 +53,32 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings, onRefresh
   useEffect(() => {
     if (!user) return;
     const updateNotificationCount = () => {
+      console.log('🔔 Updating notification count for user:', user.id);
       // Assuming getUnreadCount is synchronous or we need to check its implementation. 
       // Navbar uses it synchronously: const count = getUnreadCount(user.id);
       // Let's verify if we need to import it first.
       import('@fiilar/notifications').then(({ getUnreadCount }) => {
         const count = getUnreadCount(user.id);
+        console.log('🔔 Unread count:', count);
         setUnreadNotifications(count);
       });
     };
 
     updateNotificationCount();
     const interval = setInterval(updateNotificationCount, 30000);
-    return () => clearInterval(interval);
+
+    // Listen for real-time notification updates
+    const handleNotificationEvent = (e: Event) => {
+      console.log('🔔 Notification event received!', (e as CustomEvent).detail);
+      updateNotificationCount();
+    };
+
+    window.addEventListener('fiilar:notification-updated', handleNotificationEvent);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('fiilar:notification-updated', handleNotificationEvent);
+    };
   }, [user]);
 
   const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -105,7 +119,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings, onRefresh
         setIsProfileMenuOpen(false);
       }
     };
-    
+
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setIsProfileMenuOpen(false);
@@ -477,203 +491,207 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings, onRefresh
           <div className="lg:max-w-[1600px] lg:mx-auto">
             <div className="bg-white rounded-t-[32px] lg:rounded-3xl min-h-full shadow-xl shadow-gray-200/50 -mx-4 lg:mx-0 px-4 sm:px-6 lg:px-8 py-8">
 
-            {activeTab === 'wallet' && (
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
-                {/* Left Column: Balance & Cards */}
-                <div className="lg:col-span-7 space-y-8">
-                  <section>
-                    <div className="flex items-center gap-3 mb-6">
-                      <div className="p-2 bg-brand-100 rounded-lg text-brand-600">
-                        <Wallet size={24} />
-                      </div>
-                      <h2 className="text-2xl font-bold text-gray-900">My Wallet</h2>
-                    </div>
-                    <WalletCard
-                      onTransactionComplete={() => setRefreshKey(prev => prev + 1)}
-                      refreshTrigger={refreshKey}
-                    />
-                  </section>
-
-                  <section>
-                    <div className="flex items-center gap-3 mb-6">
-                      <div className="p-2 bg-brand-100 rounded-lg text-brand-600">
-                        <CreditCard size={24} />
-                      </div>
-                      <h2 className="text-2xl font-bold text-gray-900">Payment Methods</h2>
-                    </div>
-                    <PaymentMethods />
-                  </section>
-                </div>
-
-                {/* Right Column: History */}
-                <div className="lg:col-span-5">
-                  <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 h-full">
-                    <TransactionHistory refreshTrigger={refreshKey} />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'home' && (
-              <UserHomeTab
-                user={user}
-                listings={listings}
-                onTabChange={setTab}
-              />
-            )}
-
-            {activeTab === 'explore' && (
-              <UserExploreTab listings={listings} initialSearchQuery={searchQuery} />
-            )}
-
-            {activeTab === 'favorites' && (
-              <UserFavoritesTab user={user} listings={listings} />
-            )}
-
-            {activeTab === 'bookings' && (
-              <UserBookingsTab
-                user={user}
-                listings={listings}
-                onMessageHost={handleMessageHost}
-                onCancelBooking={(booking, policy) => setCancellationModalBooking({ booking, policy })}
-                onReviewBooking={(bookingId, listingId, listingTitle) => setReviewModalBooking({ bookingId, listingId, listingTitle })}
-                onModifyBooking={(booking) => {
-                  console.log('onModifyBooking called in UserDashboard', booking);
-                  const listing = listings.find(l => l.id === booking.listingId);
-                  if (listing) {
-                    console.log('Listing found, opening modal', listing);
-                    setModifyModalBooking({ booking, listing });
-                  } else {
-                    console.error('Listing not found for booking', booking);
-                    showToast({ message: 'Error: Could not find listing details for this booking.', type: 'error' });
-                  }
-                }}
-              />
-            )}
-
-            {activeTab === 'reserve-list' && (
-              <UserReserveListTab
-                user={user}
-                listings={listings}
-                onUpdate={() => setRefreshKey(prev => prev + 1)}
-              />
-            )}
-
-            {activeTab === 'messages' && (
-              <div className="space-y-4 animate-in fade-in">
-                {/* Messages Header */}
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                    <div>
-                      <h2 className="text-xl font-bold text-gray-900">Messages</h2>
-                      <p className="text-sm text-gray-500 mt-1">Chat with hosts</p>
-                    </div>
-                    <div className="flex items-center gap-2 w-full sm:w-auto">
-                      <div className="relative flex-1 sm:flex-none sm:w-64">
-                        <input
-                          type="text"
-                          placeholder="Search conversations..."
-                          title="Search conversations"
-                          aria-label="Search conversations"
-                          className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none"
-                        />
-                        <MessageSquare size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Messages Container */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                  <div className="flex h-[600px]">
-                    {/* Conversation List */}
-                    <div className={`w-full md:w-2/5 lg:w-1/3 border-r border-gray-200 flex flex-col ${selectedConversationId ? 'hidden md:flex' : 'flex'}`}>
-                      <div className="p-4 border-b border-gray-200 bg-gray-50">
-                        <h3 className="font-bold text-gray-900 text-sm">Conversations</h3>
-                        <p className="text-xs text-gray-500 mt-1">{getConversations(user.id).filter(c => c.participants.includes(user.id)).length} active</p>
-                      </div>
-                      <div className="flex-1 overflow-y-auto">
-                        <ChatList
-                          currentUserId={user.id}
-                          selectedId={selectedConversationId}
-                          onSelect={setSelectedConversationId}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Chat Window */}
-                    <div className={`w-full md:w-3/5 lg:w-2/3 flex-col ${selectedConversationId ? 'flex' : 'hidden md:flex'}`}>
-                      {selectedConversationId ? (
-                        <ChatWindow
-                          conversationId={selectedConversationId}
-                          currentUserId={user.id}
-                          onBack={() => setSelectedConversationId(undefined)}
-                        />
-                      ) : (
-                        <div className="flex flex-col items-center justify-center h-full bg-gray-50">
-                          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                            <MessageSquare size={32} className="text-gray-400" />
-                          </div>
-                          <h3 className="font-bold text-gray-900 mb-2">No conversation selected</h3>
-                          <p className="text-sm text-gray-500 max-w-xs text-center">Choose a conversation from the list to start chatting with hosts</p>
+              {activeTab === 'wallet' && (
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
+                  {/* Left Column: Balance & Cards */}
+                  <div className="lg:col-span-7 space-y-8">
+                    <section>
+                      <div className="flex items-center gap-3 mb-6">
+                        <div className="p-2 bg-brand-100 rounded-lg text-brand-600">
+                          <Wallet size={24} />
                         </div>
-                      )}
+                        <h2 className="text-2xl font-bold text-gray-900">My Wallet</h2>
+                      </div>
+                      <WalletCard
+                        user={user}
+                        onTransactionComplete={() => {
+                          setRefreshKey(prev => prev + 1);
+                          onRefreshUser(); // Refresh user state to update wallet balance everywhere
+                        }}
+                        refreshTrigger={refreshKey}
+                      />
+                    </section>
+
+                    <section>
+                      <div className="flex items-center gap-3 mb-6">
+                        <div className="p-2 bg-brand-100 rounded-lg text-brand-600">
+                          <CreditCard size={24} />
+                        </div>
+                        <h2 className="text-2xl font-bold text-gray-900">Payment Methods</h2>
+                      </div>
+                      <PaymentMethods />
+                    </section>
+                  </div>
+
+                  {/* Right Column: History */}
+                  <div className="lg:col-span-5">
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 h-full">
+                      <TransactionHistory refreshTrigger={refreshKey} />
                     </div>
                   </div>
                 </div>
+              )}
 
-                {/* Quick Stats */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <MessageSquare size={20} className="text-blue-700" />
-                      </div>
+              {activeTab === 'home' && (
+                <UserHomeTab
+                  user={user}
+                  listings={listings}
+                  onTabChange={setTab}
+                />
+              )}
+
+              {activeTab === 'explore' && (
+                <UserExploreTab listings={listings} initialSearchQuery={searchQuery} />
+              )}
+
+              {activeTab === 'favorites' && (
+                <UserFavoritesTab user={user} listings={listings} />
+              )}
+
+              {activeTab === 'bookings' && (
+                <UserBookingsTab
+                  user={user}
+                  listings={listings}
+                  onMessageHost={handleMessageHost}
+                  onCancelBooking={(booking, policy) => setCancellationModalBooking({ booking, policy })}
+                  onReviewBooking={(bookingId, listingId, listingTitle) => setReviewModalBooking({ bookingId, listingId, listingTitle })}
+                  onModifyBooking={(booking) => {
+                    console.log('onModifyBooking called in UserDashboard', booking);
+                    const listing = listings.find(l => l.id === booking.listingId);
+                    if (listing) {
+                      console.log('Listing found, opening modal', listing);
+                      setModifyModalBooking({ booking, listing });
+                    } else {
+                      console.error('Listing not found for booking', booking);
+                      showToast({ message: 'Error: Could not find listing details for this booking.', type: 'error' });
+                    }
+                  }}
+                />
+              )}
+
+              {activeTab === 'reserve-list' && (
+                <UserReserveListTab
+                  user={user}
+                  listings={listings}
+                  onUpdate={() => setRefreshKey(prev => prev + 1)}
+                />
+              )}
+
+              {activeTab === 'messages' && (
+                <div className="space-y-4 animate-in fade-in">
+                  {/* Messages Header */}
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                       <div>
-                        <p className="text-xs text-gray-500 font-medium">Total Conversations</p>
-                        <p className="text-lg font-bold text-gray-900">{getConversations(user.id).filter(c => c.participants.includes(user.id)).length}</p>
+                        <h2 className="text-xl font-bold text-gray-900">Messages</h2>
+                        <p className="text-sm text-gray-500 mt-1">Chat with hosts</p>
+                      </div>
+                      <div className="flex items-center gap-2 w-full sm:w-auto">
+                        <div className="relative flex-1 sm:flex-none sm:w-64">
+                          <input
+                            type="text"
+                            placeholder="Search conversations..."
+                            title="Search conversations"
+                            aria-label="Search conversations"
+                            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none"
+                          />
+                          <MessageSquare size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                        </div>
                       </div>
                     </div>
                   </div>
-                  <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                        <CheckCircle size={20} className="text-green-700" />
+
+                  {/* Messages Container */}
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div className="flex h-[600px]">
+                      {/* Conversation List */}
+                      <div className={`w-full md:w-2/5 lg:w-1/3 border-r border-gray-200 flex flex-col ${selectedConversationId ? 'hidden md:flex' : 'flex'}`}>
+                        <div className="p-4 border-b border-gray-200 bg-gray-50">
+                          <h3 className="font-bold text-gray-900 text-sm">Conversations</h3>
+                          <p className="text-xs text-gray-500 mt-1">{getConversations(user.id).filter(c => c.participants.includes(user.id)).length} active</p>
+                        </div>
+                        <div className="flex-1 overflow-y-auto">
+                          <ChatList
+                            currentUserId={user.id}
+                            selectedId={selectedConversationId}
+                            onSelect={setSelectedConversationId}
+                          />
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-xs text-gray-500 font-medium">Unread Messages</p>
-                        <p className="text-lg font-bold text-gray-900">{getConversations(user.id).filter(c => c.participants.includes(user.id) && c.unreadCount && c.unreadCount > 0).length}</p>
+
+                      {/* Chat Window */}
+                      <div className={`w-full md:w-3/5 lg:w-2/3 flex-col ${selectedConversationId ? 'flex' : 'hidden md:flex'}`}>
+                        {selectedConversationId ? (
+                          <ChatWindow
+                            conversationId={selectedConversationId}
+                            currentUserId={user.id}
+                            onBack={() => setSelectedConversationId(undefined)}
+                          />
+                        ) : (
+                          <div className="flex flex-col items-center justify-center h-full bg-gray-50">
+                            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                              <MessageSquare size={32} className="text-gray-400" />
+                            </div>
+                            <h3 className="font-bold text-gray-900 mb-2">No conversation selected</h3>
+                            <p className="text-sm text-gray-500 max-w-xs text-center">Choose a conversation from the list to start chatting with hosts</p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
-                  <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                        <Clock size={20} className="text-purple-700" />
+
+                  {/* Quick Stats */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                          <MessageSquare size={20} className="text-blue-700" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 font-medium">Total Conversations</p>
+                          <p className="text-lg font-bold text-gray-900">{getConversations(user.id).filter(c => c.participants.includes(user.id)).length}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-xs text-gray-500 font-medium">Active Bookings</p>
-                        <p className="text-lg font-bold text-gray-900">{userBookings.filter(b => b.status === 'Confirmed').length}</p>
+                    </div>
+                    <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                          <CheckCircle size={20} className="text-green-700" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 font-medium">Unread Messages</p>
+                          <p className="text-lg font-bold text-gray-900">{getConversations(user.id).filter(c => c.participants.includes(user.id) && c.unreadCount && c.unreadCount > 0).length}</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                          <Clock size={20} className="text-purple-700" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 font-medium">Active Bookings</p>
+                          <p className="text-lg font-bold text-gray-900">{userBookings.filter(b => b.status === 'Confirmed').length}</p>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Settings Tab */}
-            {activeTab === 'settings' && (
-              <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
-                <Settings user={user} onUpdateUser={() => onRefreshUser()} onLogout={onLogout} />
-              </div>
-            )}
+              {/* Settings Tab */}
+              {activeTab === 'settings' && (
+                <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
+                  <Settings user={user} onUpdateUser={() => onRefreshUser()} onLogout={onLogout} />
+                </div>
+              )}
 
-            {/* Notifications Tab */}
-            {activeTab === 'notifications' && user && (
-              <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
-                <NotificationsPage userId={user.id} />
-              </div>
-            )}
+              {/* Notifications Tab */}
+              {activeTab === 'notifications' && user && (
+                <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
+                  <NotificationsPage userId={user.id} />
+                </div>
+              )}
 
             </div>
           </div>

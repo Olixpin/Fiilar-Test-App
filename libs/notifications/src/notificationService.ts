@@ -68,6 +68,11 @@ export const addNotification = (notification: Omit<Notification, 'id' | 'created
     localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(notifications));
 
     console.log('✅ API RESPONSE: Notification created', { id: newNotification.id });
+
+    // Dispatch event for real-time updates
+    if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('fiilar:notification-updated', { detail: { notification: newNotification } }));
+    }
 };
 
 /**

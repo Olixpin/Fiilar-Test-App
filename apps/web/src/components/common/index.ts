@@ -7,6 +7,7 @@ export { default as ErrorBoundary } from './ErrorBoundary';
 export { default as NotFound } from './NotFound';
 export { default as PrivacyPolicy } from './PrivacyPolicy';
 export { default as TermsAndConditions } from './TermsAndConditions';
+export { default as SupportModal } from './SupportModal';
 
 export type { InputProps } from './Input';
 export type { TextAreaProps } from './TextArea';

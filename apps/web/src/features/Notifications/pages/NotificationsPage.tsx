@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Bell, Check, Trash2, AlertTriangle, Calendar, MessageSquare, Star, Info, Settings } from 'lucide-react';
+import { Bell, Check, Trash2, AlertTriangle, Calendar, MessageSquare, Star, Info, Settings, Wallet } from 'lucide-react';
 import { Notification } from '@fiilar/types';
 import { getNotifications, markAllNotificationsAsRead, markNotificationAsRead, clearAllNotifications } from '@fiilar/notifications';
 import { useNavigate } from 'react-router-dom';
@@ -52,20 +52,54 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ userId }) => {
         }
 
         // Navigate based on notification type
-        if (notification.metadata?.link) {
-            navigate(notification.metadata.link);
-        } else if (notification.type === 'damage_report' && notification.metadata?.reportId) {
-            // Will navigate to damage report view
-            navigate(`/dashboard?tab=notifications&reportId=${notification.metadata.reportId}`);
-        }
+        // Navigate based on notification type
+        import('@fiilar/storage').then(({ getCurrentUser }) => {
+            const user = getCurrentUser();
+            const isHost = user?.role === 'HOST';
+
+            if (notification.type === 'booking') {
+                if (isHost) {
+                    navigate(`/host/dashboard?view=bookings&bookingId=${notification.metadata?.bookingId || ''}`);
+                } else {
+                    navigate(`/dashboard?tab=bookings&bookingId=${notification.metadata?.bookingId || ''}`);
+                }
+            } else if (notification.type === 'damage_report' && notification.metadata?.reportId) {
+                if (isHost) {
+                    // Navigate to notifications view in host dashboard for now, as specific damage report view might not exist
+                    navigate(`/host/dashboard?view=notifications&reportId=${notification.metadata.reportId}`);
+                } else {
+                    navigate(`/dashboard?tab=notifications&reportId=${notification.metadata.reportId}`);
+                }
+            } else if (notification.type === 'review') {
+                if (isHost) {
+                    navigate('/host/dashboard?view=listings');
+                } else {
+                    navigate(`/listing/${notification.metadata?.listingId}`);
+                }
+            } else if (notification.type === 'payment' || notification.type === 'payout') {
+                if (isHost) {
+                    navigate('/host/dashboard?view=payouts');
+                } else {
+                    navigate('/dashboard?tab=payments');
+                }
+            } else if (notification.metadata?.link) {
+                // Intercept generic links for hosts if they point to user dashboard
+                if (isHost && notification.metadata.link.startsWith('/dashboard')) {
+                    const target = notification.metadata.link.replace('/dashboard', '/host/dashboard').replace('tab=', 'view=');
+                    navigate(target);
+                } else {
+                    navigate(notification.metadata.link);
+                }
+            }
+        });
     };
 
-    const getIcon = (type: Notification['type'], severity: Notification['severity']) => {
-        if (severity === 'urgent') {
+    const getIcon = (notification: Notification) => {
+        if (notification.severity === 'urgent') {
             return <AlertTriangle size={24} className="text-red-600" />;
         }
 
-        switch (type) {
+        switch (notification.type) {
             case 'damage_report':
                 return <AlertTriangle size={24} className="text-red-600" />;
             case 'booking':
@@ -75,6 +109,9 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ userId }) => {
             case 'review':
                 return <Star size={24} className="text-yellow-600" />;
             case 'platform_update':
+                if (notification.title.includes('Wallet') || notification.message.includes('wallet')) {
+                    return <Wallet size={24} className="text-green-600" />;
+                }
                 return <Info size={24} className="text-brand-600" />;
             default:
                 return <Bell size={24} className="text-gray-600" />;
@@ -94,12 +131,12 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ userId }) => {
 
     const filteredNotifications = notifications.filter(n => {
         if (filter === 'unread') return !n.read;
-        if (filter === 'urgent') return n.severity === 'urgent';
+        if (filter === 'urgent') return n.severity === 'urgent' || n.severity === 'warning';
         return true;
     });
 
     const unreadCount = notifications.filter(n => !n.read).length;
-    const urgentCount = notifications.filter(n => n.severity === 'urgent').length;
+    const urgentCount = notifications.filter(n => n.severity === 'urgent' || n.severity === 'warning').length;
 
     // Group notifications by date
     const groupedNotifications = filteredNotifications.reduce((groups, notification) => {
@@ -222,7 +259,7 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ userId }) => {
                                 >
                                     <div className="flex gap-4">
                                         <div className="shrink-0 mt-1">
-                                            {getIcon(notification.type, notification.severity)}
+                                            {getIcon(notification)}
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-start justify-between gap-4 mb-1">

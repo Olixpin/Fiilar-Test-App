@@ -57,7 +57,8 @@ export enum ListingStatus {
   PENDING_KYC = 'Pending KYC',
   PENDING_APPROVAL = 'Pending Approval',
   LIVE = 'Live',
-  REJECTED = 'Rejected'
+  REJECTED = 'Rejected',
+  DELETED = 'Deleted'
 }
 
 export enum CancellationPolicy {

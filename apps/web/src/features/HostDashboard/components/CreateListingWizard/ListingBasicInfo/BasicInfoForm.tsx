@@ -134,7 +134,35 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({ newListing, setNewListing
                     <Select
                         label="Space Type"
                         value={newListing.type}
-                        onChange={(e) => setNewListing({ ...newListing, type: e.target.value as SpaceType })}
+                        onChange={(e) => {
+                            const type = e.target.value as SpaceType;
+                            const isHourlyType = [
+                                SpaceType.STUDIO,
+                                SpaceType.CONFERENCE,
+                                SpaceType.CO_WORKING,
+                                SpaceType.OPEN_SPACE
+                            ].includes(type);
+
+                            const pricingModel = isHourlyType ? PricingModel.HOURLY : PricingModel.NIGHTLY;
+                            const priceUnit = isHourlyType ? BookingType.HOURLY : BookingType.DAILY;
+
+                            let bookingConfig: any = {};
+                            if (pricingModel === PricingModel.HOURLY) {
+                                bookingConfig = { operatingHours: { start: '09:00', end: '18:00' }, bufferMinutes: 30, minHoursBooking: 1 };
+                            } else if (pricingModel === PricingModel.NIGHTLY) {
+                                bookingConfig = { checkInTime: '15:00', checkOutTime: '11:00', allowLateCheckout: false };
+                            } else {
+                                bookingConfig = { accessStartTime: '08:00', accessEndTime: '23:00', overnightAllowed: false };
+                            }
+
+                            setNewListing({
+                                ...newListing,
+                                type,
+                                pricingModel,
+                                priceUnit,
+                                bookingConfig
+                            });
+                        }}
                         variant="glass"
                         helperText="What type of space are you listing?"
                         disabled={activeBookings.length > 0}
@@ -184,7 +212,8 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({ newListing, setNewListing
                             onClick={() => setNewListing({
                                 ...newListing,
                                 pricingModel: PricingModel.NIGHTLY,
-                                priceUnit: BookingType.DAILY
+                                priceUnit: BookingType.DAILY,
+                                bookingConfig: { checkInTime: '15:00', checkOutTime: '11:00', allowLateCheckout: false }
                             })}
                             className={`p-4 rounded-xl border transition-all text-left relative overflow-hidden group ${newListing.pricingModel === PricingModel.NIGHTLY
                                 ? 'bg-brand-50/50 border-brand-500 shadow-lg shadow-brand-500/10'
@@ -205,7 +234,8 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({ newListing, setNewListing
                             onClick={() => setNewListing({
                                 ...newListing,
                                 pricingModel: PricingModel.DAILY,
-                                priceUnit: BookingType.DAILY
+                                priceUnit: BookingType.DAILY,
+                                bookingConfig: { accessStartTime: '08:00', accessEndTime: '23:00', overnightAllowed: false }
                             })}
                             className={`p-4 rounded-xl border transition-all text-left relative overflow-hidden group ${newListing.pricingModel === PricingModel.DAILY
                                 ? 'bg-brand-50/50 border-brand-500 shadow-lg shadow-brand-500/10'
@@ -226,7 +256,8 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({ newListing, setNewListing
                             onClick={() => setNewListing({
                                 ...newListing,
                                 pricingModel: PricingModel.HOURLY,
-                                priceUnit: BookingType.HOURLY
+                                priceUnit: BookingType.HOURLY,
+                                bookingConfig: { operatingHours: { start: '09:00', end: '18:00' }, bufferMinutes: 30, minHoursBooking: 1 }
                             })}
                             className={`p-4 rounded-xl border transition-all text-left relative overflow-hidden group ${newListing.pricingModel === PricingModel.HOURLY
                                 ? 'bg-brand-50/50 border-brand-500 shadow-lg shadow-brand-500/10'
@@ -441,7 +472,7 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({ newListing, setNewListing
                     )}
                 </div>
             </div>
-        </div>
+        </div >
     );
 };
 

@@ -7,7 +7,7 @@ import { Link } from 'react-router-dom';
 import LoginOptions from '../components/Login/LoginOptions';
 import EmailLogin from '../components/Login/EmailLogin';
 import OtpVerification from '../components/Login/OtpVerification';
-import { sendVerificationEmail, verifyEmailOtp } from '@fiilar/storage';
+import { sendVerificationEmail, verifyEmailOtp, getUserById } from '@fiilar/storage';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -63,7 +63,10 @@ const Login: React.FC<LoginProps> = ({ onLogin, onBack }) => {
                 const email = emailForm.getValues().email;
                 const result = verifyEmailOtp(email, code);
                 if (result.success) {
-                    onLogin(Role.USER, provider, email);
+                    // Fetch user to get correct role
+                    const user = getUserById(result.userId || '');
+                    const role = user ? user.role : Role.USER;
+                    onLogin(role, provider, email);
                 } else {
                     setError(result.message || 'Invalid verification code');
                     setIsLoading(false);

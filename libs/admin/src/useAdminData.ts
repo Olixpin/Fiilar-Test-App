@@ -1,9 +1,10 @@
 
 import { useState, useEffect } from 'react';
 import { User, Listing, ListingStatus, Booking, EscrowTransaction, PlatformFinancials } from '@fiilar/types';
-import { getBookings, saveListing, getAllUsers, saveUser, authorizeAdminOperation } from '@fiilar/storage';
+import { getBookings, saveListing, getAllUsers, saveUser, authorizeAdminOperation, deleteListing } from '@fiilar/storage';
 import { updateKYC } from '@fiilar/kyc';
 import { escrowService } from '@fiilar/escrow';
+import { useToast } from '@fiilar/ui';
 
 interface UseAdminDataProps {
     users: User[];
@@ -18,8 +19,11 @@ interface UseAdminDataProps {
 export const useAdminData = ({ users, listings, refreshData }: UseAdminDataProps) => {
     const [activeTab, setActiveTab] = useState<'kyc' | 'hosts' | 'listings' | 'financials' | 'escrow' | 'disputes'>('hosts');
     const [rejectionModal, setRejectionModal] = useState<{ isOpen: boolean, listingId: string | null, reason: string }>({
-        isOpen: false, listingId: null, reason: ''
+        isOpen: false,
+        listingId: null,
+        reason: ''
     });
+    const { showToast } = useToast();
     const [financials, setFinancials] = useState<PlatformFinancials | null>(null);
     const [bookings, setBookings] = useState<Booking[]>([]);
     const [transactions, setTransactions] = useState<EscrowTransaction[]>([]);
@@ -79,15 +83,15 @@ export const useAdminData = ({ users, listings, refreshData }: UseAdminDataProps
         // SECURITY CHECK
         const authCheck = authorizeAdminOperation('verify_user');
         if (!authCheck.authorized) {
-            alert('Not authorized to perform this action');
+            showToast({ message: 'Not authorized to perform this action', type: 'error' });
             return;
         }
 
         if (approve) {
             updateKYC(userId, 'verified');
-            alert(`User ${userId} approved.Email sent.`);
+            showToast({ message: `User ${userId} approved. Email sent.`, type: 'success' });
         } else {
-            alert(`User ${userId} rejected.Email sent.`);
+            showToast({ message: `User ${userId} rejected. Email sent.`, type: 'success' });
         }
         refreshData();
     };
@@ -96,7 +100,7 @@ export const useAdminData = ({ users, listings, refreshData }: UseAdminDataProps
         // SECURITY CHECK
         const authCheck = authorizeAdminOperation('update_badge_status');
         if (!authCheck.authorized) {
-            alert('Not authorized to perform this action');
+            showToast({ message: 'Not authorized to perform this action', type: 'error' });
             return;
         }
 
@@ -105,7 +109,7 @@ export const useAdminData = ({ users, listings, refreshData }: UseAdminDataProps
         if (user) {
             user.badgeStatus = badgeStatus;
             saveUser(user);
-            alert(`Badge status updated to ${badgeStatus.replace('_', ' ')}. Page will refresh.`);
+            showToast({ message: `Badge status updated to ${badgeStatus.replace('_', ' ')}. Page will refresh.`, type: 'success' });
             setTimeout(() => window.location.reload(), 500);
         }
     };
@@ -114,7 +118,7 @@ export const useAdminData = ({ users, listings, refreshData }: UseAdminDataProps
         // SECURITY CHECK
         const authCheck = authorizeAdminOperation('approve_listing');
         if (!authCheck.authorized) {
-            alert('Not authorized to perform this action');
+            showToast({ message: 'Not authorized to perform this action', type: 'error' });
             return;
         }
 
@@ -125,7 +129,7 @@ export const useAdminData = ({ users, listings, refreshData }: UseAdminDataProps
         };
         saveListing(updatedListing);
         if (approve) {
-            alert(`Listing "${listing.title}" Approved.Email notification sent.`);
+            showToast({ message: `Listing "${listing.title}" Approved. Email notification sent.`, type: 'success' });
         }
         refreshData();
     };
@@ -150,6 +154,19 @@ export const useAdminData = ({ users, listings, refreshData }: UseAdminDataProps
         }));
     };
 
+    const handleDeleteListing = (listingId: string) => {
+        // SECURITY CHECK
+        const authCheck = authorizeAdminOperation('delete_listing');
+        if (!authCheck.authorized) {
+            showToast({ message: 'Not authorized to perform this action', type: 'error' });
+            return;
+        }
+
+        deleteListing(listingId);
+        showToast({ message: 'Listing deleted successfully.', type: 'success' });
+        refreshData();
+    };
+
     return {
         activeTab, setActiveTab,
         rejectionModal, setRejectionModal,
@@ -165,6 +182,7 @@ export const useAdminData = ({ users, listings, refreshData }: UseAdminDataProps
         handleVerifyUser,
         handleUpdateBadgeStatus,
         handleApproveListing,
+        handleDeleteListing,
         openRejectionModal,
         handleRejectionSubmit,
         presetPhotographyOffer

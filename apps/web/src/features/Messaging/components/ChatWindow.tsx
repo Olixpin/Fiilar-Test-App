@@ -4,6 +4,7 @@ import { getAllUsers } from '@fiilar/storage';
 import { getMessages, sendMessage, markAsRead, getConversations } from '@fiilar/messaging';
 import { Send, User as UserIcon, Check, CheckCheck, ShieldAlert, MessageSquare, ArrowLeft, Paperclip, Smile, Image as ImageIcon, MoreVertical, Phone, Video } from 'lucide-react';
 import { Button } from '@fiilar/ui';
+import EmojiPicker from 'emoji-picker-react';
 
 interface ChatWindowProps {
     conversationId: string;
@@ -17,6 +18,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, currentU
     const [otherUser, setOtherUser] = useState<User | null>(null);
     const [safetyWarning, setSafetyWarning] = useState<string | null>(null);
     const [isTyping, setIsTyping] = useState(false);
+    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -233,6 +235,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, currentU
                                         }`}>
                                         {msg.content}
                                     </div>
+
                                     {isMe && (
                                         <div className="text-[10px] text-gray-300 mb-1 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5">
                                             {msg.read ? <CheckCheck size={14} className="text-brand-600" /> : <Check size={14} />}
@@ -284,13 +287,31 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, currentU
                                 }
                             }}
                             placeholder="Type a message..."
-                            className="flex-1 bg-transparent border-none focus:ring-0 p-0 text-gray-900 placeholder-gray-400 resize-none max-h-32 py-1.5"
+                            className="flex-1 bg-transparent border-none focus:ring-0 outline-none p-0 text-gray-900 placeholder-gray-400 resize-none max-h-32 py-1.5"
                             rows={1}
                             style={{ minHeight: '24px' }}
                         />
-                        <button className="text-gray-400 hover:text-gray-600 transition-colors p-1">
-                            <Smile size={20} />
-                        </button>
+                        <div className="relative">
+                            <button
+                                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                                className={`text-gray-400 hover:text-gray-600 transition-colors p-1 ${showEmojiPicker ? 'text-brand-500' : ''}`}
+                            >
+                                <Smile size={20} />
+                            </button>
+                            {showEmojiPicker && (
+                                <div className="absolute bottom-12 right-0 z-50 shadow-2xl rounded-xl border border-gray-200 animate-in zoom-in-95 duration-200">
+                                    <EmojiPicker
+                                        onEmojiClick={(emojiData) => {
+                                            setNewMessage(prev => prev + emojiData.emoji);
+                                            setShowEmojiPicker(false);
+                                        }}
+                                        width={300}
+                                        height={400}
+                                        previewConfig={{ showPreview: false }}
+                                    />
+                                </div>
+                            )}
+                        </div>
                     </div>
                     <button
                         onClick={() => handleSend()}

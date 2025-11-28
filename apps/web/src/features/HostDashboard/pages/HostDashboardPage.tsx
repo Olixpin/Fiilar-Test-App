@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { User, Listing, ListingStatus, Booking, Role } from '@fiilar/types';
-import { Menu, Plus, Search, Bell, Settings as SettingsIcon, LogOut, AlertCircle, Clock } from 'lucide-react';
+import { saveListing } from '@fiilar/storage';
+import { Menu, Plus, Search, Bell, Settings as SettingsIcon, LogOut, AlertCircle, Clock, User as UserIcon } from 'lucide-react';
 import { getConversations } from '@fiilar/messaging';
 import { ConfirmDialog, UserAvatar } from '@fiilar/ui';
 import { cn } from '@fiilar/utils';
@@ -131,6 +132,36 @@ const HostDashboardPage: React.FC<HostDashboardPageProps> = ({ user, listings, r
         const interval = setInterval(updateNotificationCount, 30000);
         return () => clearInterval(interval);
     }, [user]);
+
+    useEffect(() => {
+        // Data Migration: Backfill missing bookingConfig for existing listings
+        // This ensures "data driven" time display works for listings created before the fix.
+        const migrateListings = () => {
+            const listingsToUpdate = listings.filter(l => !l.bookingConfig);
+            if (listingsToUpdate.length > 0) {
+                console.log('Migrating listings with missing bookingConfig:', listingsToUpdate.length);
+                listingsToUpdate.forEach(l => {
+                    let bookingConfig: any = {};
+                    if (l.pricingModel === 'HOURLY') {
+                        bookingConfig = { operatingHours: { start: '09:00', end: '18:00' }, bufferMinutes: 30, minHoursBooking: 1 };
+                    } else if (l.pricingModel === 'NIGHTLY') {
+                        bookingConfig = { checkInTime: '15:00', checkOutTime: '11:00', allowLateCheckout: false };
+                    } else {
+                        bookingConfig = { accessStartTime: '08:00', accessEndTime: '23:00', overnightAllowed: false };
+                    }
+
+                    // Update the listing in storage
+                    const updatedListing = { ...l, bookingConfig };
+                    saveListing(updatedListing);
+                    console.log(`Migrated listing ${l.id} with default bookingConfig`);
+                });
+                // Refresh data to reflect changes
+                refreshData();
+            }
+        };
+        migrateListings();
+    }, [listings, refreshData]);
+
 
     // Custom Hooks
     const {
@@ -330,6 +361,17 @@ const HostDashboardPage: React.FC<HostDashboardPageProps> = ({ user, listings, r
                                     >
                                         <SettingsIcon size={16} />
                                         Settings
+                                    </button>
+
+                                    <button
+                                        onClick={() => {
+                                            navigate('/dashboard');
+                                            setIsProfileMenuOpen(false);
+                                        }}
+                                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                    >
+                                        <UserIcon size={16} />
+                                        Switch to User
                                     </button>
 
                                     <div className="h-px bg-gray-100 my-1" />

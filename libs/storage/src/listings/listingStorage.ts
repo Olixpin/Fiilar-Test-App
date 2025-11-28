@@ -1,4 +1,4 @@
-import { Listing, Review, BookingType, Role } from '@fiilar/types';
+import { Listing, Review, BookingType, Role, ListingStatus } from '@fiilar/types';
 import { safeJSONParse } from '@fiilar/utils';
 import { STORAGE_KEYS } from '../constants';
 import { authorizeListingModification, getAuthenticatedUser } from '../security/authorization';
@@ -74,7 +74,7 @@ export const saveListing = (listing: Listing): { success: boolean; error?: strin
     const rawListings = getRawListings();
     const idx = rawListings.findIndex(l => l.id === listing.id);
     const isUpdate = idx >= 0;
-    
+
     console.log('💾 saveListing called:', {
         listingId: listing.id,
         isUpdate,
@@ -139,7 +139,7 @@ export const saveListing = (listing: Listing): { success: boolean; error?: strin
     try {
         localStorage.setItem(STORAGE_KEYS.LISTINGS, JSON.stringify(rawListings));
         console.log('✅ Listing saved to localStorage successfully:', listing.id);
-        
+
         // Verify the save worked by reading it back
         const verifyListings = getRawListings();
         const savedListing = verifyListings.find(l => l.id === listing.id);
@@ -153,7 +153,7 @@ export const saveListing = (listing: Listing): { success: boolean; error?: strin
         } else {
             console.error('❌ Listing not found in localStorage after save!');
         }
-        
+
         return { success: true };
     } catch (error) {
         if (error instanceof DOMException && error.name === 'QuotaExceededError') {
@@ -204,13 +204,28 @@ export const deleteListing = (id: string): { success: boolean; error?: string } 
     }
 
     const listings = getListings();
-    const updatedListings = listings.filter(l => l.id !== id);
+    const listing = listings.find(l => l.id === id);
 
-    try {
-        localStorage.setItem(STORAGE_KEYS.LISTINGS, JSON.stringify(updatedListings));
-        return { success: true };
-    } catch (error) {
-        console.error('Failed to delete listing:', error);
-        return { success: false, error: 'Failed to delete listing' };
+    if (!listing) {
+        return { success: false, error: 'Listing not found' };
     }
+
+    // Soft Delete: Update status to DELETED
+    const updatedListing = { ...listing, status: ListingStatus.DELETED };
+
+    // Save using saveListing logic (which handles auth checks again, but we already checked)
+    // Or just update directly
+    const rawListings = getRawListings();
+    const idx = rawListings.findIndex(l => l.id === id);
+    if (idx >= 0) {
+        rawListings[idx] = updatedListing;
+        try {
+            localStorage.setItem(STORAGE_KEYS.LISTINGS, JSON.stringify(rawListings));
+            return { success: true };
+        } catch (error) {
+            console.error('Failed to delete listing:', error);
+            return { success: false, error: 'Failed to delete listing' };
+        }
+    }
+    return { success: false, error: 'Listing not found' };
 };

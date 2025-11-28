@@ -1,5 +1,5 @@
 import React from 'react';
-import { Listing, BookingType } from '@fiilar/types';
+import { Listing, BookingType, PricingModel } from '@fiilar/types';
 import { UserCheck, MapPin, Users, Clock, Calendar, Zap, Repeat, Timer } from 'lucide-react';
 
 interface ListingHeaderProps {
@@ -26,7 +26,12 @@ export const ListingHeader: React.FC<ListingHeaderProps> = ({ listing }) => {
         {/* Booking Type */}
         <div className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-200">
           {isHourly ? <Clock size={14} className="text-gray-500" /> : <Calendar size={14} className="text-gray-500" />}
-          <span>{isHourly ? 'Hourly' : 'Daily'} Booking</span>
+          <span>{
+            isHourly ? 'Hourly' :
+              listing.pricingModel === PricingModel.NIGHTLY ? 'Nightly' :
+                listing.pricingModel === PricingModel.DAILY ? 'Daily' :
+                  'Nightly' // Default to Nightly for non-hourly if no model specified (safe default for apartments)
+          } Booking</span>
         </div>
 
         {/* Instant Book */}
@@ -47,7 +52,9 @@ export const ListingHeader: React.FC<ListingHeaderProps> = ({ listing }) => {
         {listing.settings?.minDuration && listing.settings.minDuration > 1 && !isHourly && (
           <div className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-200">
             <Timer size={14} className="text-gray-500" />
-            <span>Min {listing.settings.minDuration} {isHourly ? 'hrs' : 'nights'}</span>
+            <span>Min {listing.settings.minDuration} {
+              listing.pricingModel === PricingModel.DAILY ? 'days' : 'nights'
+            }</span>
           </div>
         )}
 
@@ -68,7 +75,7 @@ export const ListingHeader: React.FC<ListingHeaderProps> = ({ listing }) => {
           {listing.requiresIdentityVerification && (
             <div className="inline-flex items-center gap-1.5 bg-blue-50 border border-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-medium">
               <UserCheck size={14} />
-              <span className="hidden xs:inline">ID Required</span>
+              <span>ID Required</span>
             </div>
           )}
         </div>
@@ -88,11 +95,14 @@ export const ListingHeader: React.FC<ListingHeaderProps> = ({ listing }) => {
           className="flex items-center text-gray-500 font-medium hover:text-brand-600 hover:underline transition-colors cursor-pointer"
         >
           <MapPin size={16} className="mr-1.5 shrink-0 text-gray-400 group-hover:text-brand-500" />
-          <span>{listing.location}</span>
+          <span>
+            {/* Show full address if it contains the location (redundancy check) */}
+            {(listing.address && listing.address.includes(listing.location)) ? listing.address : listing.location}
+          </span>
         </button>
 
-        {/* Address (if different from location) */}
-        {listing.address && listing.address !== listing.location && (
+        {/* Address (if different and not redundant) */}
+        {listing.address && listing.address !== listing.location && !listing.address.includes(listing.location) && (
           <>
             <div className="w-1 h-1 bg-gray-300 rounded-full"></div>
             <span className="text-gray-400 text-sm">{listing.address}</span>
@@ -103,14 +113,16 @@ export const ListingHeader: React.FC<ListingHeaderProps> = ({ listing }) => {
       {/* Tags */}
       {listing.tags && listing.tags.length > 0 && (
         <div className="flex flex-wrap gap-2 mt-4">
-          {listing.tags.map(tag => (
-            <span
-              key={tag}
-              className="inline-flex items-center px-3 py-1 rounded-full bg-gray-100 text-gray-600 text-xs font-medium hover:bg-gray-200 transition-colors"
-            >
-              #{tag}
-            </span>
-          ))}
+          {listing.tags
+            .filter(tag => tag.toLowerCase() !== listing.type.toLowerCase()) // Hide redundant tags
+            .map(tag => (
+              <span
+                key={tag}
+                className="inline-flex items-center px-3 py-1 rounded-full bg-gray-100 text-gray-600 text-xs font-medium hover:bg-gray-200 transition-colors"
+              >
+                #{tag}
+              </span>
+            ))}
         </div>
       )}
     </div>

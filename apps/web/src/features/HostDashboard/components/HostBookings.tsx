@@ -35,6 +35,47 @@ const formatTimeRange = (hours?: number[]) => {
     return `${formatHour(start)} - ${formatHour(end)}`;
 };
 
+const formatTime = (timeStr: string) => {
+    if (!timeStr) return '';
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const hour12 = hours % 12 || 12;
+    return `${hour12}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+};
+
+const getBookingTimeDisplay = (booking: Booking, listing?: Listing) => {
+    // 1. Try to use specific hours if available
+    if (booking.hours && booking.hours.length > 0) {
+        return formatTimeRange(booking.hours);
+    }
+
+    // 2. Fallback to listing configuration
+    if (listing?.bookingConfig) {
+        // Check for Nightly Config (checkInTime)
+        if ('checkInTime' in listing.bookingConfig) {
+            const config = listing.bookingConfig as any;
+            return `Check-in: ${formatTime(config.checkInTime)} - Check-out: ${formatTime(config.checkOutTime)}`;
+        }
+
+        // Check for Daily Config (accessStartTime)
+        if ('accessStartTime' in listing.bookingConfig) {
+            const config = listing.bookingConfig as any;
+            return `${formatTime(config.accessStartTime)} - ${formatTime(config.accessEndTime)}`;
+        }
+
+        // Check for Hourly Config (operatingHours) - fallback if hours missing but it's hourly
+        if ('operatingHours' in listing.bookingConfig) {
+            const config = listing.bookingConfig as any;
+            return `${formatTime(config.operatingHours.start)} - ${formatTime(config.operatingHours.end)}`;
+        }
+    }
+
+    // 3. Last resort fallbacks based on pricing model (if config missing)
+    // REMOVED: User requested data-driven display only.
+
+    return null;
+};
+
 const HostBookings: React.FC<HostBookingsProps> = ({ bookings, listings, filter, setFilter, view, setView, onAccept, onReject, onRelease, onVerify, onAllowModification }) => {
     const navigate = useNavigate();
     const { locale } = useLocale();
@@ -279,8 +320,11 @@ const HostBookings: React.FC<HostBookingsProps> = ({ bookings, listings, filter,
                                                             <p className="text-xs text-gray-500 font-medium mb-1.5 uppercase tracking-wide">Session Dates</p>
                                                             <div className="flex flex-wrap gap-1.5">
                                                                 {group.map(s => (
-                                                                    <span key={s.id} className="text-[10px] bg-gray-50 px-2 py-1 rounded-md text-gray-600 border border-gray-100 font-medium">
+                                                                    <span key={s.id} className="text-[10px] bg-gray-50 px-2 py-1 rounded-md text-gray-600 border border-gray-100 font-medium flex items-center gap-1">
                                                                         {new Date(s.date).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' })}
+                                                                        {getBookingTimeDisplay(s, listing) && (
+                                                                            <span className="text-gray-500 font-medium">| {getBookingTimeDisplay(s, listing)}</span>
+                                                                        )}
                                                                     </span>
                                                                 ))}
                                                             </div>
@@ -291,12 +335,12 @@ const HostBookings: React.FC<HostBookingsProps> = ({ bookings, listings, filter,
                                                                 <CalendarIcon size={14} className="text-brand-500" />
                                                                 <span className="font-medium">{new Date(booking.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
                                                             </div>
-                                                            {formatTimeRange(booking.hours) && (
+                                                            {getBookingTimeDisplay(booking, listing) && (
                                                                 <>
                                                                     <div className="w-1 h-1 bg-gray-300 rounded-full" />
                                                                     <div className="flex items-center gap-1.5">
                                                                         <Clock size={14} className="text-brand-500" />
-                                                                        <span className="font-medium">{formatTimeRange(booking.hours)}</span>
+                                                                        <span className="font-medium">{getBookingTimeDisplay(booking, listing)}</span>
                                                                     </div>
                                                                 </>
                                                             )}
@@ -425,8 +469,11 @@ const HostBookings: React.FC<HostBookingsProps> = ({ bookings, listings, filter,
                                                                     <div className="font-medium mb-1 text-xs text-gray-500 uppercase tracking-wide">Multiple Dates</div>
                                                                     <div className="flex flex-wrap gap-1 max-w-[200px]">
                                                                         {group.map(s => (
-                                                                            <span key={s.id} className="text-[10px] bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200">
+                                                                            <span key={s.id} className="text-[10px] bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200 flex items-center gap-1">
                                                                                 {new Date(s.date).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' })}
+                                                                                {getBookingTimeDisplay(s, listing) && (
+                                                                                    <span className="text-gray-500 font-medium">| {getBookingTimeDisplay(s, listing)}</span>
+                                                                                )}
                                                                             </span>
                                                                         ))}
                                                                     </div>
@@ -434,9 +481,9 @@ const HostBookings: React.FC<HostBookingsProps> = ({ bookings, listings, filter,
                                                             ) : (
                                                                 <>
                                                                     <div className="text-sm font-medium text-gray-900">{new Date(booking.date).toLocaleDateString()}</div>
-                                                                    {booking.hours && (
+                                                                    {getBookingTimeDisplay(booking, listing) && (
                                                                         <div className="text-xs text-brand-600 font-medium mt-0.5 flex items-center gap-1">
-                                                                            <Clock size={10} /> {formatTimeRange(booking.hours)}
+                                                                            <Clock size={10} /> {getBookingTimeDisplay(booking, listing)}
                                                                         </div>
                                                                     )}
                                                                 </>

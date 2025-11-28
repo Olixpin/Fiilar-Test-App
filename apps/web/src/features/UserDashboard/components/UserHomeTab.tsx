@@ -53,6 +53,34 @@ export const UserHomeTab: React.FC<UserHomeTabProps> = ({ user, listings, onTabC
         return listings.slice(0, 3);
     }, [listings]);
 
+    // 5. Fetch Wallet Balance (Source of Truth: paymentService)
+    const [walletBalance, setWalletBalance] = React.useState(0);
+
+    React.useEffect(() => {
+        const fetchBalance = async () => {
+            try {
+                // Dynamically import to avoid circular dependencies if any
+                const { paymentService } = await import('@fiilar/escrow');
+                const bal = await paymentService.getWalletBalance();
+                setWalletBalance(bal);
+            } catch (error) {
+                console.error('Failed to fetch wallet balance', error);
+            }
+        };
+        fetchBalance();
+
+        // Listen for balance updates
+        const handleBalanceUpdate = () => fetchBalance();
+        window.addEventListener('fiilar:wallet-updated', handleBalanceUpdate);
+        // Also listen for user updates as a fallback
+        window.addEventListener('fiilar:user-updated', handleBalanceUpdate);
+
+        return () => {
+            window.removeEventListener('fiilar:wallet-updated', handleBalanceUpdate);
+            window.removeEventListener('fiilar:user-updated', handleBalanceUpdate);
+        };
+    }, [user]);
+
     return (
         <div className="space-y-8 pb-12 animate-in fade-in duration-700">
 
@@ -202,7 +230,7 @@ export const UserHomeTab: React.FC<UserHomeTabProps> = ({ user, listings, onTabC
                     </div>
                     <p className="text-sm text-gray-500 font-medium">Wallet Balance</p>
                     <h3 className="text-2xl font-bold text-gray-900 mt-1">
-                        {locale.currencySymbol}{(user.walletBalance || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        {locale.currencySymbol}{(walletBalance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </h3>
                 </button>
 
