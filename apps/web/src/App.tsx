@@ -259,10 +259,14 @@ const App: React.FC = () => {
   };
 
   const handleLogout = () => {
+    const wasHost = user?.role === Role.HOST;
+    console.log('Logging out:', { wasHost, userRole: user?.role });
     logoutUser();
     setUser(null);
     showToast({ message: 'Logged out successfully', type: 'info' });
-    navigate('/');
+    const targetPath = wasHost ? '/login-host' : '/';
+    console.log('Navigating to:', targetPath);
+    navigate(targetPath, { replace: true });
   };
 
   const handleSwitchRole = (newRole: Role) => {
@@ -426,11 +430,14 @@ const App: React.FC = () => {
       }
     }
 
-    const message = dates.length > 1
-      ? `Recurring Booking Request Sent! (${dates.length} dates)`
-      : `Booking Request Sent! Total: ${formatCurrency(breakdown.total)}`;
+    // Only show success toast if at least one booking was created
+    if (createdBookings.length > 0) {
+      const message = dates.length > 1
+        ? `Recurring Booking Request Sent! (${createdBookings.length} of ${dates.length} dates)`
+        : `Booking Request Sent! Total: ${formatCurrency(breakdown.total)}`;
 
-    showToast({ message, type: 'success' });
+      showToast({ message, type: 'success' });
+    }
 
     return createdBookings;
   };
@@ -529,6 +536,7 @@ const App: React.FC = () => {
                               listings={listings}
                               refreshData={refreshData}
                               hideUI={showCompleteProfile}
+                              onLogout={handleLogout}
                               onUpdateListing={(updated) => {
                                 const newListings = listings.map(l => l.id === updated.id ? updated : l);
                                 setListings(newListings);

@@ -19,12 +19,12 @@ const VALIDATION_RULES = {
 
 const BasicInfoForm: React.FC<BasicInfoFormProps> = ({ newListing, setNewListing }) => {
     const { locale } = useLocale();
-    
+
     // Track pricing mode with explicit state
     const [pricingMode, setPricingMode] = useState<'flat' | 'tiered'>(() => {
         if ((newListing.pricePerExtraGuest !== undefined && newListing.pricePerExtraGuest > 0) ||
-            (newListing.includedGuests !== undefined && newListing.capacity !== undefined && 
-             newListing.includedGuests < newListing.capacity)) {
+            (newListing.includedGuests !== undefined && newListing.capacity !== undefined &&
+                newListing.includedGuests < newListing.capacity)) {
             return 'tiered';
         }
         return 'flat';
@@ -33,8 +33,8 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({ newListing, setNewListing
     // Collapsible sections state - start closed unless there's existing data
     const [showAdvancedPricing, setShowAdvancedPricing] = useState(() => {
         return (newListing.pricePerExtraGuest !== undefined && newListing.pricePerExtraGuest > 0) ||
-               (newListing.cautionFee !== undefined && newListing.cautionFee > 0) ||
-               (newListing.includedGuests !== undefined && newListing.capacity !== undefined && 
+            (newListing.cautionFee !== undefined && newListing.cautionFee > 0) ||
+            (newListing.includedGuests !== undefined && newListing.capacity !== undefined &&
                 newListing.includedGuests < newListing.capacity);
     });
 
@@ -128,26 +128,34 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({ newListing, setNewListing
                     </Select>
 
                     <Input
-                        label="Public Location (Area)"
-                        placeholder="e.g. Lekki Phase 1, Lagos"
+                        label="Public Location (City/Area)"
+                        placeholder="e.g. Lekki, Lagos or Victoria Island, Lagos"
                         value={newListing.location || ''}
                         onChange={(e) => setNewListing({ ...newListing, location: e.target.value })}
                         variant="glass"
-                        helperText="Publicly visible. General area only."
+                        helperText="Visible to everyone. Use city and area name only."
                         fullWidth
                     />
                 </div>
 
                 {/* Private Address */}
-                <Input
-                    label="Exact Address (Private)"
-                    placeholder="e.g. 123 Admiralty Way, Lekki Phase 1"
-                    value={newListing.address || ''}
-                    onChange={(e) => setNewListing({ ...newListing, address: e.target.value })}
-                    variant="glass"
-                    helperText="Only shared with guests after booking is confirmed."
-                    fullWidth
-                />
+                <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                    <div className="flex items-start gap-3 mb-3">
+                        <Shield size={18} className="text-brand-600 mt-0.5 shrink-0" />
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-900">Full Address (Private)</label>
+                            <p className="text-xs text-gray-500 mt-0.5">This is shared only after a booking is confirmed. Guests won't see this until they pay.</p>
+                        </div>
+                    </div>
+                    <Input
+                        placeholder="e.g. 15 Admiralty Way, Lekki Phase 1, Lagos"
+                        value={newListing.address || ''}
+                        onChange={(e) => setNewListing({ ...newListing, address: e.target.value })}
+                        variant="glass"
+                        fullWidth
+                    />
+                    <p className="text-xs text-gray-400 mt-2 italic">Include street number, street name, and any landmarks if helpful</p>
+                </div>
 
                 {/* Pricing Model Selection */}
                 <div>
@@ -160,9 +168,9 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({ newListing, setNewListing
                                 pricingModel: PricingModel.NIGHTLY,
                                 priceUnit: BookingType.DAILY
                             })}
-                            className={`p-4 rounded-xl border-2 transition-all text-left ${newListing.pricingModel === PricingModel.NIGHTLY
-                                    ? 'border-brand-500 bg-brand-50'
-                                    : 'border-gray-200 hover:border-gray-300'
+                            className={`p-4 rounded-xl border transition-all text-left relative overflow-hidden group ${newListing.pricingModel === PricingModel.NIGHTLY
+                                ? 'bg-brand-50/50 border-brand-500 shadow-lg shadow-brand-500/10'
+                                : 'bg-white/50 border-gray-200 hover:border-brand-300 hover:bg-white/80'
                                 }`}
                         >
                             <div className="flex items-center gap-2 mb-2">
@@ -180,9 +188,9 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({ newListing, setNewListing
                                 pricingModel: PricingModel.DAILY,
                                 priceUnit: BookingType.DAILY
                             })}
-                            className={`p-4 rounded-xl border-2 transition-all text-left ${newListing.pricingModel === PricingModel.DAILY
-                                    ? 'border-brand-500 bg-brand-50'
-                                    : 'border-gray-200 hover:border-gray-300'
+                            className={`p-4 rounded-xl border transition-all text-left relative overflow-hidden group ${newListing.pricingModel === PricingModel.DAILY
+                                ? 'bg-brand-50/50 border-brand-500 shadow-lg shadow-brand-500/10'
+                                : 'bg-white/50 border-gray-200 hover:border-brand-300 hover:bg-white/80'
                                 }`}
                         >
                             <div className="flex items-center gap-2 mb-2">
@@ -200,9 +208,9 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({ newListing, setNewListing
                                 pricingModel: PricingModel.HOURLY,
                                 priceUnit: BookingType.HOURLY
                             })}
-                            className={`p-4 rounded-xl border-2 transition-all text-left ${newListing.pricingModel === PricingModel.HOURLY
-                                    ? 'border-brand-500 bg-brand-50'
-                                    : 'border-gray-200 hover:border-gray-300'
+                            className={`p-4 rounded-xl border transition-all text-left relative overflow-hidden group ${newListing.pricingModel === PricingModel.HOURLY
+                                ? 'bg-brand-50/50 border-brand-500 shadow-lg shadow-brand-500/10'
+                                : 'bg-white/50 border-gray-200 hover:border-brand-300 hover:bg-white/80'
                                 }`}
                         >
                             <div className="flex items-center gap-2 mb-2">
@@ -286,15 +294,15 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({ newListing, setNewListing
                         <div className="flex items-center gap-2">
                             {(pricingMode === 'tiered' || (newListing.cautionFee && newListing.cautionFee > 0)) && (
                                 <span className="text-xs bg-brand-100 text-brand-700 px-2 py-0.5 rounded-full">
-                                    {pricingMode === 'tiered' && newListing.cautionFee && newListing.cautionFee > 0 
-                                        ? '2 set' 
+                                    {pricingMode === 'tiered' && newListing.cautionFee && newListing.cautionFee > 0
+                                        ? '2 set'
                                         : '1 set'}
                                 </span>
                             )}
                             {showAdvancedPricing ? <ChevronUp size={18} className="text-gray-400" /> : <ChevronDown size={18} className="text-gray-400" />}
                         </div>
                     </button>
-                    
+
                     {showAdvancedPricing && (
                         <div className="p-4 space-y-5 border-t border-gray-200 bg-white">
                             {/* Guest Pricing Mode Toggle */}
@@ -314,7 +322,7 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({ newListing, setNewListing
                                         className={`p-3 rounded-xl border-2 transition-all text-left ${pricingMode === 'flat'
                                             ? 'border-brand-500 bg-brand-50'
                                             : 'border-gray-200 hover:border-gray-300'
-                                        }`}
+                                            }`}
                                     >
                                         <div className="flex items-center gap-2 mb-1">
                                             <Users size={18} className={pricingMode === 'flat' ? 'text-brand-600' : 'text-gray-400'} />
@@ -336,7 +344,7 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({ newListing, setNewListing
                                         className={`p-3 rounded-xl border-2 transition-all text-left ${pricingMode === 'tiered'
                                             ? 'border-brand-500 bg-brand-50'
                                             : 'border-gray-200 hover:border-gray-300'
-                                        }`}
+                                            }`}
                                     >
                                         <div className="flex items-center gap-2 mb-1">
                                             <UserPlus size={18} className={pricingMode === 'tiered' ? 'text-brand-600' : 'text-gray-400'} />

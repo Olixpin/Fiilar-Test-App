@@ -39,7 +39,7 @@ export const ListingAmenities: React.FC<ListingAmenitiesProps> = ({ listing }) =
     <div className="py-8">
       <h3 className="text-2xl font-bold text-gray-900 mb-8 font-display">What this place offers</h3>
 
-      {listing.amenities && listing.amenities.length > 0 && (
+      {listing.amenities && listing.amenities.length > 0 ? (
         <div className="space-y-6">
           <div className="grid grid-cols-2 md:flex md:flex-wrap gap-3">
             {displayedAmenities?.map(amenity => (
@@ -60,6 +60,14 @@ export const ListingAmenities: React.FC<ListingAmenitiesProps> = ({ listing }) =
               Show all {listing.amenities.length} amenities
             </button>
           )}
+        </div>
+      ) : (
+        <div className="text-center py-8 px-4 bg-gray-50 rounded-xl border border-gray-100">
+          <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
+            <CheckCircle size={24} className="text-gray-400" />
+          </div>
+          <p className="text-gray-500 text-sm">No specific amenities listed for this space.</p>
+          <p className="text-gray-400 text-xs mt-1">Contact the host for more details.</p>
         </div>
       )}
     </div>

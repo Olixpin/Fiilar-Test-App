@@ -63,7 +63,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ users, listings, refreshData })
   }
 
   return (
-    <div className="bg-gray-50 min-h-screen">
+    <div className="bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 min-h-screen">
       {/* Sidebar */}
       <AdminSidebar
         activeTab={activeTab}
@@ -76,21 +76,21 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ users, listings, refreshData })
       {/* Main Content */}
       <div className="min-h-screen lg:ml-64">
         {/* Mobile Header */}
-        <div className="lg:hidden bg-white border-b border-gray-200 p-4">
+        <div className="lg:hidden glass-card border-b border-white/20 p-4 sticky top-0 z-30 backdrop-blur-xl">
           <h1 className="text-xl font-bold text-gray-900">Admin Panel</h1>
-          <div className="flex gap-2 mt-3 overflow-x-auto no-scrollbar">
-            <button onClick={() => setActiveTab('kyc')} className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all duration-200 hover:scale-105 active:scale-95 ${activeTab === 'kyc' ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-700'}`}>KYC</button>
-            <button onClick={() => setActiveTab('hosts')} className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all duration-200 hover:scale-105 active:scale-95 ${activeTab === 'hosts' ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-700'}`}>Hosts</button>
-            <button onClick={() => setActiveTab('listings')} className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all duration-200 hover:scale-105 active:scale-95 ${activeTab === 'listings' ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-700'}`}>Listings</button>
-            <button onClick={() => setActiveTab('financials')} className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all duration-200 hover:scale-105 active:scale-95 ${activeTab === 'financials' ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-700'}`}>Financials</button>
-            <button onClick={() => setActiveTab('escrow')} className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all duration-200 hover:scale-105 active:scale-95 ${activeTab === 'escrow' ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-700'}`}>Escrow</button>
-            <button onClick={() => setActiveTab('disputes')} className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all duration-200 hover:scale-105 active:scale-95 ${activeTab === 'disputes' ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-700'}`}>Disputes</button>
+          <div className="flex gap-2 mt-3 overflow-x-auto no-scrollbar pb-1">
+            <button onClick={() => setActiveTab('kyc')} className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all duration-200 hover:scale-105 active:scale-95 ${activeTab === 'kyc' ? 'bg-brand-600 text-white shadow-lg shadow-brand-600/30' : 'bg-white/80 text-gray-700 hover:bg-white'}`}>KYC</button>
+            <button onClick={() => setActiveTab('hosts')} className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all duration-200 hover:scale-105 active:scale-95 ${activeTab === 'hosts' ? 'bg-brand-600 text-white shadow-lg shadow-brand-600/30' : 'bg-white/80 text-gray-700 hover:bg-white'}`}>Hosts</button>
+            <button onClick={() => setActiveTab('listings')} className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all duration-200 hover:scale-105 active:scale-95 ${activeTab === 'listings' ? 'bg-brand-600 text-white shadow-lg shadow-brand-600/30' : 'bg-white/80 text-gray-700 hover:bg-white'}`}>Listings</button>
+            <button onClick={() => setActiveTab('financials')} className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all duration-200 hover:scale-105 active:scale-95 ${activeTab === 'financials' ? 'bg-brand-600 text-white shadow-lg shadow-brand-600/30' : 'bg-white/80 text-gray-700 hover:bg-white'}`}>Financials</button>
+            <button onClick={() => setActiveTab('escrow')} className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all duration-200 hover:scale-105 active:scale-95 ${activeTab === 'escrow' ? 'bg-brand-600 text-white shadow-lg shadow-brand-600/30' : 'bg-white/80 text-gray-700 hover:bg-white'}`}>Escrow</button>
+            <button onClick={() => setActiveTab('disputes')} className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all duration-200 hover:scale-105 active:scale-95 ${activeTab === 'disputes' ? 'bg-brand-600 text-white shadow-lg shadow-brand-600/30' : 'bg-white/80 text-gray-700 hover:bg-white'}`}>Disputes</button>
           </div>
         </div>
 
         {/* Content Area */}
         <main className="flex-1 overflow-y-auto">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+          <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
 
             {activeTab === 'kyc' && (
               <AdminKYC

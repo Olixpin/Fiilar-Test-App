@@ -109,20 +109,29 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onSearch, searchTerm, o
     return () => clearInterval(interval);
   }, [user]);
 
-  // Close notification dropdown when clicking outside
+  // Close notification dropdown when clicking outside or pressing ESC
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
         setIsNotificationOpen(false);
       }
     };
+    
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsNotificationOpen(false);
+        setIsAccountOpen(false);
+      }
+    };
 
     if (isNotificationOpen) {
       document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleKeyDown);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
     };
   }, [isNotificationOpen]);
 
@@ -272,7 +281,14 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onSearch, searchTerm, o
               />
 
               {isAccountOpen && user && (
-                <div ref={menuRef} aria-label="Account menu" className="absolute right-0 mt-6 w-64 bg-white border border-gray-100 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] p-2 z-50 animate-in fade-in zoom-in-95 duration-200">
+                <>
+                  {/* Invisible overlay to capture clicks outside */}
+                  <div 
+                    className="fixed inset-0 z-40" 
+                    onClick={() => setIsAccountOpen(false)}
+                    aria-hidden="true"
+                  />
+                  <div ref={menuRef} aria-label="Account menu" className="absolute right-0 mt-6 w-64 bg-white border border-gray-100 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] p-2 z-50 animate-in fade-in zoom-in-95 duration-200">
                   <button onClick={() => fileInputRef.current?.click()} className="w-full text-left px-4 py-2.5 text-sm font-semibold text-gray-700 hover:text-black hover:bg-gray-50 rounded-xl transition-colors flex items-center gap-3">
                     <Camera size={16} className="text-gray-500 group-hover:text-black transition-colors" />
                     Change photo
@@ -326,10 +342,18 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onSearch, searchTerm, o
                     Log out
                   </button>
                 </div>
+                </>  
               )}
 
               {isAccountOpen && !user && (
-                <div ref={menuRef} aria-label="Account menu" className="absolute right-0 mt-6 w-64 bg-white border border-gray-100 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] p-2 z-50 animate-in fade-in zoom-in-95 duration-200">
+                <>
+                  {/* Invisible overlay to capture clicks outside */}
+                  <div 
+                    className="fixed inset-0 z-40" 
+                    onClick={() => setIsAccountOpen(false)}
+                    aria-hidden="true"
+                  />
+                  <div ref={menuRef} aria-label="Account menu" className="absolute right-0 mt-6 w-64 bg-white border border-gray-100 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] p-2 z-50 animate-in fade-in zoom-in-95 duration-200">
                   <div className="mb-1">
                     <button onClick={() => { setIsAccountOpen(false); navigate('/login'); }} className="w-full text-left px-4 py-2.5 text-sm font-semibold text-gray-700 hover:text-black hover:bg-gray-50 rounded-xl transition-colors flex justify-between items-center group">
                       <div className="flex items-center gap-3">
@@ -355,6 +379,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onSearch, searchTerm, o
                     Become a host
                   </button>
                 </div>
+                </>
               )}
             </div>
           </div>

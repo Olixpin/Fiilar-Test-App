@@ -73,15 +73,15 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings, onRefresh
     }
   };
 
-  // If user is not signed in, redirect to login (or show a short message).
+  // If user is not signed in, redirect to home page (not login).
   // Early-return prevents reading properties on null.
   useEffect(() => {
     if (!user) {
       // If there's no in-memory user but localStorage has a session, do not redirect — allow parent to hydrate state.
       const stored = getCurrentUser();
       if (!stored) {
-        // navigate to login page after a tick to avoid render glitches
-        navigate('/login');
+        // navigate to home page after a tick to avoid render glitches
+        navigate('/');
       }
     }
   }, [user, navigate]);
@@ -99,16 +99,24 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings, onRefresh
       setSelectedConversationId(convId);
     }
 
-    // Close profile menu on click outside
+    // Close profile menu on click outside or ESC
     const handleClickOutside = (event: MouseEvent) => {
       if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
         setIsProfileMenuOpen(false);
       }
     };
+    
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsProfileMenuOpen(false);
+      }
+    };
 
     document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
     };
   }, [searchParams]);
 
@@ -311,7 +319,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings, onRefresh
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 relative z-10 bg-[#FFFBF9]">
         {/* Top Header */}
-        <header className="hidden lg:flex items-center justify-between px-8 py-5 bg-transparent">
+        <header className="hidden lg:flex items-center justify-between px-8 py-5 bg-transparent w-full max-w-[1600px] mx-auto">
           {/* Left: Current Tab Title - Empty as requested */}
           <div />
 
@@ -466,7 +474,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings, onRefresh
 
         {/* Content Area with White Background Card */}
         <main className="flex-1 overflow-y-auto px-4 lg:px-8 pb-24 lg:pb-8">
-          <div className="bg-white rounded-t-[32px] lg:rounded-3xl min-h-full shadow-xl shadow-gray-200/50 -mx-4 lg:mx-0 px-4 sm:px-6 lg:px-8 py-8">
+          <div className="bg-white rounded-t-[32px] lg:rounded-3xl min-h-full shadow-xl shadow-gray-200/50 -mx-4 lg:mx-0 px-4 sm:px-6 lg:px-8 py-8 max-w-[1600px] mx-auto">
 
             {activeTab === 'wallet' && (
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in slide-in-from-bottom-8 duration-700">

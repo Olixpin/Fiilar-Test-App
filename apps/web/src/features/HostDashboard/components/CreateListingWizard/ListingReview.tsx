@@ -1,9 +1,7 @@
-import React from 'react';
-import { Listing, ListingStatus, User, PricingModel } from '@fiilar/types';
-import { useLocale } from '@fiilar/ui';
-import {
-    Settings, Shield, ImageIcon, MapPin, Repeat, Users, PackagePlus, CheckCircle, AlertCircle, AlertTriangle, Loader2
-} from 'lucide-react';
+import React, { useState } from 'react';
+import { Listing, User } from '@fiilar/types';
+import { Button, useToast } from '@fiilar/ui';
+import { CheckCircle, MapPin, Shield, ArrowRight, Loader2, PartyPopper, PackagePlus } from 'lucide-react';
 
 interface ListingReviewProps {
     newListing: Partial<Listing>;
@@ -16,171 +14,172 @@ interface ListingReviewProps {
 }
 
 const ListingReview: React.FC<ListingReviewProps> = ({
-    newListing, setNewListing, setStep, user, listings, isSubmitting, handleCreateListing
+    newListing, setStep, isSubmitting, handleCreateListing
 }) => {
-    const { locale } = useLocale();
+    const { showToast } = useToast();
+    const [agreedToTerms, setAgreedToTerms] = useState(false);
+
+    const handlePublish = () => {
+        if (!agreedToTerms) {
+            showToast({ message: "Please agree to the terms and conditions", type: "error" });
+            return;
+        }
+        handleCreateListing();
+    };
+
     return (
-        <div className="space-y-6 max-w-3xl mx-auto animate-in fade-in duration-300">
-
-            {/* Settings Card */}
-            <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-                <div className="bg-gray-50 px-6 py-3 border-b border-gray-100">
-                    <h3 className="font-bold text-gray-900 text-sm flex items-center gap-2">
-                        <Settings size={16} className="text-brand-600" /> Configuration
-                    </h3>
+        <div className="space-y-8 animate-in slide-in-from-right duration-500">
+            {/* Header */}
+            <div className="text-center mb-8">
+                <div className="w-20 h-20 bg-gradient-to-br from-brand-500 to-purple-600 text-white rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-brand-500/20 animate-in zoom-in duration-500">
+                    <CheckCircle size={40} />
                 </div>
-                <div className="p-5 space-y-5">
-                    {/* Guest Requirements Toggle */}
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <div className="font-medium text-gray-900 text-sm flex items-center gap-2">
-                                <Shield size={16} className="text-gray-400" /> Require ID Verification
+                <h3 className="font-bold text-3xl text-gray-900 tracking-tight">Ready to Publish?</h3>
+                <p className="text-gray-500 text-lg mt-2 max-w-lg mx-auto">
+                    Review your listing details one last time before making it live for guests to book.
+                </p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Listing Preview Card */}
+                <div className="lg:col-span-2 space-y-6">
+                    <div className="glass-card rounded-3xl overflow-hidden border border-white/40 shadow-xl shadow-brand-900/5 group hover:shadow-2xl transition-all duration-500">
+                        <div className="relative h-64 md:h-80 overflow-hidden">
+                            {newListing.images && newListing.images.length > 0 ? (
+                                <img
+                                    src={newListing.images[0]}
+                                    alt={newListing.title}
+                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                                />
+                            ) : (
+                                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                                    <span className="text-gray-400">No image</span>
+                                </div>
+                            )}
+                            <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md px-4 py-2 rounded-full text-sm font-bold text-brand-700 shadow-lg">
+                                ${newListing.price} <span className="text-gray-500 font-normal">/ {newListing.priceUnit}</span>
                             </div>
-                            <p className="text-xs text-gray-500 mt-0.5 max-w-xs">
-                                {newListing.requiresIdentityVerification
-                                    ? "Only guests with verified Government ID can book."
-                                    : "Any guest can book immediately."}
-                            </p>
+                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-6 pt-20">
+                                <h4 className="text-2xl font-bold text-white mb-1">{newListing.title}</h4>
+                                <div className="flex items-center text-white/90 text-sm">
+                                    <MapPin size={14} className="mr-1" /> {newListing.location}
+                                </div>
+                            </div>
                         </div>
-                        <button
-                            onClick={() => setNewListing({ ...newListing, requiresIdentityVerification: !newListing.requiresIdentityVerification })}
-                            className={`
-                           relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none
-                           ${newListing.requiresIdentityVerification ? 'bg-brand-600' : 'bg-gray-200'}
-`}
-                            title="Toggle ID verification requirement"
-                        >
-                            <span
-                                className={`
-inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm
-                            ${newListing.requiresIdentityVerification ? 'translate-x-6' : 'translate-x-1'}
-`}
-                            />
-                        </button>
+
+                        <div className="p-6 md:p-8 space-y-6 bg-white/60 backdrop-blur-md">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="p-4 bg-white/50 rounded-2xl border border-white/60">
+                                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Type</span>
+                                    <p className="font-semibold text-gray-900 mt-1">{newListing.type}</p>
+                                </div>
+                                <div className="p-4 bg-white/50 rounded-2xl border border-white/60">
+                                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Capacity</span>
+                                    <p className="font-semibold text-gray-900 mt-1">{newListing.capacity} Guests</p>
+                                </div>
+                            </div>
+
+                            <div>
+                                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-2">Description</span>
+                                <p className="text-gray-600 leading-relaxed text-sm line-clamp-3">
+                                    {newListing.description}
+                                </p>
+                            </div>
+
+                            <div className="flex flex-wrap gap-2">
+                                {newListing.amenities?.slice(0, 5).map((amenity, idx) => (
+                                    <span key={idx} className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-medium border border-gray-200">
+                                        {amenity.name}
+                                    </span>
+                                ))}
+                                {(newListing.amenities?.length || 0) > 5 && (
+                                    <span className="px-3 py-1 bg-gray-50 text-gray-500 rounded-full text-xs font-medium border border-gray-200">
+                                        +{(newListing.amenities?.length || 0) - 5} more
+                                    </span>
+                                )}
+                            </div>
+
+                            {(newListing.addOns?.length || 0) > 0 && (
+                                <div className="pt-4 border-t border-gray-200/50">
+                                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-2">Extras</span>
+                                    <div className="flex items-center gap-2 text-brand-600 font-medium text-sm">
+                                        <PackagePlus size={16} />
+                                        {newListing.addOns?.length} Add-on{newListing.addOns?.length !== 1 ? 's' : ''} configured
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            {/* Preview Card */}
-            <div className="bg-gray-50 p-4 rounded-xl mb-4 text-left relative border border-gray-100">
-                <div className="absolute top-3 right-3 z-10">
-                    <span className="bg-white/90 backdrop-blur px-2 py-0.5 rounded text-[10px] font-bold border border-gray-200 text-gray-500 shadow-sm uppercase tracking-wider">Preview</span>
-                </div>
+                {/* Action Sidebar */}
+                <div className="space-y-6">
+                    <div className="glass-card p-6 rounded-3xl border border-white/40 shadow-lg bg-white/40">
+                        <h4 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                            <Shield size={18} className="text-brand-600" />
+                            Host Protection
+                        </h4>
+                        <ul className="space-y-3 text-sm text-gray-600">
+                            <li className="flex items-start gap-2">
+                                <CheckCircle size={16} className="text-green-500 shrink-0 mt-0.5" />
+                                <span>$1M Liability Insurance included</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                                <CheckCircle size={16} className="text-green-500 shrink-0 mt-0.5" />
+                                <span>Guest identity verification</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                                <CheckCircle size={16} className="text-green-500 shrink-0 mt-0.5" />
+                                <span>24/7 Support for hosts</span>
+                            </li>
+                        </ul>
+                    </div>
 
-                <div className="flex gap-4">
-                    <div className="w-24 h-24 rounded-lg overflow-hidden bg-gray-200 shrink-0">
-                        {newListing.images && newListing.images[0] ? (
-                            <img src={newListing.images[0]} className="w-full h-full object-cover" alt="Preview" />
+                    <div className="glass-card p-6 rounded-3xl border border-white/40 shadow-lg bg-white/40">
+                        <label className="flex items-start gap-3 cursor-pointer group">
+                            <div className="relative flex items-center">
+                                <input
+                                    type="checkbox"
+                                    className="peer h-5 w-5 cursor-pointer appearance-none rounded-md border border-gray-300 transition-all checked:border-brand-500 checked:bg-brand-500 hover:border-brand-400"
+                                    checked={agreedToTerms}
+                                    onChange={(e) => setAgreedToTerms(e.target.checked)}
+                                />
+                                <CheckCircle size={14} className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-white opacity-0 peer-checked:opacity-100" />
+                            </div>
+                            <span className="text-sm text-gray-600 group-hover:text-gray-900 transition-colors">
+                                I agree to the <a href="#" className="text-brand-600 hover:underline font-medium">Host Terms & Conditions</a> and confirm that all information provided is accurate.
+                            </span>
+                        </label>
+                    </div>
+
+                    <Button
+                        onClick={handlePublish}
+                        disabled={isSubmitting || !agreedToTerms}
+                        variant="primary"
+                        size="lg"
+                        className="w-full py-4 text-lg shadow-xl shadow-brand-500/30 hover:shadow-brand-500/50 transition-all hover:scale-[1.02] relative overflow-hidden group"
+                    >
+                        {isSubmitting ? (
+                            <div className="flex items-center justify-center gap-2">
+                                <Loader2 className="animate-spin" size={20} /> Publishing...
+                            </div>
                         ) : (
-                            <div className="w-full h-full flex items-center justify-center text-gray-400"><ImageIcon size={24} /></div>
+                            <div className="flex items-center justify-center gap-2">
+                                <PartyPopper size={20} className="group-hover:animate-bounce" /> Publish Listing
+                            </div>
                         )}
-                    </div>
-                    <div className="flex-1 min-w-0 py-1">
-                        <h3 className="font-bold text-base text-gray-900 truncate">{newListing.title || 'Untitled Listing'}</h3>
-                        <p className="text-xs text-gray-600 flex items-center gap-1"><MapPin size={10} /> {newListing.location || 'No location'}</p>
-                        <p className="text-xs text-gray-500 mt-0.5">{newListing.type}</p>
+                        {/* Shine effect */}
+                        <div className="absolute inset-0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent z-10"></div>
+                    </Button>
 
-                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3">
-                            <p className="text-brand-600 font-bold text-sm">{locale.currencySymbol}{newListing.price || 0} <span className="text-gray-400 font-normal">/ {newListing.pricingModel === PricingModel.HOURLY ? 'hr' : newListing.pricingModel === PricingModel.NIGHTLY ? 'night' : 'day'}</span></p>
-
-                            {newListing.settings?.allowRecurring && (
-                                <span className="text-[10px] bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded font-semibold flex items-center gap-1">
-                                    <Repeat size={8} /> Recurring
-                                </span>
-                            )}
-                            {newListing.requiresIdentityVerification && (
-                                <span className="text-[10px] bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded font-semibold flex items-center gap-1">
-                                    <Shield size={8} /> ID Req.
-                                </span>
-                            )}
-                        </div>
-                    </div>
+                    <Button
+                        onClick={() => setStep(4)}
+                        variant="ghost"
+                        className="w-full text-gray-500 hover:text-gray-900"
+                    >
+                        Back to Verification
+                    </Button>
                 </div>
-
-                <div className="mt-3 pt-3 border-t border-gray-200 flex items-center justify-between text-xs">
-                    <div className={`flex items-center gap-1 font-medium ${newListing.proofOfAddress ? 'text-green-700' : 'text-orange-600'}`}>
-                        {newListing.proofOfAddress ? <><CheckCircle size={12} /> Proof of Address Verified</> : <><AlertCircle size={12} /> Missing Documentation</>}
-                    </div>
-                    <div className="flex flex-col items-end text-gray-500">
-                        <span className="flex items-center gap-0.5"><Users size={12} /> Max {newListing.capacity || 1}</span>
-                        {(newListing.addOns?.length || 0) > 0 && (
-                            <span className="text-blue-600 flex items-center gap-0.5"><PackagePlus size={8} /> {newListing.addOns?.length} Extras</span>
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            {!newListing.proofOfAddress && (
-                <div className="flex items-start gap-3 bg-orange-50 p-4 rounded-lg text-left text-sm text-orange-800 mb-4 border border-orange-100">
-                    <AlertTriangle className="shrink-0 mt-0.5" size={18} />
-                    <p>
-                        <strong>Missing Document:</strong> You haven't uploaded proof of address yet. You can save this listing as a
-                        <span className="font-bold"> Draft</span> and upload it later.
-                    </p>
-                </div>
-            )}
-
-            {!user.kycVerified && (
-                <div className="flex items-start gap-3 bg-yellow-50 p-4 rounded-lg text-left text-sm text-yellow-800 mb-4 border border-yellow-100">
-                    <AlertCircle className="shrink-0 mt-0.5" size={18} />
-                    <p>
-                        <strong>Note:</strong> Your account is not KYC verified yet. This listing will be saved as a
-                        <span className="font-bold"> Draft</span> until you verify your Government ID.
-                    </p>
-                </div>
-            )}
-
-            {/* Image Count Warning */}
-            {(newListing.images?.length || 0) < 5 && (
-                <div className="flex items-start gap-3 bg-orange-50 p-4 rounded-lg text-left text-sm text-orange-800 mb-4 border border-orange-100">
-                    <ImageIcon className="shrink-0 mt-0.5" size={18} />
-                    <p>
-                        <strong>More photos needed:</strong> You have fewer than 5 photos. This listing will be saved as a
-                        <span className="font-bold"> Draft</span> until you add more photos.
-                    </p>
-                </div>
-            )}
-
-            {/* Availability Warning */}
-            {(!newListing.availability || Object.keys(newListing.availability).length === 0) && (
-                <div className="flex items-start gap-3 bg-orange-50 p-4 rounded-lg text-left text-sm text-orange-800 mb-4 border border-orange-100">
-                    <AlertTriangle className="shrink-0 mt-0.5" size={18} />
-                    <p>
-                        <strong>No availability set:</strong> You haven't configured any available dates. 
-                        Go back to the Availability step and apply a weekly schedule.
-                    </p>
-                </div>
-            )}
-
-            {user.kycVerified && newListing.proofOfAddress && (newListing.images?.length || 0) >= 5 && (
-                <div className="flex items-start gap-3 bg-blue-50 p-4 rounded-lg text-left text-sm text-blue-800 mb-4 border border-blue-100">
-                    <CheckCircle className="shrink-0 mt-0.5" size={18} />
-                    <p>
-                        <strong>Ready to submit:</strong> {(newListing as any).id && listings.find(l => l.id === (newListing as any).id)?.status === ListingStatus.LIVE ?
-                            'Updates will be published immediately since this listing is already live.' :
-                            'Your listing will be sent for approval by our team before going live.'}
-                    </p>
-                </div>
-            )}
-
-            <div className="pt-6 flex gap-4">
-                <button
-                    onClick={() => setStep(4)}
-                    className="px-8 py-4 text-gray-700 font-semibold hover:bg-gray-100 rounded-xl transition-all border-2 border-gray-200 hover:border-gray-300"
-                >
-                    Back
-                </button>
-                <button
-                    onClick={handleCreateListing}
-                    disabled={isSubmitting}
-                    className="flex-1 bg-linear-to-r from-gray-900 to-gray-800 text-white py-4 rounded-xl font-bold flex justify-center items-center hover:from-black hover:to-gray-900 transition-all shadow-xl hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed text-lg gap-2"
-                >
-                    {isSubmitting ? <Loader2 className="animate-spin" size={24} /> : (
-                        user.kycVerified && newListing.proofOfAddress && newListing.price && (newListing.images?.length || 0) >= 5 ?
-                            ((newListing as any).id && listings.find(l => l.id === (newListing as any).id)?.status === ListingStatus.LIVE ? 'Save Changes' : 'Submit for Approval')
-                            : 'Save Draft'
-                    )}
-                </button>
             </div>
         </div>
     );

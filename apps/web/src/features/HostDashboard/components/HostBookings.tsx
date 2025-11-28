@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Booking, Listing } from '@fiilar/types';
-import { Briefcase, FileText, MapPin, Calendar as CalendarIcon, CheckCircle, X, DollarSign, ShieldCheck, MessageCircle, Edit } from 'lucide-react';
-import { Button, Input, useLocale } from '@fiilar/ui';
+import { Briefcase, FileText, MapPin, Calendar as CalendarIcon, CheckCircle, X, DollarSign, ShieldCheck, MessageCircle, Edit, Clock, User } from 'lucide-react';
+import { useLocale } from '@fiilar/ui';
+import { OTPInput } from '../../../components/OTPInput';
+import { cn } from '@fiilar/utils';
 
 interface HostBookingsProps {
     bookings: Booking[];
@@ -87,43 +89,48 @@ const HostBookings: React.FC<HostBookingsProps> = ({ bookings, listings, filter,
     };
 
     return (
-        <div className="space-y-4 animate-in fade-in">
+        <div className="space-y-6 animate-in fade-in duration-500">
             {/* Verification Modal */}
             {verifyingId && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-xl p-6 max-w-md w-full shadow-xl animate-in zoom-in-95 duration-200">
-                        <div className="text-center mb-6">
-                            <div className="w-16 h-16 bg-brand-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <ShieldCheck size={32} className="text-brand-600" />
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+                    <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-300 border border-gray-100">
+                        <div className="text-center mb-8">
+                            <div className="w-20 h-20 bg-brand-50 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+                                <ShieldCheck size={40} className="text-brand-600" />
                             </div>
-                            <h3 className="text-xl font-bold text-gray-900">Verify Guest</h3>
-                            <p className="text-sm text-gray-500 mt-1">Enter the 6-digit code provided by the guest to grant access.</p>
+                            <h3 className="text-2xl font-bold text-gray-900">Verify Guest</h3>
+                            <p className="text-gray-500 mt-2">Enter the 6-digit code provided by the guest to grant access.</p>
                         </div>
 
-                        <div className="space-y-4">
-                            <div>
-                                <Input
-                                    label="Guest Code"
-                                    placeholder="e.g. A1B2C3"
-                                    value={verificationCode}
-                                    onChange={(e) => {
-                                        setVerificationCode(e.target.value.toUpperCase());
-                                        setVerificationError(false);
-                                    }}
-                                    className="text-center text-2xl tracking-widest uppercase font-mono"
-                                    maxLength={6}
-                                />
-                                {verificationError && (
-                                    <p className="text-red-600 text-sm mt-2 text-center font-medium animate-pulse">
-                                        Invalid code. Please try again.
-                                    </p>
-                                )}
+                        <div className="space-y-6">
+                            <div className="flex justify-center">
+                                <div className={cn("transition-transform duration-200", verificationError && "animate-shake")}>
+                                    <OTPInput
+                                        value={verificationCode}
+                                        onChange={(val: string) => {
+                                            setVerificationCode(val.toUpperCase());
+                                            setVerificationError(false);
+                                        }}
+                                        length={6}
+                                        variant="default"
+                                        onComplete={(val: string) => {
+                                            // Optional: auto-submit on complete
+                                            // if (val.length === 6) handleVerifySubmit();
+                                        }}
+                                        onSubmit={handleVerifySubmit}
+                                    />
+                                </div>
                             </div>
 
-                            <div className="flex gap-3 pt-2">
-                                <Button
-                                    variant="outline"
-                                    className="flex-1"
+                            {verificationError && (
+                                <p className="text-red-600 text-sm text-center font-medium animate-in fade-in slide-in-from-top-1 flex items-center justify-center gap-1">
+                                    <X size={14} /> Invalid code. Please try again.
+                                </p>
+                            )}
+
+                            <div className="flex gap-4 pt-4">
+                                <button
+                                    className="flex-1 px-4 py-3 rounded-xl font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
                                     onClick={() => {
                                         setVerifyingId(null);
                                         setVerificationCode('');
@@ -131,82 +138,97 @@ const HostBookings: React.FC<HostBookingsProps> = ({ bookings, listings, filter,
                                     }}
                                 >
                                     Cancel
-                                </Button>
-                                <Button
-                                    variant="primary"
-                                    className="flex-1"
+                                </button>
+                                <button
+                                    className="flex-1 px-4 py-3 rounded-xl font-bold text-white bg-brand-600 hover:bg-brand-700 shadow-lg shadow-brand-600/20 hover:shadow-brand-600/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                     onClick={handleVerifySubmit}
                                     disabled={verificationCode.length < 6}
                                 >
                                     Verify & Start
-                                </Button>
+                                </button>
                             </div>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* Header with Filters */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+            {/* Header Section */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
                     <h2 className="text-2xl font-bold text-gray-900">Bookings</h2>
-                    <p className="text-sm text-gray-500 mt-1">Manage your space bookings and payouts</p>
+                    <p className="text-gray-500 text-sm mt-1">Manage your space bookings and payouts</p>
                 </div>
 
                 <div className="flex items-center gap-4">
                     {/* View Toggle */}
-                    <div className="flex p-1 bg-gray-100 rounded-lg">
+                    <div className="flex p-1 bg-gray-100/80 backdrop-blur-sm rounded-xl border border-gray-200/50">
                         <button
                             onClick={() => setView('cards')}
-                            className={`p-2 rounded-md transition-all ${view === 'cards' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                            className={cn(
+                                "p-2 rounded-lg transition-all duration-200",
+                                view === 'cards' ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
+                            )}
                             title="Card view"
                         >
                             <Briefcase size={20} />
                         </button>
                         <button
                             onClick={() => setView('table')}
-                            className={`p-2 rounded-md transition-all ${view === 'table' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                            className={cn(
+                                "p-2 rounded-lg transition-all duration-200",
+                                view === 'table' ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
+                            )}
                             title="Table view"
                         >
                             <FileText size={20} />
                         </button>
                     </div>
-
-                    {/* Filter Tabs */}
-                    <div className="flex p-1 bg-gray-100 rounded-xl overflow-x-auto no-scrollbar">
-                        {[
-                            { key: 'all', label: 'All', count: bookings.length },
-                            { key: 'pending', label: 'Pending', count: bookings.filter(b => b.status === 'Pending').length },
-                            { key: 'confirmed', label: 'Confirmed', count: bookings.filter(b => b.status === 'Confirmed').length },
-                            { key: 'completed', label: 'Completed', count: bookings.filter(b => b.status === 'Completed').length }
-                        ].map(f => (
-                            <button
-                                key={f.key}
-                                onClick={() => setFilter(f.key as any)}
-                                className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${filter === f.key
-                                    ? 'bg-white text-gray-900 shadow-sm'
-                                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
-                                    }`}
-                            >
-                                {f.label} {f.count > 0 && `(${f.count})`}
-                            </button>
-                        ))}
-                    </div>
                 </div>
             </div>
 
+            {/* Filters */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar">
+                {[
+                    { key: 'all', label: 'All', count: bookings.length },
+                    { key: 'pending', label: 'Pending', count: bookings.filter(b => b.status === 'Pending').length },
+                    { key: 'confirmed', label: 'Confirmed', count: bookings.filter(b => b.status === 'Confirmed').length },
+                    { key: 'completed', label: 'Completed', count: bookings.filter(b => b.status === 'Completed').length }
+                ].map(f => (
+                    <button
+                        key={f.key}
+                        onClick={() => setFilter(f.key as any)}
+                        className={cn(
+                            "px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2",
+                            filter === f.key
+                                ? "bg-gray-900 text-white shadow-md"
+                                : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-200"
+                        )}
+                    >
+                        {f.label}
+                        {f.count > 0 && (
+                            <span className={cn(
+                                "px-1.5 py-0.5 rounded-full text-[10px] font-bold",
+                                filter === f.key ? "bg-white/20 text-white" : "bg-gray-100 text-gray-600"
+                            )}>
+                                {f.count}
+                            </span>
+                        )}
+                    </button>
+                ))}
+            </div>
+
             {bookings.length === 0 ? (
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-12 text-center">
-                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <FileText size={32} className="text-gray-400" />
+                <div className="glass-card rounded-3xl p-12 text-center border-dashed border-2 border-gray-300 bg-gray-50/50">
+                    <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
+                        <CalendarIcon size={32} className="text-gray-400" />
                     </div>
-                    <h3 className="font-bold text-gray-900 text-lg mb-2">No bookings yet</h3>
-                    <p className="text-gray-500 max-w-sm mx-auto">Your bookings will appear here once guests start booking your spaces.</p>
+                    <h3 className="font-bold text-gray-900 text-xl mb-2">No bookings yet</h3>
+                    <p className="text-gray-500 max-w-md mx-auto">Your bookings will appear here once guests start booking your spaces.</p>
                 </div>
             ) : (
                 <>
                     {view === 'cards' ? (
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             {displayItems
                                 .filter(({ booking: b }) => filter === 'all' || b.status.toLowerCase() === filter)
                                 .map(({ booking, group }) => {
@@ -215,136 +237,162 @@ const HostBookings: React.FC<HostBookingsProps> = ({ bookings, listings, filter,
                                     const totalPrice = isGroup ? group.reduce((sum, item) => sum + item.totalPrice, 0) : booking.totalPrice;
 
                                     return (
-                                        <div key={booking.id} className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
-                                            <div className="flex gap-4 p-4">
-                                                <img src={listing?.images[0]} alt="" className="w-24 h-24 rounded-lg object-cover shrink-0" />
+                                        <div key={booking.id} className="glass-card rounded-2xl overflow-hidden group hover:border-brand-200 transition-all duration-300">
+                                            <div className="p-5 flex gap-5">
+                                                <div className="w-24 h-24 rounded-xl bg-gray-100 overflow-hidden shrink-0 relative shadow-sm">
+                                                    <img src={listing?.images[0]} alt="" className="w-full h-full object-cover" />
+                                                </div>
                                                 <div className="flex-1 min-w-0">
-                                                    <div className="flex items-start justify-between gap-2 mb-2">
+                                                    <div className="flex items-start justify-between gap-3 mb-2">
                                                         <div>
-                                                            <h3 className="font-bold text-gray-900 truncate">{listing?.title || 'Unknown'}</h3>
+                                                            <h3 className="font-bold text-gray-900 truncate text-lg leading-tight">{listing?.title || 'Unknown'}</h3>
                                                             {isGroup && (
-                                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-purple-100 text-purple-700 mt-1">
+                                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-100 mt-1">
                                                                     <CheckCircle size={10} /> Recurring ({group.length} sessions)
                                                                 </span>
                                                             )}
                                                         </div>
-                                                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border whitespace-nowrap ${booking.status === 'Confirmed' ? 'bg-green-50 text-green-700 border-green-200' :
-                                                            booking.status === 'Pending' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
-                                                                booking.status === 'Completed' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                                                                    'bg-gray-100 text-gray-500 border-gray-200'
-                                                            }`}>
+                                                        <span className={cn(
+                                                            "px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border whitespace-nowrap",
+                                                            booking.status === 'Confirmed' ? 'bg-green-50 text-green-700 border-green-200' :
+                                                                booking.status === 'Pending' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
+                                                                    booking.status === 'Completed' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                                                        'bg-gray-100 text-gray-500 border-gray-200'
+                                                        )}>
                                                             {booking.status}
                                                         </span>
                                                     </div>
-                                                    <p className="text-xs text-gray-500 mb-1 flex items-center gap-1">
-                                                        <MapPin size={10} /> {listing?.location}
-                                                    </p>
+
+                                                    <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
+                                                        <div className="flex items-center gap-1.5">
+                                                            <User size={14} className="text-gray-400" />
+                                                            <span className="font-medium">Guest User</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-1.5">
+                                                            <MapPin size={14} className="text-gray-400" />
+                                                            <span className="truncate max-w-[120px]">{listing?.location}</span>
+                                                        </div>
+                                                    </div>
 
                                                     {isGroup ? (
-                                                        <div className="mb-2">
-                                                            <p className="text-xs text-gray-600 font-medium mb-1">Session Dates:</p>
-                                                            <div className="flex flex-wrap gap-1">
+                                                        <div className="mb-3">
+                                                            <p className="text-xs text-gray-500 font-medium mb-1.5 uppercase tracking-wide">Session Dates</p>
+                                                            <div className="flex flex-wrap gap-1.5">
                                                                 {group.map(s => (
-                                                                    <span key={s.id} className="text-[10px] bg-gray-100 px-1.5 py-0.5 rounded text-gray-600 border border-gray-200">
+                                                                    <span key={s.id} className="text-[10px] bg-gray-50 px-2 py-1 rounded-md text-gray-600 border border-gray-100 font-medium">
                                                                         {new Date(s.date).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' })}
                                                                     </span>
                                                                 ))}
                                                             </div>
                                                         </div>
                                                     ) : (
-                                                        <p className="text-xs text-gray-600 mb-2 flex items-center gap-1">
-                                                            <CalendarIcon size={10} /> {new Date(booking.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+                                                        <div className="flex items-center gap-3 text-sm text-gray-600 mb-3 bg-gray-50/50 p-2 rounded-lg border border-gray-100/50">
+                                                            <div className="flex items-center gap-1.5">
+                                                                <CalendarIcon size={14} className="text-brand-500" />
+                                                                <span className="font-medium">{new Date(booking.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+                                                            </div>
                                                             {formatTimeRange(booking.hours) && (
-                                                                <span className="text-brand-600 font-medium ml-1">
-                                                                    • {formatTimeRange(booking.hours)}
-                                                                </span>
+                                                                <>
+                                                                    <div className="w-1 h-1 bg-gray-300 rounded-full" />
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        <Clock size={14} className="text-brand-500" />
+                                                                        <span className="font-medium">{formatTimeRange(booking.hours)}</span>
+                                                                    </div>
+                                                                </>
                                                             )}
-                                                        </p>
+                                                        </div>
                                                     )}
 
-                                                    <div className="flex items-center gap-3 text-xs">
-                                                        <span className="font-bold text-gray-900">{locale.currencySymbol}{totalPrice.toFixed(2)}</span>
-                                                        <span className={`px-2 py-0.5 rounded-full font-semibold ${booking.paymentStatus === 'Released' ? 'bg-green-100 text-green-700' :
-                                                            booking.paymentStatus === 'Refunded' ? 'bg-red-100 text-red-700' :
-                                                                'bg-blue-100 text-blue-700'
-                                                            }`}>
+                                                    <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                                                        <span className="font-bold text-gray-900 text-lg">{locale.currencySymbol}{totalPrice.toFixed(2)}</span>
+                                                        <span className={cn(
+                                                            "px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5",
+                                                            booking.paymentStatus === 'Released' ? 'bg-green-50 text-green-700' :
+                                                                booking.paymentStatus === 'Refunded' ? 'bg-red-50 text-red-700' :
+                                                                    'bg-blue-50 text-blue-700'
+                                                        )}>
+                                                            <DollarSign size={12} />
                                                             {booking.paymentStatus || 'Escrow'}
                                                         </span>
                                                     </div>
                                                 </div>
                                             </div>
-                                            {booking.status === 'Pending' && (
-                                                <div className="border-t border-gray-100 p-3 bg-gray-50 flex gap-2 flex-wrap">
-                                                    <button
-                                                        onClick={() => onAccept(booking)}
-                                                        className="flex-1 bg-green-600 text-white px-3 py-2 rounded-lg text-xs font-semibold hover:bg-green-700 transition flex items-center justify-center gap-1"
-                                                    >
-                                                        <CheckCircle size={14} /> Accept {isGroup ? 'Series' : ''}
-                                                    </button>
-                                                    <button
-                                                        onClick={() => onReject(booking)}
-                                                        className="flex-1 bg-white border border-gray-300 text-gray-700 px-3 py-2 rounded-lg text-xs font-semibold hover:bg-gray-50 transition flex items-center justify-center gap-1"
-                                                    >
-                                                        <X size={14} /> Decline {isGroup ? 'Series' : ''}
-                                                    </button>
-                                                    <button
-                                                        onClick={() => navigate(`?view=messages&userId=${booking.userId}&bookingId=${booking.id}`)}
-                                                        className="bg-blue-50 text-blue-600 px-3 py-2 rounded-lg text-xs font-semibold hover:bg-blue-100 transition flex items-center justify-center gap-1"
-                                                        title="Message Guest"
-                                                    >
-                                                        <MessageCircle size={14} />
-                                                    </button>
-                                                    {!booking.modificationAllowed && (
+
+                                            {/* Actions Footer */}
+                                            <div className="bg-gray-50/50 border-t border-gray-100 p-3 flex gap-2">
+                                                {booking.status === 'Pending' && (
+                                                    <>
                                                         <button
-                                                            onClick={() => onAllowModification(booking)}
-                                                            className="bg-purple-50 text-purple-600 px-3 py-2 rounded-lg text-xs font-semibold hover:bg-purple-100 transition flex items-center justify-center gap-1"
-                                                            title="Allow Guest to Modify"
+                                                            onClick={() => onAccept(booking)}
+                                                            className="flex-1 bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-green-700 transition-all shadow-sm flex items-center justify-center gap-2"
                                                         >
-                                                            <Edit size={14} />
+                                                            <CheckCircle size={16} /> Accept
                                                         </button>
-                                                    )}
-                                                </div>
-                                            )}
-                                            {booking.status === 'Confirmed' && booking.handshakeStatus !== 'VERIFIED' && (
-                                                <div className="border-t border-gray-100 p-3 bg-brand-50">
+                                                        <button
+                                                            onClick={() => onReject(booking)}
+                                                            className="flex-1 bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-gray-50 transition-all flex items-center justify-center gap-2"
+                                                        >
+                                                            <X size={16} /> Decline
+                                                        </button>
+                                                    </>
+                                                )}
+
+                                                {booking.status === 'Confirmed' && booking.handshakeStatus !== 'VERIFIED' && (
                                                     <button
                                                         onClick={() => setVerifyingId(booking.id)}
-                                                        className="w-full bg-brand-600 text-white px-3 py-2 rounded-lg text-xs font-semibold hover:bg-brand-700 transition flex items-center justify-center gap-1"
+                                                        className="flex-1 bg-brand-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-brand-700 transition-all shadow-lg shadow-brand-600/20 flex items-center justify-center gap-2"
                                                     >
-                                                        <ShieldCheck size={14} /> Verify Guest
+                                                        <ShieldCheck size={16} /> Verify Guest
                                                     </button>
-                                                </div>
-                                            )}
-                                            {booking.paymentStatus === 'Paid - Escrow' && booking.status === 'Confirmed' && booking.handshakeStatus === 'VERIFIED' && (
-                                                <div className="border-t border-gray-100 p-3 bg-blue-50">
+                                                )}
+
+                                                {booking.paymentStatus === 'Paid - Escrow' && booking.status === 'Confirmed' && booking.handshakeStatus === 'VERIFIED' && (
                                                     <button
                                                         onClick={() => onRelease(booking.id)}
-                                                        className="w-full bg-brand-600 text-white px-3 py-2 rounded-lg text-xs font-semibold hover:bg-brand-700 transition flex items-center justify-center gap-1"
+                                                        className="flex-1 bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-green-700 transition-all shadow-lg shadow-green-600/20 flex items-center justify-center gap-2"
                                                     >
-                                                        <DollarSign size={14} /> Release Funds
+                                                        <DollarSign size={16} /> Release Funds
                                                     </button>
-                                                </div>
-                                            )}
+                                                )}
+
+                                                <button
+                                                    onClick={() => navigate(`?view=messages&userId=${booking.userId}&bookingId=${booking.id}`)}
+                                                    className="w-10 h-10 bg-white border border-gray-200 text-gray-600 rounded-xl flex items-center justify-center hover:bg-gray-50 hover:text-brand-600 transition-colors"
+                                                    title="Message Guest"
+                                                >
+                                                    <MessageCircle size={18} />
+                                                </button>
+
+                                                {!booking.modificationAllowed && booking.status === 'Pending' && (
+                                                    <button
+                                                        onClick={() => onAllowModification(booking)}
+                                                        className="w-10 h-10 bg-white border border-gray-200 text-purple-600 rounded-xl flex items-center justify-center hover:bg-purple-50 transition-colors"
+                                                        title="Allow Modification"
+                                                    >
+                                                        <Edit size={18} />
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
                                     );
                                 })}
                         </div>
                     ) : (
-                        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                        <div className="glass-card rounded-2xl overflow-hidden">
                             <div className="overflow-x-auto">
                                 <table className="w-full">
-                                    <thead className="bg-gray-50 border-b border-gray-200">
+                                    <thead className="bg-gray-50/50 border-b border-gray-200">
                                         <tr>
-                                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Guest</th>
-                                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Property</th>
-                                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Date</th>
-                                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Amount</th>
-                                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
-                                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Payment</th>
-                                            <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Action</th>
+                                            <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Guest</th>
+                                            <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Property</th>
+                                            <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Date</th>
+                                            <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Amount</th>
+                                            <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
+                                            <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Payment</th>
+                                            <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Action</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="bg-white divide-y divide-gray-200">
+                                    <tbody className="divide-y divide-gray-100">
                                         {displayItems
                                             .filter(({ booking: b }) => filter === 'all' || b.status.toLowerCase() === filter)
                                             .map(({ booking, group }) => {
@@ -353,15 +401,20 @@ const HostBookings: React.FC<HostBookingsProps> = ({ bookings, listings, filter,
                                                 const totalPrice = isGroup ? group.reduce((sum, item) => sum + item.totalPrice, 0) : booking.totalPrice;
 
                                                 return (
-                                                    <tr key={booking.id} className="hover:bg-gray-50 transition-colors">
+                                                    <tr key={booking.id} className="hover:bg-gray-50/50 transition-colors">
                                                         <td className="px-6 py-4 whitespace-nowrap">
-                                                            <div className="text-sm font-medium text-gray-900">{booking.userId}</div>
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500">
+                                                                    <User size={14} />
+                                                                </div>
+                                                                <div className="text-sm font-medium text-gray-900">Guest User</div>
+                                                            </div>
                                                         </td>
                                                         <td className="px-6 py-4">
                                                             <div className="text-sm font-medium text-gray-900">{listing?.title || 'Unknown'}</div>
-                                                            <div className="text-xs text-gray-500">{listing?.location}</div>
+                                                            <div className="text-xs text-gray-500 flex items-center gap-1 mt-0.5"><MapPin size={10} /> {listing?.location}</div>
                                                             {isGroup && (
-                                                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-purple-100 text-purple-700 mt-1">
+                                                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-purple-50 text-purple-700 border border-purple-100 mt-1">
                                                                     Recurring ({group.length})
                                                                 </span>
                                                             )}
@@ -369,7 +422,7 @@ const HostBookings: React.FC<HostBookingsProps> = ({ bookings, listings, filter,
                                                         <td className="px-6 py-4 whitespace-nowrap">
                                                             {isGroup ? (
                                                                 <div className="text-sm text-gray-900">
-                                                                    <div className="font-medium mb-1">Multiple Dates:</div>
+                                                                    <div className="font-medium mb-1 text-xs text-gray-500 uppercase tracking-wide">Multiple Dates</div>
                                                                     <div className="flex flex-wrap gap-1 max-w-[200px]">
                                                                         {group.map(s => (
                                                                             <span key={s.id} className="text-[10px] bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200">
@@ -380,10 +433,10 @@ const HostBookings: React.FC<HostBookingsProps> = ({ bookings, listings, filter,
                                                                 </div>
                                                             ) : (
                                                                 <>
-                                                                    <div className="text-sm text-gray-900">{new Date(booking.date).toLocaleDateString()}</div>
+                                                                    <div className="text-sm font-medium text-gray-900">{new Date(booking.date).toLocaleDateString()}</div>
                                                                     {booking.hours && (
-                                                                        <div className="text-xs text-brand-600 font-medium mt-0.5">
-                                                                            {formatTimeRange(booking.hours)}
+                                                                        <div className="text-xs text-brand-600 font-medium mt-0.5 flex items-center gap-1">
+                                                                            <Clock size={10} /> {formatTimeRange(booking.hours)}
                                                                         </div>
                                                                     )}
                                                                 </>
@@ -393,74 +446,75 @@ const HostBookings: React.FC<HostBookingsProps> = ({ bookings, listings, filter,
                                                             <div className="text-sm font-bold text-gray-900">{locale.currencySymbol}{totalPrice.toFixed(2)}</div>
                                                         </td>
                                                         <td className="px-6 py-4 whitespace-nowrap">
-                                                            <span className={`px-2 py-1 text-xs font-bold rounded-full ${booking.status === 'Confirmed' ? 'bg-green-100 text-green-800' :
-                                                                booking.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
-                                                                    booking.status === 'Completed' ? 'bg-blue-100 text-blue-800' :
-                                                                        'bg-gray-100 text-gray-800'
-                                                                }`}>
+                                                            <span className={cn(
+                                                                "px-2.5 py-1 text-xs font-bold rounded-full border",
+                                                                booking.status === 'Confirmed' ? 'bg-green-50 text-green-700 border-green-200' :
+                                                                    booking.status === 'Pending' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
+                                                                        booking.status === 'Completed' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                                                            'bg-gray-100 text-gray-700 border-gray-200'
+                                                            )}>
                                                                 {booking.status}
                                                             </span>
                                                         </td>
                                                         <td className="px-6 py-4 whitespace-nowrap">
-                                                            <span className={`px-2 py-1 text-xs font-bold rounded-full ${booking.paymentStatus === 'Released' ? 'bg-green-100 text-green-800' :
-                                                                booking.paymentStatus === 'Refunded' ? 'bg-red-100 text-red-800' :
-                                                                    'bg-blue-100 text-blue-800'
-                                                                }`}>
-                                                                {booking.paymentStatus || 'Paid - Escrow'}
+                                                            <span className={cn(
+                                                                "px-2.5 py-1 text-xs font-bold rounded-full border flex items-center gap-1 w-fit",
+                                                                booking.paymentStatus === 'Released' ? 'bg-green-50 text-green-700 border-green-200' :
+                                                                    booking.paymentStatus === 'Refunded' ? 'bg-red-50 text-red-700 border-red-200' :
+                                                                        'bg-blue-50 text-blue-700 border-blue-200'
+                                                            )}>
+                                                                {booking.paymentStatus || 'Escrow'}
                                                             </span>
                                                         </td>
                                                         <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                                            {booking.status === 'Pending' && (
-                                                                <div className="flex gap-2">
-                                                                    <button
-                                                                        onClick={() => onAccept(booking)}
-                                                                        className="text-green-600 hover:text-green-700 font-medium flex items-center gap-1"
-                                                                    >
-                                                                        <CheckCircle size={14} /> Accept
-                                                                    </button>
-                                                                    <button
-                                                                        onClick={() => onReject(booking)}
-                                                                        className="text-red-600 hover:text-red-700 font-medium flex items-center gap-1"
-                                                                    >
-                                                                        <X size={14} /> Decline
-                                                                    </button>
-                                                                    <button
-                                                                        onClick={() => navigate(`?view=messages&userId=${booking.userId}&bookingId=${booking.id}`)}
-                                                                        className="text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
-                                                                        title="Message Guest"
-                                                                    >
-                                                                        <MessageCircle size={14} />
-                                                                    </button>
-                                                                    {!booking.modificationAllowed && (
+                                                            <div className="flex gap-2">
+                                                                {booking.status === 'Pending' && (
+                                                                    <>
                                                                         <button
-                                                                            onClick={() => onAllowModification(booking)}
-                                                                            className="text-purple-600 hover:text-purple-700 font-medium flex items-center gap-1"
-                                                                            title="Allow Guest to Modify"
+                                                                            onClick={() => onAccept(booking)}
+                                                                            className="text-green-600 hover:text-green-700 font-medium p-1.5 hover:bg-green-50 rounded-lg transition-colors"
+                                                                            title="Accept"
                                                                         >
-                                                                            <Edit size={14} /> Allow Modify
+                                                                            <CheckCircle size={18} />
                                                                         </button>
-                                                                    )}
-                                                                </div>
-                                                            )}
-                                                            {booking.status === 'Confirmed' && booking.handshakeStatus !== 'VERIFIED' && (
+                                                                        <button
+                                                                            onClick={() => onReject(booking)}
+                                                                            className="text-red-600 hover:text-red-700 font-medium p-1.5 hover:bg-red-50 rounded-lg transition-colors"
+                                                                            title="Decline"
+                                                                        >
+                                                                            <X size={18} />
+                                                                        </button>
+                                                                    </>
+                                                                )}
+
+                                                                {booking.status === 'Confirmed' && booking.handshakeStatus !== 'VERIFIED' && (
+                                                                    <button
+                                                                        onClick={() => setVerifyingId(booking.id)}
+                                                                        className="text-brand-600 hover:text-brand-700 font-medium p-1.5 hover:bg-brand-50 rounded-lg transition-colors"
+                                                                        title="Verify Guest"
+                                                                    >
+                                                                        <ShieldCheck size={18} />
+                                                                    </button>
+                                                                )}
+
+                                                                {booking.paymentStatus === 'Paid - Escrow' && booking.status === 'Confirmed' && booking.handshakeStatus === 'VERIFIED' && (
+                                                                    <button
+                                                                        onClick={() => onRelease(booking.id)}
+                                                                        className="text-green-600 hover:text-green-700 font-medium p-1.5 hover:bg-green-50 rounded-lg transition-colors"
+                                                                        title="Release Funds"
+                                                                    >
+                                                                        <DollarSign size={18} />
+                                                                    </button>
+                                                                )}
+
                                                                 <button
-                                                                    onClick={() => setVerifyingId(booking.id)}
-                                                                    className="text-brand-600 hover:text-brand-700 font-medium flex items-center gap-1"
+                                                                    onClick={() => navigate(`?view=messages&userId=${booking.userId}&bookingId=${booking.id}`)}
+                                                                    className="text-gray-400 hover:text-brand-600 font-medium p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                                                                    title="Message"
                                                                 >
-                                                                    <ShieldCheck size={14} /> Verify
+                                                                    <MessageCircle size={18} />
                                                                 </button>
-                                                            )}
-                                                            {booking.paymentStatus === 'Paid - Escrow' && booking.status === 'Confirmed' && booking.handshakeStatus === 'VERIFIED' && (
-                                                                <button
-                                                                    onClick={() => onRelease(booking.id)}
-                                                                    className="text-brand-600 hover:text-brand-700 font-medium flex items-center gap-1"
-                                                                >
-                                                                    <DollarSign size={14} /> Release
-                                                                </button>
-                                                            )}
-                                                            {booking.paymentStatus === 'Released' && (
-                                                                <span className="text-green-600 font-medium">✓ Released</span>
-                                                            )}
+                                                            </div>
                                                         </td>
                                                     </tr>
                                                 );

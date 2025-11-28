@@ -1,10 +1,34 @@
 import React from 'react';
 import { Listing, CancellationPolicy } from '@fiilar/types';
-import { ShieldCheck } from 'lucide-react';
+import { ShieldCheck, Flame, Cross, AlertTriangle, Camera, Lock, CircleParking } from 'lucide-react';
 
 interface ListingPoliciesProps {
   listing: Listing;
 }
+
+// Map safety items to appropriate icons
+const getSafetyIcon = (item: string) => {
+  const lowerItem = item.toLowerCase();
+  if (lowerItem.includes('fire') || lowerItem.includes('extinguisher') || lowerItem.includes('smoke')) {
+    return <Flame size={14} className="text-orange-500" />;
+  }
+  if (lowerItem.includes('first aid') || lowerItem.includes('medical') || lowerItem.includes('kit')) {
+    return <Cross size={14} className="text-red-500" />;
+  }
+  if (lowerItem.includes('camera') || lowerItem.includes('cctv') || lowerItem.includes('security camera')) {
+    return <Camera size={14} className="text-blue-500" />;
+  }
+  if (lowerItem.includes('lock') || lowerItem.includes('secure') || lowerItem.includes('safe')) {
+    return <Lock size={14} className="text-gray-600" />;
+  }
+  if (lowerItem.includes('parking') || lowerItem.includes('car')) {
+    return <CircleParking size={14} className="text-gray-500" />;
+  }
+  if (lowerItem.includes('warning') || lowerItem.includes('hazard') || lowerItem.includes('caution')) {
+    return <AlertTriangle size={14} className="text-yellow-500" />;
+  }
+  return <ShieldCheck size={14} className="text-green-500" />;
+};
 
 export const ListingPolicies: React.FC<ListingPoliciesProps> = ({ listing }) => {
   return (
@@ -35,7 +59,7 @@ export const ListingPolicies: React.FC<ListingPoliciesProps> = ({ listing }) => 
             {listing.safetyItems && listing.safetyItems.length > 0 ? (
               listing.safetyItems.map((item, idx) => (
                 <li key={idx} className="flex items-start gap-2">
-                  <ShieldCheck size={14} className="mt-0.5 text-gray-400 shrink-0" />
+                  <span className="mt-0.5 shrink-0">{getSafetyIcon(item)}</span>
                   {item}
                 </li>
               ))

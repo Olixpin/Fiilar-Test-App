@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Role } from '@fiilar/types';
 import { X } from 'lucide-react';
 import { useToast, Form } from '@fiilar/ui';
+import { Link } from 'react-router-dom';
 import LoginOptions from '../components/Login/LoginOptions';
 import EmailLogin from '../components/Login/EmailLogin';
 import OtpVerification from '../components/Login/OtpVerification';
@@ -155,6 +156,18 @@ const Login: React.FC<LoginProps> = ({ onLogin, onBack }) => {
                             isLoading={isLoading}
                             error={error}
                         />
+                    )}
+
+                    {/* Switch to Host Login */}
+                    {step === 0 && (
+                        <div className="mt-8 pt-6 border-t border-gray-100 text-center">
+                            <p className="text-sm text-gray-500">
+                                Want to list your space?{' '}
+                                <Link to="/login-host" className="text-brand-600 font-semibold hover:text-brand-700 hover:underline transition-colors">
+                                    Become a Host
+                                </Link>
+                            </p>
+                        </div>
                     )}
                 </div>
             </div>

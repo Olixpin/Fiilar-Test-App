@@ -237,6 +237,22 @@ export const useListingDetails = ({ listing, user, onBook, onVerify, onLogin, on
     const saveBookingDraftData = useCallback(() => {
         if (!user) return;
         
+        // Don't save if booking was already submitted
+        if (isBookingSubmitted) return;
+        
+        // Check if user already has an active booking for this listing
+        const existingActiveBooking = getBookings().find(b => 
+            b.userId === user.id && 
+            b.listingId === listing.id && 
+            (b.status === 'Pending' || b.status === 'Confirmed' || b.status === 'Started')
+        );
+        
+        // If there's an active booking, don't save draft and clean up any existing draft
+        if (existingActiveBooking) {
+            deleteBookingDraft(user.id, listing.id);
+            return;
+        }
+        
         // Only save if user has made some selections beyond defaults
         const hasHourlySelections = isHourly && selectedHours.length > 0;
         const hasDailySelections = !isHourly && selectedDays > 1;
@@ -269,7 +285,7 @@ export const useListingDetails = ({ listing, user, onBook, onVerify, onLogin, on
                 listingImage: listing.images?.[0]
             });
         }
-    }, [user, listing.id, listing.title, listing.images, selectedDate, selectedHours, selectedDays, guestCount, selectedAddOns, isRecurring, recurrenceFreq, recurrenceCount, agreedToTerms, isHourly]);
+    }, [user, listing.id, listing.title, listing.images, selectedDate, selectedHours, selectedDays, guestCount, selectedAddOns, isRecurring, recurrenceFreq, recurrenceCount, agreedToTerms, isHourly, isBookingSubmitted]);
 
     // Auto-save booking draft when booking state changes (debounced)
     useEffect(() => {
@@ -408,43 +424,10 @@ export const useListingDetails = ({ listing, user, onBook, onVerify, onLogin, on
 
     useEffect(() => {
         return () => {
-            const current = stateRef.current;
-            if (current.user && !current.isBookingSubmitted) {
-                const today = new Date().toISOString().split('T')[0];
-                const dateChanged = current.selectedDate !== today;
-                const guestsChanged = current.guestCount > 1;
-                const addonsSelected = current.selectedAddOns.length > 0;
-                const hoursSelected = current.isHourly && current.selectedHours.length > 0;
-                const daysChanged = !current.isHourly && current.selectedDays > 1;
-
-                const hasInteracted = dateChanged || guestsChanged || addonsSelected || hoursSelected || daysChanged;
-
-                if (hasInteracted) {
-                    try {
-                        const reservedBooking: Booking = {
-                            id: Math.random().toString(36).substr(2, 9),
-                            listingId: current.listing.id,
-                            userId: current.user.id,
-                            date: current.selectedDate,
-                            duration: current.isHourly ? current.selectedHours.length : current.selectedDays,
-                            hours: current.isHourly ? current.selectedHours : undefined,
-                            bookingType: current.listing.priceUnit, // Use the listing's pricing model
-                            totalPrice: current.fees.total,
-                            serviceFee: current.fees.serviceFee,
-                            cautionFee: current.fees.cautionFee,
-                            status: 'Reserved',
-                            createdAt: new Date().toISOString(),
-                            guestCount: current.guestCount,
-                            selectedAddOns: current.selectedAddOns,
-                            paymentStatus: undefined
-                        };
-                        saveBooking(reservedBooking);
-                        console.log('Auto-saved draft on unmount');
-                    } catch (error) {
-                        console.error('Failed to auto-save draft on unmount:', error);
-                    }
-                }
-            }
+            // On unmount, we rely on the debounced saveBookingDraftData to save drafts
+            // We do NOT automatically create Reserved bookings - that should only happen
+            // when user explicitly clicks "Save for Later"
+            // This prevents duplicate draft entries and confusion
         };
     }, []);
 
@@ -540,25 +523,54 @@ export const useListingDetails = ({ listing, user, onBook, onVerify, onLogin, on
 
     const saveDraftBooking = (silent = false) => {
         if (!user) return;
+        
+        // Check if there's already a Reserved booking for this listing
+        const existingReserved = getBookings().find(b => 
+            b.userId === user.id && 
+            b.listingId === listing.id && 
+            b.status === 'Reserved'
+        );
+        
         const fees = calculateFees();
-        const reservedBooking: Booking = {
-            id: Math.random().toString(36).substr(2, 9),
-            listingId: listing.id,
-            userId: user.id,
-            date: selectedDate,
-            duration: isHourly ? selectedHours.length : selectedDays,
-            hours: isHourly ? selectedHours : undefined,
-            bookingType: listing.priceUnit, // Use the listing's pricing model
-            totalPrice: fees.total,
-            serviceFee: fees.serviceFee,
-            cautionFee: fees.cautionFee,
-            status: 'Reserved',
-            createdAt: new Date().toISOString(),
-            guestCount: guestCount,
-            selectedAddOns: selectedAddOns,
-            paymentStatus: undefined
-        };
-        saveBooking(reservedBooking);
+        
+        if (existingReserved) {
+            // Update existing Reserved booking instead of creating new one
+            const updatedBooking: Booking = {
+                ...existingReserved,
+                date: selectedDate,
+                duration: isHourly ? selectedHours.length : selectedDays,
+                hours: isHourly ? selectedHours : undefined,
+                totalPrice: fees.total,
+                serviceFee: fees.serviceFee,
+                cautionFee: fees.cautionFee,
+                guestCount: guestCount,
+                selectedAddOns: selectedAddOns
+            };
+            // Delete old and save updated
+            deleteBooking(existingReserved.id);
+            saveBooking(updatedBooking);
+        } else {
+            // Create new Reserved booking
+            const reservedBooking: Booking = {
+                id: Math.random().toString(36).substr(2, 9),
+                listingId: listing.id,
+                userId: user.id,
+                date: selectedDate,
+                duration: isHourly ? selectedHours.length : selectedDays,
+                hours: isHourly ? selectedHours : undefined,
+                bookingType: listing.priceUnit,
+                totalPrice: fees.total,
+                serviceFee: fees.serviceFee,
+                cautionFee: fees.cautionFee,
+                status: 'Reserved',
+                createdAt: new Date().toISOString(),
+                guestCount: guestCount,
+                selectedAddOns: selectedAddOns,
+                paymentStatus: undefined
+            };
+            saveBooking(reservedBooking);
+        }
+        
         if (!silent) {
             toast.showToast({ message: "Booking saved to Reserve List! You can complete it later from your dashboard.", type: "success" });
         }
@@ -621,6 +633,14 @@ export const useListingDetails = ({ listing, user, onBook, onVerify, onLogin, on
                 pendingBooking.guestCount,
                 pendingBooking.selectedAddOns
             );
+            
+            // Only show success and send notifications if bookings were actually created
+            if (bookings.length === 0) {
+                toast.showToast({ message: "Booking creation failed. Please try again.", type: "error" });
+                setIsBookingSubmitted(false);
+                return;
+            }
+            
             setConfirmedBookings(bookings);
             setShowSuccessModal(true);
             if (user) {
@@ -647,6 +667,16 @@ export const useListingDetails = ({ listing, user, onBook, onVerify, onLogin, on
                 
                 // Clear the booking draft after successful booking
                 deleteBookingDraft(user.id, listing.id);
+                
+                // Also remove any Reserved booking for this listing since we now have a real booking
+                const reservedBooking = getBookings().find(b => 
+                    b.userId === user.id && 
+                    b.listingId === listing.id && 
+                    b.status === 'Reserved'
+                );
+                if (reservedBooking) {
+                    deleteBooking(reservedBooking.id);
+                }
             }
             setShowConfirmModal(false);
             setShowVerificationModal(false);

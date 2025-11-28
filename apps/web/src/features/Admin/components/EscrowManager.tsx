@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { PlatformFinancials, EscrowTransaction } from '@fiilar/types';
 import { DollarSign, ArrowUpRight, ArrowDownLeft, Clock, CheckCircle, Search, Download, RefreshCw, FileText, X } from 'lucide-react';
-import { Button, Card, CardContent, CardHeader, CardTitle } from '@fiilar/ui';
+import { Button, Card, CardContent, CardHeader, CardTitle, useLocale } from '@fiilar/ui';
 import { TransactionHistory } from '@fiilar/admin';
 
 interface EscrowManagerProps {
@@ -11,6 +11,7 @@ interface EscrowManagerProps {
 }
 
 const EscrowManager: React.FC<EscrowManagerProps> = ({ financials, transactions, loading }) => {
+    const { locale } = useLocale();
     const [filter, setFilter] = useState<'ALL' | 'PAYMENT' | 'PAYOUT' | 'REFUND'>('ALL');
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
@@ -64,7 +65,7 @@ const EscrowManager: React.FC<EscrowManagerProps> = ({ financials, transactions,
                         <div className="flex justify-between items-start mb-4">
                             <div>
                                 <p className="text-indigo-100 text-sm font-medium mb-1">Total Held in Escrow</p>
-                                <h3 className="text-3xl font-bold">${financials?.totalEscrow.toLocaleString() ?? '0.00'}</h3>
+                                <h3 className="text-3xl font-bold">{locale.currencySymbol}{financials?.totalEscrow.toLocaleString() ?? '0.00'}</h3>
                             </div>
                             <div className="bg-white/20 p-2 rounded-lg">
                                 <DollarSign size={24} className="text-white" />
@@ -82,7 +83,7 @@ const EscrowManager: React.FC<EscrowManagerProps> = ({ financials, transactions,
                         <div className="flex justify-between items-start mb-4">
                             <div>
                                 <p className="text-gray-500 text-sm font-medium mb-1">Total Released</p>
-                                <h3 className="text-3xl font-bold text-gray-900">${financials?.totalReleased.toLocaleString() ?? '0.00'}</h3>
+                                <h3 className="text-3xl font-bold text-gray-900">{locale.currencySymbol}{financials?.totalReleased.toLocaleString() ?? '0.00'}</h3>
                             </div>
                             <div className="bg-green-100 p-2 rounded-lg">
                                 <CheckCircle size={24} className="text-green-600" />
@@ -100,7 +101,7 @@ const EscrowManager: React.FC<EscrowManagerProps> = ({ financials, transactions,
                         <div className="flex justify-between items-start mb-4">
                             <div>
                                 <p className="text-gray-500 text-sm font-medium mb-1">Platform Revenue</p>
-                                <h3 className="text-3xl font-bold text-gray-900">${financials?.totalRevenue.toLocaleString() ?? '0.00'}</h3>
+                                <h3 className="text-3xl font-bold text-gray-900">{locale.currencySymbol}{financials?.totalRevenue.toLocaleString() ?? '0.00'}</h3>
                             </div>
                             <div className="bg-blue-100 p-2 rounded-lg">
                                 <DollarSign size={24} className="text-blue-600" />
@@ -197,7 +198,7 @@ const EscrowManager: React.FC<EscrowManagerProps> = ({ financials, transactions,
                                         </td>
                                         <td className="px-6 py-4">
                                             <span className={`font-bold ${tx.type === 'HOST_PAYOUT' || tx.type === 'REFUND' ? 'text-red-600' : 'text-green-600'}`}>
-                                                {tx.type === 'HOST_PAYOUT' || tx.type === 'REFUND' ? '-' : '+'}${tx.amount.toLocaleString()}
+                                                {tx.type === 'HOST_PAYOUT' || tx.type === 'REFUND' ? '-' : '+'}{locale.currencySymbol}{tx.amount.toLocaleString()}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4">

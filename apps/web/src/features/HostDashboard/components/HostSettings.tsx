@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { User as UserIcon, HelpCircle, Info, MessageSquare, Phone, Mail, MessageCircle, Star, Check, AlertTriangle, Trash2, FileText, Shield, Upload, Globe, ChevronRight } from 'lucide-react';
 import { User } from '@fiilar/types';
-import { Button, useLocale } from '@fiilar/ui';
+import { Button, useLocale, useToast } from '@fiilar/ui';
 import { updateUserProfile, APP_INFO } from '@fiilar/storage';
 import { SupportedCountry, LOCALE_CONFIGS } from '@fiilar/utils';
 import { PhoneInput } from '../../../components/common/PhoneInput';
@@ -15,7 +16,14 @@ type SettingsTab = 'account' | 'support' | 'about' | 'feedback';
 
 const HostSettings: React.FC<HostSettingsProps> = ({ user, onUpdateUser }) => {
     const { locale, country } = useLocale();
+    const { showToast } = useToast();
+    const [searchParams, setSearchParams] = useSearchParams();
     const [activeTab, setActiveTab] = useState<SettingsTab>('account');
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const editFormRef = useRef<HTMLDivElement>(null);
+
+    // Check if we should auto-start in edit mode (from profile completion)
+    const shouldAutoEdit = searchParams.get('edit') === 'true';
 
     // Profile Form State
     const [formData, setFormData] = useState({
@@ -24,8 +32,126 @@ const HostSettings: React.FC<HostSettingsProps> = ({ user, onUpdateUser }) => {
         bio: user?.bio || '',
         phone: user?.phone || ''
     });
-    const [isEditing, setIsEditing] = useState(false);
+    const [isEditing, setIsEditing] = useState(shouldAutoEdit);
     const [isSaving, setIsSaving] = useState(false);
+
+    // Clear the edit param after reading it
+    useEffect(() => {
+        if (shouldAutoEdit) {
+            // Remove the edit param from URL without triggering re-render
+            const newParams = new URLSearchParams(searchParams);
+            newParams.delete('edit');
+            setSearchParams(newParams, { replace: true });
+        }
+    }, [shouldAutoEdit, searchParams, setSearchParams]);
+
+    // Click outside to close editing mode
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (isEditing && editFormRef.current && !editFormRef.current.contains(event.target as Node)) {
+                // Don't close if clicking on file input or its label
+                const target = event.target as HTMLElement;
+                if (target.closest('input[type="file"]') || target.closest('label[for="avatar-upload"]')) {
+                    return;
+                }
+                setIsEditing(false);
+                // Reset form to original values when clicking outside
+                setFormData({
+                    name: user?.name || '',
+                    email: user?.email || '',
+                    bio: user?.bio || '',
+                    phone: user?.phone || ''
+                });
+            }
+        };
+
+        const handleEscKey = (event: KeyboardEvent) => {
+            if (event.key === 'Escape' && isEditing) {
+                setIsEditing(false);
+                // Reset form to original values
+                setFormData({
+                    name: user?.name || '',
+                    email: user?.email || '',
+                    bio: user?.bio || '',
+                    phone: user?.phone || ''
+                });
+            }
+        };
+
+        if (isEditing) {
+            document.addEventListener('mousedown', handleClickOutside);
+            document.addEventListener('keydown', handleEscKey);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('keydown', handleEscKey);
+        };
+    }, [isEditing, user]);
+
+    // Image compression helper
+    const compressImage = (file: File): Promise<string> => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (event) => {
+                const img = new Image();
+                img.src = event.target?.result as string;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const MAX_SIZE = 800;
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height && width > MAX_SIZE) {
+                        height *= MAX_SIZE / width;
+                        width = MAX_SIZE;
+                    } else if (height > MAX_SIZE) {
+                        width *= MAX_SIZE / height;
+                        height = MAX_SIZE;
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx?.drawImage(img, 0, 0, width, height);
+                    resolve(canvas.toDataURL('image/jpeg', 0.7));
+                };
+                img.onerror = reject;
+            };
+            reader.onerror = reject;
+        });
+    };
+
+    // Handle profile picture upload
+    const handleAvatarChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !user) return;
+
+        if (!file.type.startsWith('image/')) {
+            showToast({ message: 'Please select an image file', type: 'error' });
+            return;
+        }
+
+        if (file.size > 10 * 1024 * 1024) {
+            showToast({ message: 'Image must be less than 10MB', type: 'error' });
+            return;
+        }
+
+        try {
+            const compressedDataUrl = await compressImage(file);
+            const result = updateUserProfile(user.id, { avatar: compressedDataUrl });
+            if (result.success && onUpdateUser) {
+                onUpdateUser(result.user!);
+                showToast({ message: 'Profile picture updated successfully', type: 'success' });
+            } else {
+                showToast({ message: result.error || 'Failed to update profile picture', type: 'error' });
+            }
+        } catch (error) {
+            console.error('Failed to update avatar:', error);
+            showToast({ message: 'Failed to process image', type: 'error' });
+        }
+    }, [user, onUpdateUser, showToast]);
 
     const [feedbackRating, setFeedbackRating] = useState(0);
     const [feedbackCategory, setFeedbackCategory] = useState('general');
@@ -220,7 +346,20 @@ const HostSettings: React.FC<HostSettingsProps> = ({ user, onUpdateUser }) => {
                             {/* Profile Picture */}
                             <div className="flex items-center gap-6 pb-8 border-b border-gray-100">
                                 <div className="relative group">
-                                    <div className="w-24 h-24 rounded-full bg-gray-100 overflow-hidden ring-4 ring-white shadow-lg">
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={handleAvatarChange}
+                                        className="hidden"
+                                        id="avatar-upload"
+                                        aria-label="Upload profile picture"
+                                    />
+                                    <div 
+                                        className="w-24 h-24 rounded-full bg-gray-100 overflow-hidden ring-4 ring-white shadow-lg cursor-pointer"
+                                        onDoubleClick={() => fileInputRef.current?.click()}
+                                        title="Double-click to change profile picture"
+                                    >
                                         {user?.avatar ? (
                                             <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
                                         ) : (
@@ -229,24 +368,26 @@ const HostSettings: React.FC<HostSettingsProps> = ({ user, onUpdateUser }) => {
                                             </div>
                                         )}
                                     </div>
-                                    {isEditing && (
-                                        <button
-                                            className="absolute inset-0 bg-black/40 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                                            aria-label="Upload profile picture"
-                                            title="Upload profile picture"
-                                        >
-                                            <Upload size={24} className="text-white" />
-                                        </button>
-                                    )}
+                                    <button
+                                        onClick={() => fileInputRef.current?.click()}
+                                        className="absolute inset-0 bg-black/40 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                                        aria-label="Upload profile picture"
+                                        title="Click to change profile picture"
+                                    >
+                                        <Upload size={24} className="text-white" />
+                                    </button>
                                 </div>
                                 <div>
                                     <h3 className="font-semibold text-gray-900 text-lg">Profile Picture</h3>
                                     <p className="text-sm text-gray-500 mt-1">This will be displayed on your profile and listings.</p>
-                                    <p className="text-xs text-gray-400 mt-1">PNG, JPG up to 5MB</p>
+                                    <p className="text-xs text-gray-400 mt-1">PNG, JPG up to 10MB • Double-click or hover to change</p>
                                 </div>
                             </div>
 
-                            <div className="space-y-6">
+                            <div className="space-y-6" ref={editFormRef}>
+                                {!isEditing && (
+                                    <p className="text-xs text-gray-400 italic">💡 Tip: Double-click any field to edit it directly, or click outside to cancel</p>
+                                )}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
                                         <label htmlFor="account-name" className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
@@ -255,14 +396,17 @@ const HostSettings: React.FC<HostSettingsProps> = ({ user, onUpdateUser }) => {
                                             type="text"
                                             value={isEditing ? formData.name : (user?.name || '')}
                                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                            className={`w-full border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-colors ${isEditing ? 'border-gray-300 bg-white' : 'border-transparent bg-gray-50'}`}
+                                            onDoubleClick={() => !isEditing && setIsEditing(true)}
+                                            className={`w-full border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-colors ${isEditing ? 'border-gray-300 bg-white' : 'border-transparent bg-gray-50 cursor-pointer hover:bg-gray-100'}`}
                                             readOnly={!isEditing}
+                                            title={!isEditing ? 'Double-click to edit' : undefined}
                                         />
                                     </div>
 
                                     <div>
                                         <label htmlFor="account-email" className="block text-sm font-medium text-gray-700 mb-2">
                                             Email Address
+                                            <span className="text-xs text-gray-400 ml-1">(cannot be changed)</span>
                                         </label>
                                         <input
                                             id="account-email"
@@ -277,6 +421,7 @@ const HostSettings: React.FC<HostSettingsProps> = ({ user, onUpdateUser }) => {
                                     <div>
                                         <label htmlFor="account-phone" className="block text-sm font-medium text-gray-700 mb-2">
                                             Phone Number
+                                            {user?.phone && <span className="text-xs text-gray-400 ml-1">(cannot be changed)</span>}
                                         </label>
                                         {user?.phone ? (
                                             <input
@@ -288,13 +433,18 @@ const HostSettings: React.FC<HostSettingsProps> = ({ user, onUpdateUser }) => {
                                                 disabled
                                             />
                                         ) : (
-                                            <PhoneInput
-                                                id="account-phone"
-                                                value={isEditing ? formData.phone : ''}
-                                                onChange={(val) => setFormData({ ...formData, phone: val })}
-                                                readOnly={!isEditing}
-                                                className={!isEditing ? 'border-transparent bg-gray-50' : ''}
-                                            />
+                                            <div
+                                                onDoubleClick={() => !isEditing && setIsEditing(true)}
+                                                title={!isEditing ? 'Double-click to edit' : undefined}
+                                            >
+                                                <PhoneInput
+                                                    id="account-phone"
+                                                    value={isEditing ? formData.phone : ''}
+                                                    onChange={(val) => setFormData({ ...formData, phone: val })}
+                                                    readOnly={!isEditing}
+                                                    className={!isEditing ? 'border-transparent bg-gray-50 cursor-pointer hover:bg-gray-100' : ''}
+                                                />
+                                            </div>
                                         )}
                                     </div>
                                 </div>
@@ -305,10 +455,12 @@ const HostSettings: React.FC<HostSettingsProps> = ({ user, onUpdateUser }) => {
                                         id="account-bio"
                                         value={isEditing ? formData.bio : (user?.bio || '')}
                                         onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                                        onDoubleClick={() => !isEditing && setIsEditing(true)}
                                         placeholder={isEditing ? "Tell guests a bit about yourself..." : "No bio yet"}
                                         rows={4}
-                                        className={`w-full border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none transition-colors ${isEditing ? 'border-gray-300 bg-white' : 'border-transparent bg-gray-50'}`}
+                                        className={`w-full border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none transition-colors ${isEditing ? 'border-gray-300 bg-white' : 'border-transparent bg-gray-50 cursor-pointer hover:bg-gray-100'}`}
                                         readOnly={!isEditing}
+                                        title={!isEditing ? 'Double-click to edit' : undefined}
                                     />
                                 </div>
 
@@ -394,6 +546,41 @@ const HostSettings: React.FC<HostSettingsProps> = ({ user, onUpdateUser }) => {
                                         </Button>
                                     </div>
                                 </div>
+
+                                {/* Bottom Save Button - shows when editing */}
+                                {isEditing && (
+                                    <div className="sticky bottom-0 bg-white border-t border-gray-200 -mx-8 px-8 py-4 mt-8 shadow-lg rounded-b-2xl">
+                                        <div className="flex items-center justify-between">
+                                            <p className="text-sm text-gray-500">You have unsaved changes</p>
+                                            <div className="flex gap-3">
+                                                <Button
+                                                    onClick={() => {
+                                                        setIsEditing(false);
+                                                        setFormData({
+                                                            name: user?.name || '',
+                                                            email: user?.email || '',
+                                                            bio: user?.bio || '',
+                                                            phone: user?.phone || ''
+                                                        });
+                                                    }}
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    disabled={isSaving}
+                                                >
+                                                    Cancel
+                                                </Button>
+                                                <Button
+                                                    onClick={handleSaveProfile}
+                                                    disabled={isSaving}
+                                                    variant="primary"
+                                                    size="sm"
+                                                >
+                                                    {isSaving ? 'Saving...' : 'Save Changes'}
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Delete Confirmation Modal */}

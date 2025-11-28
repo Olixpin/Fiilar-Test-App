@@ -1,6 +1,6 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { User } from '@fiilar/types';
-import { ArrowRight, User as UserIcon, FileText, Mail, Phone, ShieldCheck } from 'lucide-react';
+import { ArrowRight, User as UserIcon, FileText, Mail, Phone, ShieldCheck, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@fiilar/ui';
 
 interface ProfileCompletionWidgetProps {
@@ -9,11 +9,14 @@ interface ProfileCompletionWidgetProps {
 }
 
 const ProfileCompletionWidget: React.FC<ProfileCompletionWidgetProps> = ({ user, onCompleteProfile }) => {
+    const [showAllSteps, setShowAllSteps] = useState(false);
+    
     const completion = useMemo(() => {
         const steps = [
             {
                 id: 'avatar',
                 label: 'Profile Picture',
+                description: 'Add a photo so guests can recognize you',
                 isCompleted: !!user.avatar,
                 icon: UserIcon,
                 weight: 20
@@ -21,6 +24,7 @@ const ProfileCompletionWidget: React.FC<ProfileCompletionWidgetProps> = ({ user,
             {
                 id: 'bio',
                 label: 'Bio',
+                description: 'Write a short bio (at least 10 characters)',
                 isCompleted: !!user.bio && user.bio.length > 10,
                 icon: FileText,
                 weight: 20
@@ -28,20 +32,23 @@ const ProfileCompletionWidget: React.FC<ProfileCompletionWidgetProps> = ({ user,
             {
                 id: 'email',
                 label: 'Email Verified',
+                description: 'Verify your email address',
                 isCompleted: user.emailVerified,
                 icon: Mail,
                 weight: 20
             },
             {
                 id: 'phone',
-                label: 'Phone Verified',
-                isCompleted: !!user.phoneVerified,
+                label: 'Phone Number',
+                description: 'Add your phone number for booking notifications',
+                isCompleted: !!user.phone || !!user.phoneVerified,
                 icon: Phone,
                 weight: 20
             },
             {
                 id: 'kyc',
                 label: 'Identity Verified',
+                description: 'Complete identity verification for trust',
                 isCompleted: !!user.kycVerified,
                 icon: ShieldCheck,
                 weight: 20
@@ -108,15 +115,72 @@ const ProfileCompletionWidget: React.FC<ProfileCompletionWidgetProps> = ({ user,
             </div>
 
             {/* Progress Bar */}
-            <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden mb-6">
+            <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden mb-4">
                 <div
                     className="h-full bg-brand-600 transition-all duration-1000 ease-out rounded-full"
                     style={{ width: `${completion.percentage}%` }}
                 />
             </div>
 
-            {/* Next Step Action */}
-            {completion.nextStep && (
+            {/* All Steps Overview */}
+            <div className="mb-4">
+                <button 
+                    onClick={() => setShowAllSteps(!showAllSteps)}
+                    className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition-colors w-full justify-between"
+                >
+                    <span className="font-medium">
+                        {completion.steps.filter(s => s.isCompleted).length} of {completion.steps.length} steps completed
+                    </span>
+                    <span className="flex items-center gap-1 text-brand-600">
+                        {showAllSteps ? 'Hide details' : 'Show all steps'}
+                        {showAllSteps ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                    </span>
+                </button>
+                
+                {showAllSteps && (
+                    <div className="mt-4 space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                        {completion.steps.map((step) => {
+                            const Icon = step.icon;
+                            const isClickable = !step.isCompleted;
+                            return (
+                                <div 
+                                    key={step.id}
+                                    onClick={isClickable ? onCompleteProfile : undefined}
+                                    className={`flex items-center gap-3 p-3 rounded-lg transition-all ${
+                                        step.isCompleted 
+                                            ? 'bg-green-50 border border-green-100' 
+                                            : 'bg-gray-50 border border-gray-100 cursor-pointer hover:bg-brand-50 hover:border-brand-200 hover:shadow-sm'
+                                    }`}
+                                >
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+                                        step.isCompleted 
+                                            ? 'bg-green-500 text-white' 
+                                            : 'bg-gray-200 text-gray-500 group-hover:bg-brand-100'
+                                    }`}>
+                                        {step.isCompleted ? <Check size={16} /> : <Icon size={16} />}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className={`font-medium text-sm ${step.isCompleted ? 'text-green-800' : 'text-gray-700'}`}>
+                                            {step.label}
+                                        </p>
+                                        <p className={`text-xs ${step.isCompleted ? 'text-green-600' : 'text-gray-500'}`}>
+                                            {step.isCompleted ? 'Completed ✓' : step.description}
+                                        </p>
+                                    </div>
+                                    {!step.isCompleted && (
+                                        <span className="text-xs font-medium text-brand-600 bg-brand-50 px-2 py-1 rounded-full border border-brand-100 hover:bg-brand-100 transition-colors">
+                                            Complete →
+                                        </span>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+            </div>
+
+            {/* Next Step Action - Only show when steps are collapsed */}
+            {!showAllSteps && completion.nextStep && (
                 <div className="bg-brand-50 border border-brand-100 rounded-xl p-4 flex items-center justify-between group cursor-pointer hover:bg-brand-100 transition-colors" onClick={onCompleteProfile}>
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-brand-600 shadow-sm">

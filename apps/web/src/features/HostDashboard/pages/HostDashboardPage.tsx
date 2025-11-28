@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { User, Listing, ListingStatus, Booking, Role } from '@fiilar/types';
 import { Menu, Plus, Search, Bell, Settings as SettingsIcon, LogOut, AlertCircle, Clock } from 'lucide-react';
@@ -36,11 +36,12 @@ interface HostDashboardPageProps {
     hideUI?: boolean;
     onUpdateListing: (listing: Listing) => void;
     onCreateListing: (listing: Listing) => void;
+    onLogout?: () => void;
 }
 
 type View = 'overview' | 'listings' | 'create' | 'edit' | 'calendar' | 'settings' | 'bookings' | 'earnings' | 'payouts' | 'messages' | 'notifications' | 'verify';
 
-const HostDashboardPage: React.FC<HostDashboardPageProps> = ({ user, listings, refreshData, hideUI = false, onUpdateListing, onCreateListing }) => {
+const HostDashboardPage: React.FC<HostDashboardPageProps> = ({ user, listings, refreshData, hideUI = false, onUpdateListing, onCreateListing, onLogout }) => {
     // View State
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
@@ -67,6 +68,29 @@ const HostDashboardPage: React.FC<HostDashboardPageProps> = ({ user, listings, r
     const [sidebarExpanded, setSidebarExpanded] = useState(false);
     const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const profileMenuRef = useRef<HTMLDivElement>(null);
+
+    // Close profile menu on click outside or ESC
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
+                setIsProfileMenuOpen(false);
+            }
+        };
+
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                setIsProfileMenuOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        document.addEventListener('keydown', handleKeyDown);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('keydown', handleKeyDown);
+        };
+    }, []);
 
     // Editing State
     const [editingListing, setEditingListing] = useState<Listing | null>(null);
@@ -167,7 +191,7 @@ const HostDashboardPage: React.FC<HostDashboardPageProps> = ({ user, listings, r
             {/* Main Content Area */}
             <div className="flex-1 flex flex-col min-w-0 relative z-10 bg-[#FFFBF9]">
                 {/* Top Header */}
-                <header className="hidden lg:flex items-center justify-between px-8 py-5 bg-transparent">
+                <header className="hidden lg:flex items-center justify-between px-8 py-5 bg-transparent w-full max-w-[1600px] mx-auto">
                     {/* Left: Empty for now */}
                     <div />
 
@@ -209,7 +233,7 @@ const HostDashboardPage: React.FC<HostDashboardPageProps> = ({ user, listings, r
                         </button>
 
                         {/* User Avatar & Dropdown */}
-                        <div className="relative">
+                        <div className="relative" ref={profileMenuRef}>
                             <button
                                 onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
                                 className={cn(
@@ -254,8 +278,11 @@ const HostDashboardPage: React.FC<HostDashboardPageProps> = ({ user, listings, r
                                     <button
                                         onClick={() => {
                                             setIsProfileMenuOpen(false);
-                                            // Handle logout if prop available, or redirect
-                                            navigate('/login');
+                                            if (onLogout) {
+                                                onLogout();
+                                            } else {
+                                                navigate('/login-host');
+                                            }
                                         }}
                                         className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
                                     >
@@ -339,7 +366,7 @@ const HostDashboardPage: React.FC<HostDashboardPageProps> = ({ user, listings, r
 
                 {/* Content Area */}
                 <main className="flex-1 overflow-y-auto px-4 lg:px-8 pb-24 lg:pb-8">
-                    <div className="bg-white rounded-t-[32px] lg:rounded-3xl min-h-full shadow-xl shadow-gray-200/50 -mx-4 lg:mx-0 px-4 sm:px-6 lg:px-8 py-8">
+                    <div className="bg-white rounded-t-[32px] lg:rounded-3xl min-h-full shadow-xl shadow-gray-200/50 -mx-4 lg:mx-0 px-4 sm:px-6 lg:px-8 py-8 max-w-[1600px] mx-auto">
 
                         {view === 'overview' && (
                             <HostOverview
@@ -417,7 +444,6 @@ const HostDashboardPage: React.FC<HostDashboardPageProps> = ({ user, listings, r
                                 bankDetails={bankDetails}
                                 hostBookings={hostBookings}
                                 hostTransactions={hostTransactions}
-                                listings={hostListings}
                                 isVerifyingBank={isVerifyingBank}
                                 onVerifyBank={handleVerifyBank}
                                 onSaveBankDetails={handleSaveBankDetails}

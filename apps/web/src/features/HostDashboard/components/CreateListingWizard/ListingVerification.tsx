@@ -1,135 +1,165 @@
 import React from 'react';
-import { Listing } from '@fiilar/types';
+import { Listing, User } from '@fiilar/types';
 import { Button } from '@fiilar/ui';
-import {
-    Shield, ShieldCheck, Copy, CheckCircle, FileText, ArrowRight
-} from 'lucide-react';
+import { ShieldCheck, Upload, FileText, CheckCircle, AlertCircle, ArrowRight, Lock } from 'lucide-react';
 
 interface ListingVerificationProps {
     newListing: Partial<Listing>;
-    setNewListing: React.Dispatch<React.SetStateAction<Partial<Listing>>>;
     setStep: (step: number) => void;
-    isEditingUpload: boolean;
-    setIsEditingUpload: (isEditing: boolean) => void;
-    getPreviousProofs: () => { url: string; location: string; title: string }[];
     handleProofUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    user: User;
 }
 
 const ListingVerification: React.FC<ListingVerificationProps> = ({
-    newListing, setNewListing, setStep,
-    isEditingUpload, setIsEditingUpload, getPreviousProofs, handleProofUpload
+    newListing, setStep, handleProofUpload, user
 }) => {
+    const addressUploaded = !!newListing.proofOfAddress;
+    const identityVerified = !!user.kycVerified;
+    const canContinue = !!(addressUploaded && identityVerified);
+
     return (
-        <div className="space-y-8 max-w-3xl mx-auto animate-in slide-in-from-right duration-300">
-            <div className="text-center mb-8">
-                <div className="w-20 h-20 bg-linear-to-br from-blue-50 to-indigo-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-md">
-                    <Shield size={36} />
+        <div className="space-y-8 animate-in slide-in-from-right duration-500">
+            {/* Header with Trust Badge */}
+            <div className="flex items-center justify-between">
+                <div>
+                    <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                        Verify Your Listing
+                        <span className="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full border border-blue-200 font-medium">Required</span>
+                    </h3>
+                    <p className="text-gray-500 text-sm mt-1">To ensure safety and trust, we need to verify your identity and property ownership.</p>
                 </div>
-                <h3 className="font-bold text-3xl text-gray-900">Property Verification</h3>
-                <p className="text-gray-600 text-sm mt-3 max-w-lg mx-auto">
-                    To maintain a safe community, we need proof that you own or manage this property.
-                    <br />
-                    <span className="text-xs text-gray-500 mt-1 inline-block">Accepted: Utility Bill, Lease Agreement, Title Deed</span>
-                </p>
+                <div className="hidden sm:flex items-center gap-2 text-green-600 bg-green-50 px-3 py-1.5 rounded-full border border-green-100 text-xs font-bold shadow-sm">
+                    <Lock size={14} /> Secure & Encrypted
+                </div>
             </div>
 
-            {/* Simplified UI for Verified Documents */}
-            {newListing.proofOfAddress && !isEditingUpload ? (
-                <div className="text-center py-12 bg-green-50 rounded-2xl border border-green-100">
-                    <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <ShieldCheck size={32} />
-                    </div>
-                    <h3 className="text-xl font-bold text-green-900 mb-2">Verification Complete</h3>
-                    <p className="text-green-700 mb-6 max-w-sm mx-auto">You have already submitted proof of address for this listing. No further action is needed.</p>
-
-                    <div className="flex justify-center gap-4">
-                        <button
-                            onClick={() => setIsEditingUpload(true)}
-                            className="text-sm font-semibold text-green-800 underline decoration-green-400 hover:text-green-900"
-                        >
-                            Update Document
-                        </button>
-                    </div>
-                </div>
-            ) : (
-                <>
-                    {/* Document Reuse Section */}
-                    {getPreviousProofs().length > 0 && (
-                        <div className="bg-gray-50 border border-gray-200 rounded-xl p-5 mb-4">
-                            <h4 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
-                                <Copy size={16} /> Reuse Verified Document
-                            </h4>
-                            <div className="space-y-2">
-                                {getPreviousProofs().map((proof, idx) => (
-                                    <button
-                                        key={idx}
-                                        onClick={() => {
-                                            const isSelected = newListing.proofOfAddress === proof.url;
-                                            setNewListing({ ...newListing, proofOfAddress: isSelected ? '' : proof.url });
-                                        }}
-                                        className={`w-full flex items-center p-3 border rounded-lg text-left transition-all ${newListing.proofOfAddress === proof.url ? 'border-brand-600 bg-brand-50 ring-1 ring-brand-600' : 'bg-white border-gray-200 hover:border-gray-300'}`}
-                                        title="Reuse verified document"
-                                    >
-                                        <div className={`w-4 h-4 rounded-full border mr-3 flex items-center justify-center shrink-0 ${newListing.proofOfAddress === proof.url ? 'border-brand-600' : 'border-gray-300'}`}>
-                                            {newListing.proofOfAddress === proof.url && <div className="w-2 h-2 rounded-full bg-brand-600" />}
-                                        </div>
-                                        <div className="overflow-hidden">
-                                            <div className="text-sm font-medium text-gray-900 truncate">{proof.location}</div>
-                                            <div className="text-xs text-gray-500 truncate">Used in: {proof.title}</div>
-                                        </div>
-                                    </button>
-                                ))}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Identity Verification Card */}
+                <div className={`
+                    glass-card p-6 rounded-3xl border transition-all duration-300 relative overflow-hidden group
+                    ${identityVerified ? 'border-green-200 bg-green-50/30' : 'border-white/40 shadow-sm hover:shadow-md hover:border-brand-200'}
+                `}>
+                    <div className="flex justify-between items-start mb-6">
+                        <div className="flex items-center gap-3">
+                            <div className={`p-3 rounded-2xl ${identityVerified ? 'bg-green-100 text-green-600' : 'bg-brand-50 text-brand-600'}`}>
+                                <ShieldCheck size={24} />
+                            </div>
+                            <div>
+                                <h4 className="font-bold text-gray-900">Identity Verification</h4>
+                                <p className="text-xs text-gray-500 mt-0.5">Government ID, Passport, or Driver's License</p>
                             </div>
                         </div>
-                    )}
+                        {identityVerified && <CheckCircle className="text-green-500 animate-in zoom-in" size={24} />}
+                    </div>
 
-                    {newListing.proofOfAddress && isEditingUpload && (
-                        <div className="text-right mb-2">
-                            <button onClick={() => setIsEditingUpload(false)} className="text-xs text-gray-500 hover:text-gray-900" title="Cancel change">Cancel Change</button>
-                        </div>
-                    )}
-
-                    <label className={`
-                        border-2 border-dashed rounded-xl p-10 flex flex-col items-center justify-center cursor-pointer transition-all
-                        ${newListing.proofOfAddress
-                            ? 'border-green-500 bg-green-50'
-                            : 'border-gray-300 hover:border-brand-500 hover:bg-gray-50'
-                        }
-`}>
-                        <input type="file" accept=".pdf,.jpg,.png" className="hidden" onChange={handleProofUpload} />
-                        {newListing.proofOfAddress ? (
-                            <div className="text-center">
-                                <CheckCircle size={48} className="text-green-600 mx-auto mb-3" />
-                                <div className="font-bold text-green-800">Document Uploaded</div>
-                                <div className="text-xs text-green-600 mt-1">
-                                    {newListing.proofOfAddress.includes('doc_simulated') ? 'Using Simulated Upload' : 'Document Attached'}
+                    <div className="space-y-4">
+                        {identityVerified ? (
+                            <div className="w-full border-2 border-green-200 bg-green-50/50 rounded-2xl p-8 text-center">
+                                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                                    <ShieldCheck size={24} className="text-green-600" />
                                 </div>
-                                <div className="text-xs text-green-600 mt-1 underline cursor-pointer">Click to replace</div>
+                                <p className="text-sm font-bold text-green-800">Identity Verified</p>
+                                <p className="text-xs text-green-600">Your account is fully verified</p>
                             </div>
                         ) : (
-                            <div className="text-center">
-                                <FileText size={48} className="text-gray-400 mx-auto mb-3" />
-                                <div className="font-medium text-gray-900">Click to upload Proof of Address</div>
-                                <div className="text-xs text-gray-500 mt-1">PDF, JPG or PNG (Max 5MB)</div>
+                            <div className="w-full border-2 border-dashed border-gray-200 bg-white/50 hover:bg-brand-50/30 hover:border-brand-400 rounded-2xl p-8 text-center transition-all">
+                                <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                                    <AlertCircle size={24} className="text-gray-500" />
+                                </div>
+                                <p className="text-sm font-bold text-gray-700">Verification Required</p>
+                                <p className="text-xs text-gray-500 mb-4">Please verify your account identity first</p>
+                                <Button variant="outline" size="sm" onClick={() => window.open('/settings/verification', '_blank')}>
+                                    Verify Identity
+                                </Button>
                             </div>
                         )}
-                    </label>
-                </>
-            )}
+                    </div>
+                </div>
 
-            <div className="flex gap-4 mt-8 pt-6 border-t-2 border-gray-100">
-                <button
+                {/* Proof of Address Card */}
+                <div className={`
+                    glass-card p-6 rounded-3xl border transition-all duration-300 relative overflow-hidden group
+                    ${addressUploaded ? 'border-green-200 bg-green-50/30' : 'border-white/40 shadow-sm hover:shadow-md hover:border-brand-200'}
+                `}>
+                    <div className="flex justify-between items-start mb-6">
+                        <div className="flex items-center gap-3">
+                            <div className={`p-3 rounded-2xl ${addressUploaded ? 'bg-green-100 text-green-600' : 'bg-brand-50 text-brand-600'}`}>
+                                <FileText size={24} />
+                            </div>
+                            <div>
+                                <h4 className="font-bold text-gray-900">Proof of Ownership</h4>
+                                <p className="text-xs text-gray-500 mt-0.5">Utility Bill, Deed, or Lease Agreement</p>
+                            </div>
+                        </div>
+                        {addressUploaded && <CheckCircle className="text-green-500 animate-in zoom-in" size={24} />}
+                    </div>
+
+                    <div className="space-y-4">
+                        <label className={`
+                            block w-full border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all duration-300 relative
+                            ${addressUploaded
+                                ? 'border-green-300 bg-green-50/50 hover:bg-green-100/50'
+                                : 'border-gray-200 hover:border-brand-400 hover:bg-brand-50/30 bg-white/50'}
+                        `}>
+                            <input
+                                type="file"
+                                accept="image/*,.pdf"
+                                className="hidden"
+                                onChange={handleProofUpload}
+                            />
+                            {addressUploaded ? (
+                                <div className="space-y-2">
+                                    <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                                        <FileText size={24} className="text-green-600" />
+                                    </div>
+                                    <p className="text-sm font-bold text-green-800">Document Uploaded</p>
+                                    <p className="text-xs text-green-600">Click to replace</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-2">
+                                    <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform">
+                                        <Upload size={20} className="text-gray-500 group-hover:text-brand-600" />
+                                    </div>
+                                    <p className="text-sm font-bold text-gray-700 group-hover:text-brand-700">Upload Proof</p>
+                                    <p className="text-xs text-gray-400">JPG, PNG or PDF (Max 5MB)</p>
+                                </div>
+                            )}
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            {/* Info Box */}
+            <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-4 flex gap-3 items-start">
+                <AlertCircle className="text-blue-600 shrink-0 mt-0.5" size={20} />
+                <div>
+                    <h4 className="text-sm font-bold text-blue-900">Why do we need this?</h4>
+                    <p className="text-xs text-blue-800 mt-1 leading-relaxed">
+                        To maintain a safe community, we verify every host. Your documents are encrypted and stored securely.
+                        They are only used for verification purposes and will never be shared publicly.
+                    </p>
+                </div>
+            </div>
+
+            {/* Navigation */}
+            <div className="flex justify-between items-center pt-6 border-t border-white/20">
+                <Button
                     onClick={() => setStep(3)}
-                    className="px-8 py-3.5 text-gray-700 font-semibold hover:bg-gray-100 rounded-xl transition-all border-2 border-gray-200 hover:border-gray-300"
+                    variant="outline"
+                    size="lg"
+                    className="border-gray-300 hover:bg-gray-50"
                 >
                     Back
-                </button>
+                </Button>
                 <Button
                     onClick={() => setStep(5)}
-                    className="flex-1 bg-brand-600 text-white py-3.5 rounded-xl font-semibold hover:bg-brand-700 transition-all shadow-lg shadow-brand-200 hover:shadow-xl hover:shadow-brand-300 flex items-center justify-center gap-2"
+                    disabled={!canContinue}
+                    variant="primary"
+                    size="lg"
+                    className="shadow-lg shadow-brand-500/20 hover:shadow-brand-500/40 transition-all hover:scale-[1.02]"
+                    rightIcon={<ArrowRight size={18} />}
                 >
-                    {newListing.proofOfAddress ? 'Continue to Review' : 'Skip for now'}
-                    <ArrowRight size={18} className="translate-x-0.5" />
+                    Continue to Review
                 </Button>
             </div>
         </div>

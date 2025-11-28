@@ -1,6 +1,7 @@
 import React from 'react';
 import { Listing, User, Booking } from '@fiilar/types';
 import { Button, ConfirmDialog } from '@fiilar/ui';
+import { Eye, X } from 'lucide-react';
 import ListingBasicInfo from './CreateListingWizard/ListingBasicInfo';
 import ListingPhotos from './CreateListingWizard/ListingPhotos';
 import ListingAvailability from './CreateListingWizard/ListingAvailability';
@@ -23,145 +24,216 @@ interface CreateListingWizardProps {
 const CreateListingWizard: React.FC<CreateListingWizardProps> = ({
     user, listings, activeBookings, editingListing, setView, refreshData, onCreateListing, onUpdateListing
 }) => {
+    const [showMobilePreview, setShowMobilePreview] = React.useState(false);
     const {
         newListing, setNewListing, step, setStep,
         aiPrompt, setAiPrompt, isAiGenerating, handleAiAutoFill, showAiInput, setShowAiInput,
         tempAddOn, setTempAddOn, handleAddAddOn, handleRemoveAddOn,
-        tempRule, setTempRule, handleAddRule, handleRemoveRule,
+        tempRule, setTempRule, handleAddRule,
         customSafety, setCustomSafety, handleAddCustomSafety, toggleSafetyItem,
         handleImageUpload, handleImageDragStart, handleImageDragOver, handleImageDragEnd, removeImage,
         handleProofUpload, availTab, setAvailTab, weeklySchedule, toggleDaySchedule, updateDayTime, applyWeeklySchedule,
         currentMonth, setCurrentMonth, getDaysInMonth, handleDateClick, toggleHourOverride,
         isSubmitting, handleCreateListing, lastSaved,
-        isEditingUpload, setIsEditingUpload, getPreviousProofs, formatDate,
+        formatDate,
         selectedCalendarDate, setSelectedCalendarDate, draggedImageIndex,
         draftRestoreDialog, handleRestoreDraft, handleDiscardDraft,
         blockDateDialog, handleConfirmBlockDate, handleCancelBlockDate
     } = useListingForm(user, listings, activeBookings, editingListing, refreshData, setView, onCreateListing, onUpdateListing);
 
     return (
-        <div className="flex flex-col lg:flex-row gap-8 h-[calc(100vh-100px)]">
+        <div className="flex flex-col lg:flex-row gap-8 h-[calc(100vh-100px)] w-full px-4 lg:px-8">
             {/* Left: Form Steps */}
-            <div className="flex-1 overflow-y-auto pr-2 pb-20">
-                <div className="mb-6">
+            <div className="flex-1 overflow-y-auto pr-2 pb-32 scrollbar-hide">
+                <div className="mb-8">
                     <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => setView('listings')}
-                        className="mb-4 pl-0 hover:bg-transparent hover:text-gray-900 text-gray-500"
+                        className="mb-6 pl-0 hover:bg-white/50 text-gray-500 hover:text-gray-900 transition-all duration-300"
                         leftIcon={<span className="text-lg">←</span>}
                     >
                         Back to listings
                     </Button>
-                    <h2 className="text-2xl font-bold text-gray-900">
-                        {(newListing as any).id ? 'Edit Listing' : 'Create New Listing'}
-                    </h2>
-                    <p className="text-gray-500">Step {step} of 5</p>
-                    <div className="w-full bg-gray-200 h-1.5 rounded-full mt-2 overflow-hidden">
+
+                    <div className="flex justify-between items-end mb-4">
+                        <div>
+                            <h2 className="text-3xl font-bold text-gray-900 tracking-tight">
+                                {(newListing as any).id ? 'Edit Listing' : 'Create New Listing'}
+                            </h2>
+                            <p className="text-gray-500 mt-1">Step {step} of 5</p>
+                        </div>
+                        <div className="text-right hidden sm:block">
+                            <span className="text-xs font-bold text-brand-600 bg-brand-50 px-3 py-1 rounded-full border border-brand-100">
+                                {step === 1 ? 'Basic Info' :
+                                    step === 2 ? 'Photos' :
+                                        step === 3 ? 'Availability' :
+                                            step === 4 ? 'Verification' : 'Review'}
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Animated Progress Bar */}
+                    <div className="w-full bg-gray-100 h-2 rounded-full mt-2 overflow-hidden shadow-inner">
                         <div
-                            className={`h-full bg-brand-600 transition-all duration-500 ease-out ${step === 1 ? 'w-1/5' :
-                                step === 2 ? 'w-2/5' :
-                                    step === 3 ? 'w-3/5' :
-                                        step === 4 ? 'w-4/5' : 'w-full'
-                                }`}
-                        />
+                            className="h-full bg-gradient-to-r from-brand-500 to-purple-600 transition-all duration-700 ease-out shadow-[0_0_10px_rgba(231,76,60,0.4)] relative"
+                            style={{ width: `${(step / 5) * 100}%` }}
+                        >
+                            <div className="absolute inset-0 bg-white/30 w-full h-full animate-[shimmer_2s_infinite]" style={{ backgroundImage: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent)' }}></div>
+                        </div>
                     </div>
                 </div>
 
-                {step === 1 && (
-                    <ListingBasicInfo
-                        newListing={newListing}
-                        setNewListing={setNewListing}
-                        setStep={setStep}
-                        aiPrompt={aiPrompt}
-                        setAiPrompt={setAiPrompt}
-                        isAiGenerating={isAiGenerating}
-                        handleAiAutoFill={handleAiAutoFill}
-                        showAiInput={showAiInput}
-                        setShowAiInput={setShowAiInput}
-                    />
-                )}
+                <div className="glass-panel p-6 md:p-8 rounded-3xl border border-white/40 shadow-xl shadow-brand-900/5 backdrop-blur-xl relative overflow-hidden">
+                    {/* Decorative background elements */}
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-brand-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
+                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2 pointer-events-none"></div>
 
-                {step === 2 && (
-                    <ListingPhotos
-                        newListing={newListing}
-                        setStep={setStep}
-                        handleImageUpload={handleImageUpload}
-                        handleImageDragStart={handleImageDragStart}
-                        handleImageDragOver={handleImageDragOver}
-                        handleImageDragEnd={handleImageDragEnd}
-                        removeImage={removeImage}
-                        draggedImageIndex={draggedImageIndex}
-                    />
-                )}
+                    <div className="relative z-10">
+                        {step === 1 && (
+                            <ListingBasicInfo
+                                newListing={newListing}
+                                setNewListing={setNewListing}
+                                setStep={setStep}
+                                aiPrompt={aiPrompt}
+                                setAiPrompt={setAiPrompt}
+                                isAiGenerating={isAiGenerating}
+                                handleAiAutoFill={handleAiAutoFill}
+                                showAiInput={showAiInput}
+                                setShowAiInput={setShowAiInput}
+                            />
+                        )}
 
-                {step === 3 && (
-                    <ListingAvailability
-                        newListing={newListing}
-                        setNewListing={setNewListing}
-                        setStep={setStep}
-                        availTab={availTab}
-                        setAvailTab={setAvailTab}
-                        weeklySchedule={weeklySchedule}
-                        toggleDaySchedule={toggleDaySchedule}
-                        updateDayTime={updateDayTime}
-                        applyWeeklySchedule={applyWeeklySchedule}
-                        currentMonth={currentMonth}
-                        setCurrentMonth={setCurrentMonth}
-                        getDaysInMonth={getDaysInMonth}
-                        handleDateClick={handleDateClick}
-                        toggleHourOverride={toggleHourOverride}
-                        activeBookings={activeBookings}
-                        formatDate={formatDate}
-                        selectedCalendarDate={selectedCalendarDate}
-                        setSelectedCalendarDate={setSelectedCalendarDate}
-                        tempRule={tempRule}
-                        setTempRule={setTempRule}
-                        handleAddRule={handleAddRule}
-                        handleRemoveRule={handleRemoveRule}
-                        tempAddOn={tempAddOn}
-                        setTempAddOn={setTempAddOn}
-                        handleAddAddOn={handleAddAddOn}
-                        handleRemoveAddOn={handleRemoveAddOn}
-                        customSafety={customSafety}
-                        setCustomSafety={setCustomSafety}
-                        handleAddCustomSafety={handleAddCustomSafety}
-                        toggleSafetyItem={toggleSafetyItem}
-                    />
-                )}
+                        {step === 2 && (
+                            <ListingPhotos
+                                newListing={newListing}
+                                setStep={setStep}
+                                handleImageUpload={handleImageUpload}
+                                handleImageDragStart={handleImageDragStart}
+                                handleImageDragOver={handleImageDragOver}
+                                handleImageDragEnd={handleImageDragEnd}
+                                removeImage={removeImage}
+                                draggedImageIndex={draggedImageIndex}
+                            />
+                        )}
 
-                {step === 4 && (
-                    <ListingVerification
-                        newListing={newListing}
-                        setNewListing={setNewListing}
-                        setStep={setStep}
-                        isEditingUpload={isEditingUpload}
-                        setIsEditingUpload={setIsEditingUpload}
-                        getPreviousProofs={getPreviousProofs}
-                        handleProofUpload={handleProofUpload}
-                    />
-                )}
+                        {step === 3 && (
+                            <ListingAvailability
+                                newListing={newListing}
+                                setNewListing={setNewListing}
+                                setStep={setStep}
+                                availTab={availTab}
+                                setAvailTab={setAvailTab}
+                                weeklySchedule={weeklySchedule}
+                                toggleDaySchedule={toggleDaySchedule}
+                                updateDayTime={updateDayTime}
+                                applyWeeklySchedule={applyWeeklySchedule}
+                                currentMonth={currentMonth}
+                                setCurrentMonth={setCurrentMonth}
+                                getDaysInMonth={getDaysInMonth}
+                                handleDateClick={handleDateClick}
+                                toggleHourOverride={toggleHourOverride}
+                                activeBookings={activeBookings}
+                                formatDate={formatDate}
+                                selectedCalendarDate={selectedCalendarDate}
+                                setSelectedCalendarDate={setSelectedCalendarDate}
+                                tempRule={tempRule}
+                                setTempRule={setTempRule}
+                                handleAddRule={handleAddRule}
 
-                {step === 5 && (
-                    <ListingReview
-                        newListing={newListing}
-                        setNewListing={setNewListing}
-                        setStep={setStep}
-                        user={user}
-                        listings={listings}
-                        isSubmitting={isSubmitting}
-                        handleCreateListing={handleCreateListing}
-                    />
-                )}
+                                tempAddOn={tempAddOn}
+                                setTempAddOn={setTempAddOn}
+                                handleAddAddOn={handleAddAddOn}
+                                handleRemoveAddOn={handleRemoveAddOn}
+                                customSafety={customSafety}
+                                setCustomSafety={setCustomSafety}
+                                handleAddCustomSafety={handleAddCustomSafety}
+                                toggleSafetyItem={toggleSafetyItem}
+                            />
+                        )}
+
+                        {step === 4 && (
+                            <ListingVerification
+                                newListing={newListing}
+                                setStep={setStep}
+                                handleProofUpload={handleProofUpload}
+                                user={user}
+                            />
+                        )}
+
+                        {step === 5 && (
+                            <ListingReview
+                                newListing={newListing}
+                                setNewListing={setNewListing}
+                                setStep={setStep}
+                                user={user}
+                                listings={listings}
+                                isSubmitting={isSubmitting}
+                                handleCreateListing={handleCreateListing}
+                            />
+                        )}
+                    </div>
+                </div>
             </div>
 
-            {/* Right: Live Preview - Sticky */}
-            <ListingLivePreview
-                newListing={newListing}
-                lastSaved={lastSaved}
-                step={step}
-                setStep={setStep}
-            />
+            {/* Right: Live Preview - Desktop Sticky */}
+            <div className="hidden lg:block w-[400px] xl:w-[450px] shrink-0">
+                <div className="sticky top-6">
+                    <ListingLivePreview
+                        newListing={newListing}
+                        lastSaved={lastSaved}
+                        step={step}
+                        setStep={setStep}
+                    />
+                </div>
+            </div>
+
+            {/* Mobile Preview Toggle & Modal */}
+            <div className="lg:hidden">
+                {/* Floating Preview Button */}
+                <button
+                    onClick={() => setShowMobilePreview(true)}
+                    className="fixed bottom-24 right-6 z-40 bg-brand-600 text-white p-4 rounded-full shadow-lg shadow-brand-500/30 hover:bg-brand-700 transition-all active:scale-95 animate-in zoom-in duration-300"
+                    aria-label="Show Preview"
+                >
+                    <Eye size={24} />
+                </button>
+
+                {/* Mobile Preview Modal */}
+                {showMobilePreview && (
+                    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
+                        {/* Backdrop */}
+                        <div
+                            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                            onClick={() => setShowMobilePreview(false)}
+                        ></div>
+
+                        {/* Modal Content */}
+                        <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-300 max-h-[85vh] overflow-y-auto">
+                            <div className="sticky top-0 z-10 bg-white/90 backdrop-blur-md border-b border-gray-100 px-6 py-4 flex items-center justify-between">
+                                <h3 className="font-bold text-lg text-gray-900">Listing Preview</h3>
+                                <button
+                                    onClick={() => setShowMobilePreview(false)}
+                                    className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                                >
+                                    <X size={20} className="text-gray-500" />
+                                </button>
+                            </div>
+                            <div className="p-6">
+                                <ListingLivePreview
+                                    newListing={newListing}
+                                    lastSaved={lastSaved}
+                                    step={step}
+                                    setStep={(s) => {
+                                        setStep(s);
+                                        setShowMobilePreview(false);
+                                    }}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
 
             {/* Draft Restore Confirmation Dialog */}
             <ConfirmDialog

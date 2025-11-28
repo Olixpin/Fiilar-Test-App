@@ -59,7 +59,7 @@ const HostMessages: React.FC<HostMessagesProps> = ({ user, hostBookings }) => {
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 <div className="flex h-[600px]">
                     {/* Conversation List */}
-                    <div className="w-full md:w-2/5 lg:w-1/3 border-r border-gray-200 flex flex-col">
+                    <div className={`w-full md:w-2/5 lg:w-1/3 border-r border-gray-200 flex flex-col ${selectedConversationId ? 'hidden md:flex' : 'flex'}`}>
                         <div className="p-4 border-b border-gray-200 bg-gray-50">
                             <h3 className="font-bold text-gray-900 text-sm">Conversations</h3>
                             <p className="text-xs text-gray-500 mt-1">{activeConversations.length} active</p>
@@ -74,11 +74,12 @@ const HostMessages: React.FC<HostMessagesProps> = ({ user, hostBookings }) => {
                     </div>
 
                     {/* Chat Window */}
-                    <div className="hidden md:flex md:w-3/5 lg:w-2/3 flex-col">
+                    <div className={`w-full md:w-3/5 lg:w-2/3 flex-col ${selectedConversationId ? 'flex' : 'hidden md:flex'}`}>
                         {selectedConversationId ? (
                             <ChatWindow
                                 conversationId={selectedConversationId}
                                 currentUserId={user.id}
+                                onBack={() => setSelectedConversationId(undefined)}
                             />
                         ) : (
                             <div className="flex flex-col items-center justify-center h-full bg-gray-50">

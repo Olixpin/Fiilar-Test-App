@@ -234,14 +234,14 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({ filters, onFilterChange
                             </div>
                         </div>
 
-                        {/* Quick Select Price Ranges */}
+                        {/* Quick Select Price Ranges - values in local currency (Naira) */}
                         <div className="flex flex-wrap gap-2">
                             {[
                                 { label: 'Any', min: undefined, max: undefined },
-                                { label: `${locale.currencySymbol}0-50`, min: 0, max: 50 },
-                                { label: `${locale.currencySymbol}50-100`, min: 50, max: 100 },
-                                { label: `${locale.currencySymbol}100-200`, min: 100, max: 200 },
-                                { label: `${locale.currencySymbol}200+`, min: 200, max: undefined }
+                                { label: `Under ${locale.currencySymbol}10k`, min: 0, max: 10000 },
+                                { label: `${locale.currencySymbol}10k-50k`, min: 10000, max: 50000 },
+                                { label: `${locale.currencySymbol}50k-100k`, min: 50000, max: 100000 },
+                                { label: `${locale.currencySymbol}100k+`, min: 100000, max: undefined }
                             ].map((range, idx) => {
                                 const isActive = localFilters.priceMin === range.min && localFilters.priceMax === range.max;
                                 return (

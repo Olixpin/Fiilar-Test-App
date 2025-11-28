@@ -93,26 +93,25 @@ const HostEarnings: React.FC<HostEarningsProps> = ({ hostBookings, transactions,
     return (
         <div className="space-y-6">
             {/* Header with Filters */}
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+            <div className="glass-card p-4">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div>
-                        <h2 className="text-xl font-bold text-gray-900">Earnings</h2>
+                        <h2 className="text-xl font-bold text-gray-900">Earnings Analytics</h2>
                         <p className="text-sm text-gray-500 mt-1">Track your revenue and payouts</p>
                     </div>
                     <div className="flex items-center gap-2">
-                        <button className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs font-semibold text-gray-600 hover:bg-gray-50 transition">
+                        <button className="flex items-center gap-2 px-3 py-2 glass-button text-xs font-semibold text-gray-600 hover:text-gray-900 transition">
                             <Filter size={14} />
                             <span>Filter</span>
                             <ChevronDown size={14} />
                         </button>
-                        <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+                        <div className="flex items-center gap-1 bg-white/50 rounded-lg p-1 border border-white/20">
                             {[{ key: '7d', label: '7D' }, { key: '30d', label: '30D' }, { key: '90d', label: '90D' }, { key: 'all', label: 'All' }].map(filter => (
                                 <button
                                     key={filter.key}
                                     onClick={() => setTimeFilter(filter.key as any)}
-                                    className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${
-                                        timeFilter === filter.key ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
-                                    }`}
+                                    className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${timeFilter === filter.key ? 'bg-white shadow-sm text-gray-900' : 'text-gray-600 hover:text-gray-900'
+                                        }`}
                                 >
                                     {filter.label}
                                 </button>
@@ -120,7 +119,7 @@ const HostEarnings: React.FC<HostEarningsProps> = ({ hostBookings, transactions,
                         </div>
                         <button
                             onClick={exportCSV}
-                            className="flex items-center gap-2 px-3 py-2 bg-gray-900 text-white rounded-lg text-xs font-semibold hover:bg-black transition"
+                            className="flex items-center gap-2 px-3 py-2 bg-gray-900 text-white rounded-lg text-xs font-semibold hover:bg-black transition shadow-lg shadow-gray-900/20"
                         >
                             <Download size={14} /> Export
                         </button>
@@ -130,10 +129,10 @@ const HostEarnings: React.FC<HostEarningsProps> = ({ hostBookings, transactions,
 
             {/* Earnings Overview Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                <div className="glass-card p-5 hover:shadow-lg transition-all duration-300 group">
                     <div className="flex items-center justify-between mb-3">
                         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Revenue</h3>
-                        <div className="bg-green-100 p-2 rounded-lg text-green-700">
+                        <div className="bg-green-100 p-2 rounded-lg text-green-700 group-hover:scale-110 transition-transform">
                             <TrendingUp size={18} />
                         </div>
                     </div>
@@ -141,10 +140,10 @@ const HostEarnings: React.FC<HostEarningsProps> = ({ hostBookings, transactions,
                     <p className="text-xs text-gray-500 mt-1">{filteredBookings.filter(b => b.status === 'Confirmed' || b.status === 'Completed').length} bookings</p>
                 </div>
 
-                <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                <div className="glass-card p-5 hover:shadow-lg transition-all duration-300 group">
                     <div className="flex items-center justify-between mb-3">
                         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Released</h3>
-                        <div className="bg-blue-100 p-2 rounded-lg text-blue-700">
+                        <div className="bg-blue-100 p-2 rounded-lg text-blue-700 group-hover:scale-110 transition-transform">
                             <DollarSign size={18} />
                         </div>
                     </div>
@@ -152,10 +151,10 @@ const HostEarnings: React.FC<HostEarningsProps> = ({ hostBookings, transactions,
                     <p className="text-xs text-gray-500 mt-1">Paid out</p>
                 </div>
 
-                <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                <div className="glass-card p-5 hover:shadow-lg transition-all duration-300 group">
                     <div className="flex items-center justify-between mb-3">
                         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">In Escrow</h3>
-                        <div className="bg-orange-100 p-2 rounded-lg text-orange-700">
+                        <div className="bg-orange-100 p-2 rounded-lg text-orange-700 group-hover:scale-110 transition-transform">
                             <Clock size={18} />
                         </div>
                     </div>
@@ -163,10 +162,10 @@ const HostEarnings: React.FC<HostEarningsProps> = ({ hostBookings, transactions,
                     <p className="text-xs text-gray-500 mt-1">{pendingPayouts.length} pending</p>
                 </div>
 
-                <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                <div className="glass-card p-5 hover:shadow-lg transition-all duration-300 group">
                     <div className="flex items-center justify-between mb-3">
                         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Upcoming</h3>
-                        <div className="bg-purple-100 p-2 rounded-lg text-purple-700">
+                        <div className="bg-purple-100 p-2 rounded-lg text-purple-700 group-hover:scale-110 transition-transform">
                             <Calendar size={18} />
                         </div>
                     </div>
@@ -176,20 +175,18 @@ const HostEarnings: React.FC<HostEarningsProps> = ({ hostBookings, transactions,
             </div>
 
             {/* View Toggle */}
-            <div className="flex items-center gap-2 bg-white rounded-xl border border-gray-200 shadow-sm p-1 w-fit">
+            <div className="flex items-center gap-2 glass-card p-1 w-fit">
                 <button
                     onClick={() => setViewMode('overview')}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                        viewMode === 'overview' ? 'bg-brand-600 text-white' : 'text-gray-600 hover:bg-gray-50'
-                    }`}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${viewMode === 'overview' ? 'bg-brand-600 text-white shadow-md' : 'text-gray-600 hover:bg-white/50'
+                        }`}
                 >
                     <BarChart3 size={16} /> Overview
                 </button>
                 <button
                     onClick={() => setViewMode('breakdown')}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                        viewMode === 'breakdown' ? 'bg-brand-600 text-white' : 'text-gray-600 hover:bg-gray-50'
-                    }`}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${viewMode === 'breakdown' ? 'bg-brand-600 text-white shadow-md' : 'text-gray-600 hover:bg-white/50'
+                        }`}
                 >
                     <PieChart size={16} /> By Listing
                 </button>
@@ -198,7 +195,7 @@ const HostEarnings: React.FC<HostEarningsProps> = ({ hostBookings, transactions,
             {viewMode === 'overview' ? (
                 <>
                     {/* Revenue Chart */}
-                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                    <div className="glass-card p-6">
                         <h3 className="font-bold text-gray-900 mb-4">Revenue Trend</h3>
                         <div className="h-64 w-full min-w-0 min-h-[256px]">
                             <ResponsiveContainer width="100%" height={256}>
@@ -208,7 +205,7 @@ const HostEarnings: React.FC<HostEarningsProps> = ({ hostBookings, transactions,
                                     <YAxis axisLine={false} tickLine={false} tickFormatter={(val) => `${locale.currencySymbol}${val}`} tick={{ fontSize: 11, fill: '#9ca3af' }} />
                                     <Tooltip
                                         cursor={{ fill: '#f9fafb' }}
-                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}
                                         formatter={(val: number) => [`${locale.currencySymbol}${val.toFixed(2)}`, 'Revenue']}
                                     />
                                     <Bar dataKey="revenue" fill="#111827" radius={[4, 4, 0, 0]} />
@@ -218,89 +215,89 @@ const HostEarnings: React.FC<HostEarningsProps> = ({ hostBookings, transactions,
                     </div>
 
                     {/* Upcoming Payouts */}
-            {upcomingPayouts.length > 0 && (
-                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                    <div className="p-4 border-b border-gray-200 bg-gray-50">
-                        <h3 className="font-bold text-gray-900">Upcoming Payouts</h3>
-                        <p className="text-xs text-gray-500 mt-1">Funds releasing in the next 7 days</p>
-                    </div>
-                    <div className="divide-y divide-gray-200">
-                        {upcomingPayouts.map(booking => {
-                            const releaseDate = new Date(booking.escrowReleaseDate!);
-                            const hoursUntil = Math.max(0, (releaseDate.getTime() - now.getTime()) / (1000 * 60 * 60));
-                            const daysUntil = Math.floor(hoursUntil / 24);
-                            const payout = booking.totalPrice - booking.serviceFee - booking.cautionFee;
+                    {upcomingPayouts.length > 0 && (
+                        <div className="glass-card overflow-hidden">
+                            <div className="p-4 border-b border-gray-100 bg-gray-50/50">
+                                <h3 className="font-bold text-gray-900">Upcoming Payouts</h3>
+                                <p className="text-xs text-gray-500 mt-1">Funds releasing in the next 7 days</p>
+                            </div>
+                            <div className="divide-y divide-gray-100">
+                                {upcomingPayouts.map(booking => {
+                                    const releaseDate = new Date(booking.escrowReleaseDate!);
+                                    const hoursUntil = Math.max(0, (releaseDate.getTime() - now.getTime()) / (1000 * 60 * 60));
+                                    const daysUntil = Math.floor(hoursUntil / 24);
+                                    const payout = booking.totalPrice - booking.serviceFee - booking.cautionFee;
 
-                            return (
-                                <div key={booking.id} className="p-4 hover:bg-gray-50 transition">
-                                    <div className="flex justify-between items-start">
-                                        <div>
-                                            <p className="font-medium text-gray-900">{locale.currencySymbol}{payout.toFixed(2)}</p>
-                                            <p className="text-sm text-gray-500">Booking {booking.id.slice(0, 8)}...</p>
+                                    return (
+                                        <div key={booking.id} className="p-4 hover:bg-gray-50/50 transition">
+                                            <div className="flex justify-between items-start">
+                                                <div>
+                                                    <p className="font-medium text-gray-900">{locale.currencySymbol}{payout.toFixed(2)}</p>
+                                                    <p className="text-sm text-gray-500">Booking {booking.id.slice(0, 8)}...</p>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="text-sm font-medium text-brand-600">
+                                                        {daysUntil === 0 ? 'Today' : daysUntil === 1 ? 'Tomorrow' : `In ${daysUntil} days`}
+                                                    </p>
+                                                    <p className="text-xs text-gray-500">{releaseDate.toLocaleDateString()}</p>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div className="text-right">
-                                            <p className="text-sm font-medium text-brand-600">
-                                                {daysUntil === 0 ? 'Today' : daysUntil === 1 ? 'Tomorrow' : `In ${daysUntil} days`}
-                                            </p>
-                                            <p className="text-xs text-gray-500">{releaseDate.toLocaleDateString()}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-            )}
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
 
                     {/* Payout History */}
-            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                <div className="p-4 border-b border-gray-200 bg-gray-50">
-                    <h3 className="font-bold text-gray-900">Payout History</h3>
-                    <p className="text-xs text-gray-500 mt-1">All completed payouts</p>
-                </div>
-                <div className="overflow-x-auto max-h-96">
-                    <table className="w-full">
-                        <thead className="bg-gray-50 border-b border-gray-200 sticky top-0">
-                            <tr>
-                                <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Date</th>
-                                <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Amount</th>
-                                <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Status</th>
-                                <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Reference</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200">
-                            {transactions.filter(tx => tx.type === 'HOST_PAYOUT' && tx.toUserId === hostId).length === 0 ? (
-                                <tr>
-                                    <td colSpan={4} className="px-4 py-8 text-center text-gray-500">No payouts yet</td>
-                                </tr>
-                            ) : (
-                                transactions
-                                    .filter(tx => tx.type === 'HOST_PAYOUT' && tx.toUserId === hostId)
-                                    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-                                    .map(tx => (
-                                        <tr key={tx.id} className="hover:bg-gray-50">
-                                            <td className="px-4 py-3 text-sm text-gray-600">{new Date(tx.timestamp).toLocaleDateString()}</td>
-                                            <td className="px-4 py-3 text-sm font-bold text-gray-900">{locale.currencySymbol}{tx.amount.toFixed(2)}</td>
-                                            <td className="px-4 py-3">
-                                                <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-bold rounded-full">
-                                                    {tx.status}
-                                                </span>
-                                            </td>
-                                            <td className="px-4 py-3 text-xs font-mono text-gray-500">{tx.paystackReference?.slice(0, 20)}...</td>
+                    <div className="glass-card overflow-hidden">
+                        <div className="p-4 border-b border-gray-100 bg-gray-50/50">
+                            <h3 className="font-bold text-gray-900">Payout History</h3>
+                            <p className="text-xs text-gray-500 mt-1">All completed payouts</p>
+                        </div>
+                        <div className="overflow-x-auto max-h-96">
+                            <table className="w-full">
+                                <thead className="bg-gray-50/50 border-b border-gray-100 sticky top-0">
+                                    <tr>
+                                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Date</th>
+                                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Amount</th>
+                                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Status</th>
+                                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Reference</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {transactions.filter(tx => tx.type === 'HOST_PAYOUT' && tx.toUserId === hostId).length === 0 ? (
+                                        <tr>
+                                            <td colSpan={4} className="px-4 py-8 text-center text-gray-500">No payouts yet</td>
                                         </tr>
-                                    ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+                                    ) : (
+                                        transactions
+                                            .filter(tx => tx.type === 'HOST_PAYOUT' && tx.toUserId === hostId)
+                                            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+                                            .map(tx => (
+                                                <tr key={tx.id} className="hover:bg-gray-50/50 transition-colors">
+                                                    <td className="px-4 py-3 text-sm text-gray-600">{new Date(tx.timestamp).toLocaleDateString()}</td>
+                                                    <td className="px-4 py-3 text-sm font-bold text-gray-900">{locale.currencySymbol}{tx.amount.toFixed(2)}</td>
+                                                    <td className="px-4 py-3">
+                                                        <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-bold rounded-full">
+                                                            {tx.status}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-4 py-3 text-xs font-mono text-gray-500">{tx.paystackReference?.slice(0, 20)}...</td>
+                                                </tr>
+                                            ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </>
             ) : (
                 <>
                     {/* Revenue by Listing */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {/* Pie Chart */}
-                        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                        <div className="glass-card p-6">
                             <h3 className="font-bold text-gray-900 mb-4">Revenue Distribution</h3>
                             {revenueByListing.length > 0 ? (
                                 <div className="h-64 w-full min-w-0 min-h-[256px] flex items-center justify-center">
@@ -331,11 +328,11 @@ const HostEarnings: React.FC<HostEarningsProps> = ({ hostBookings, transactions,
                         </div>
 
                         {/* Top Listings */}
-                        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                        <div className="glass-card p-6">
                             <h3 className="font-bold text-gray-900 mb-4">Top Performing Listings</h3>
                             <div className="space-y-3">
                                 {revenueByListing.slice(0, 5).map((item, idx) => (
-                                    <div key={item.listing.id} className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:border-gray-200 transition">
+                                    <div key={item.listing.id} className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:border-gray-200 transition bg-white/50">
                                         <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm text-white ${['bg-[#111827]', 'bg-[#6366f1]', 'bg-[#8b5cf6]', 'bg-[#ec4899]', 'bg-[#f59e0b]'][idx % 5]}`}>
                                             {idx + 1}
                                         </div>
@@ -359,13 +356,13 @@ const HostEarnings: React.FC<HostEarningsProps> = ({ hostBookings, transactions,
                     </div>
 
                     {/* Detailed Breakdown Table */}
-                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                        <div className="p-4 border-b border-gray-200 bg-gray-50">
+                    <div className="glass-card overflow-hidden">
+                        <div className="p-4 border-b border-gray-100 bg-gray-50/50">
                             <h3 className="font-bold text-gray-900">All Listings Performance</h3>
                         </div>
                         <div className="overflow-x-auto">
                             <table className="w-full">
-                                <thead className="bg-gray-50 border-b border-gray-200">
+                                <thead className="bg-gray-50/50 border-b border-gray-100">
                                     <tr>
                                         <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Listing</th>
                                         <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Bookings</th>
@@ -373,9 +370,9 @@ const HostEarnings: React.FC<HostEarningsProps> = ({ hostBookings, transactions,
                                         <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Avg/Booking</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-gray-200">
+                                <tbody className="divide-y divide-gray-100">
                                     {revenueByListing.map(item => (
-                                        <tr key={item.listing.id} className="hover:bg-gray-50">
+                                        <tr key={item.listing.id} className="hover:bg-gray-50/50 transition-colors">
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-3">
                                                     <img src={item.listing.images[0]} alt="" className="w-10 h-10 rounded-lg object-cover" />

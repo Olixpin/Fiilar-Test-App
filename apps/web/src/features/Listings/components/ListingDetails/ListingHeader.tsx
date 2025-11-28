@@ -1,6 +1,6 @@
 import React from 'react';
 import { Listing, BookingType } from '@fiilar/types';
-import { UserCheck, MapPin, Users, Clock, Calendar, Zap } from 'lucide-react';
+import { UserCheck, MapPin, Users, Clock, Calendar, Zap, Repeat, Timer } from 'lucide-react';
 
 interface ListingHeaderProps {
   listing: Listing;
@@ -42,6 +42,22 @@ export const ListingHeader: React.FC<ListingHeaderProps> = ({ listing }) => {
             <span>Responds in {listing.approvalTime}</span>
           </div>
         ) : null}
+
+        {/* Minimum Duration (for non-hourly - hourly shows in AccessInfo) */}
+        {listing.settings?.minDuration && listing.settings.minDuration > 1 && !isHourly && (
+          <div className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-200">
+            <Timer size={14} className="text-gray-500" />
+            <span>Min {listing.settings.minDuration} {isHourly ? 'hrs' : 'nights'}</span>
+          </div>
+        )}
+
+        {/* Recurring Available */}
+        {listing.settings?.allowRecurring && (
+          <div className="inline-flex items-center gap-1.5 bg-purple-50 text-purple-700 px-3 py-1.5 rounded-lg text-xs font-semibold border border-purple-200">
+            <Repeat size={14} className="text-purple-600" />
+            <span>Recurring</span>
+          </div>
+        )}
       </div>
 
       <div className="flex flex-row flex-wrap items-center gap-3 text-sm">
@@ -74,7 +90,29 @@ export const ListingHeader: React.FC<ListingHeaderProps> = ({ listing }) => {
           <MapPin size={16} className="mr-1.5 shrink-0 text-gray-400 group-hover:text-brand-500" />
           <span>{listing.location}</span>
         </button>
+
+        {/* Address (if different from location) */}
+        {listing.address && listing.address !== listing.location && (
+          <>
+            <div className="w-1 h-1 bg-gray-300 rounded-full"></div>
+            <span className="text-gray-400 text-sm">{listing.address}</span>
+          </>
+        )}
       </div>
+
+      {/* Tags */}
+      {listing.tags && listing.tags.length > 0 && (
+        <div className="flex flex-wrap gap-2 mt-4">
+          {listing.tags.map(tag => (
+            <span
+              key={tag}
+              className="inline-flex items-center px-3 py-1 rounded-full bg-gray-100 text-gray-600 text-xs font-medium hover:bg-gray-200 transition-colors"
+            >
+              #{tag}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

@@ -59,10 +59,10 @@ const AmenitiesSelector: React.FC<AmenitiesSelectorProps> = ({ newListing, setNe
                         <button
                             key={amenity.name}
                             onClick={() => toggleAmenity(amenity)}
-                            className={`p-3 rounded-xl border-2 text-sm font-medium transition-all text-left flex items-center gap-2
+                            className={`p-3 rounded-xl border text-sm font-medium transition-all text-left flex items-center gap-2 relative overflow-hidden group
                                 ${isSelected
-                                    ? 'border-brand-500 bg-brand-50 text-brand-700'
-                                    : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                                    ? 'bg-brand-50/50 border-brand-500 text-brand-700 shadow-md shadow-brand-500/10'
+                                    : 'bg-white/50 border-gray-200 text-gray-600 hover:border-brand-300 hover:bg-white/80'
                                 }`}
                         >
                             <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0

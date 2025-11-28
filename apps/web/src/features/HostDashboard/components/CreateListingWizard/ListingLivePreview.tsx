@@ -17,10 +17,10 @@ const ListingLivePreview: React.FC<ListingLivePreviewProps> = ({
     newListing, lastSaved, step, setStep
 }) => {
     const { locale } = useLocale();
-    
+
     return (
-        <div className="hidden lg:block w-96 shrink-0">
-            <div className="sticky top-24 space-y-4">
+        <div className="w-full shrink-0">
+            <div className="space-y-4">
                 {/* Auto-save indicator */}
                 {(newListing.title || newListing.description) && (
                     <div className={`rounded-lg px-3 py-2 text-xs flex items-center gap-2 transition-all ${lastSaved && new Date().getTime() - lastSaved.getTime() < 5000
@@ -77,21 +77,20 @@ const ListingLivePreview: React.FC<ListingLivePreviewProps> = ({
                         <div className="flex items-baseline gap-2 mb-3">
                             <span className="text-2xl font-bold text-brand-600">{locale.currencySymbol}{newListing.price || 0}</span>
                             <span className="text-sm text-gray-500">
-                                / {newListing.pricingModel === PricingModel.NIGHTLY ? 'night' : 
-                                   newListing.pricingModel === PricingModel.HOURLY ? 'hour' : 'day'}
+                                / {newListing.pricingModel === PricingModel.NIGHTLY ? 'night' :
+                                    newListing.pricingModel === PricingModel.HOURLY ? 'hour' : 'day'}
                             </span>
                         </div>
 
                         {/* Pricing Model Badge */}
                         {newListing.pricingModel && (
                             <div className="flex items-center gap-2 mb-3">
-                                <span className={`text-xs px-2 py-1 rounded-full flex items-center gap-1 ${
-                                    newListing.pricingModel === PricingModel.NIGHTLY 
-                                        ? 'bg-indigo-100 text-indigo-700' 
-                                        : newListing.pricingModel === PricingModel.HOURLY 
+                                <span className={`text-xs px-2 py-1 rounded-full flex items-center gap-1 ${newListing.pricingModel === PricingModel.NIGHTLY
+                                        ? 'bg-indigo-100 text-indigo-700'
+                                        : newListing.pricingModel === PricingModel.HOURLY
                                             ? 'bg-amber-100 text-amber-700'
                                             : 'bg-teal-100 text-teal-700'
-                                }`}>
+                                    }`}>
                                     {newListing.pricingModel === PricingModel.NIGHTLY && <><Moon size={10} /> Overnight</>}
                                     {newListing.pricingModel === PricingModel.DAILY && <><CalendarIcon size={10} /> Full Day</>}
                                     {newListing.pricingModel === PricingModel.HOURLY && <><Clock size={10} /> Hourly</>}
@@ -161,8 +160,8 @@ const ListingLivePreview: React.FC<ListingLivePreviewProps> = ({
                             <div className="text-xs text-gray-500 mb-3">
                                 <span className="font-medium">Cancellation:</span> {
                                     newListing.cancellationPolicy === CancellationPolicy.FLEXIBLE ? 'Flexible' :
-                                    newListing.cancellationPolicy === CancellationPolicy.MODERATE ? 'Moderate' :
-                                    newListing.cancellationPolicy === CancellationPolicy.STRICT ? 'Strict' : 'Non-refundable'
+                                        newListing.cancellationPolicy === CancellationPolicy.MODERATE ? 'Moderate' :
+                                            newListing.cancellationPolicy === CancellationPolicy.STRICT ? 'Strict' : 'Non-refundable'
                                 }
                             </div>
                         )}
