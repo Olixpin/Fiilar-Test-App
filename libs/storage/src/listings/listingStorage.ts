@@ -1,4 +1,5 @@
 import { Listing, Review, BookingType, Role } from '@fiilar/types';
+import { safeJSONParse } from '@fiilar/utils';
 import { STORAGE_KEYS } from '../constants';
 import { authorizeListingModification, getAuthenticatedUser } from '../security/authorization';
 import { logAuditEvent } from '../security/authSecurity';
@@ -8,10 +9,10 @@ import { logAuditEvent } from '../security/authSecurity';
  */
 export const getListings = (): Listing[] => {
     const l = localStorage.getItem(STORAGE_KEYS.LISTINGS);
-    const listings: Listing[] = l ? JSON.parse(l) : [];
+    const listings: Listing[] = safeJSONParse(l, []);
 
     const r = localStorage.getItem(STORAGE_KEYS.REVIEWS);
-    const allReviews: Review[] = r ? JSON.parse(r) : [];
+    const allReviews: Review[] = safeJSONParse(r, []);
 
     return listings.map(listing => {
         const listingReviews = allReviews.filter(review => review.listingId === listing.id);
@@ -63,7 +64,7 @@ export const saveListing = (listing: Listing): { success: boolean; error?: strin
     const listings = getListings();
     const idx = listings.findIndex(l => l.id === listing.id);
     const isUpdate = idx >= 0;
-    
+
     if (isUpdate) {
         // SECURITY CHECK: Verify user is authorized to modify this listing
         const authCheck = authorizeListingModification(listing.id);
@@ -86,27 +87,27 @@ export const saveListing = (listing: Listing): { success: boolean; error?: strin
             });
             return { success: false, error: 'Not authenticated' };
         }
-        
+
         if (currentUser.role !== Role.HOST && currentUser.role !== Role.ADMIN) {
             logAuditEvent({
                 action: 'SECURITY_VIOLATION',
                 userId: currentUser.id,
                 success: false,
-                metadata: { 
+                metadata: {
                     type: 'UNAUTHORIZED_LISTING_CREATE',
                     role: currentUser.role
                 }
             });
             return { success: false, error: 'Only hosts can create listings' };
         }
-        
+
         // Ensure the listing hostId matches the current user (except for admins)
         if (currentUser.role !== Role.ADMIN && listing.hostId !== currentUser.id) {
             logAuditEvent({
                 action: 'SECURITY_VIOLATION',
                 userId: currentUser.id,
                 success: false,
-                metadata: { 
+                metadata: {
                     type: 'LISTING_HOST_MISMATCH',
                     listingHostId: listing.hostId,
                     currentUserId: currentUser.id
@@ -114,10 +115,10 @@ export const saveListing = (listing: Listing): { success: boolean; error?: strin
             });
             return { success: false, error: 'Cannot create listing for another user' };
         }
-        
+
         listings.push(listing);
     }
-    
+
     try {
         localStorage.setItem(STORAGE_KEYS.LISTINGS, JSON.stringify(listings));
         return { success: true };
@@ -171,7 +172,7 @@ export const deleteListing = (id: string): { success: boolean; error?: string } 
 
     const listings = getListings();
     const updatedListings = listings.filter(l => l.id !== id);
-    
+
     try {
         localStorage.setItem(STORAGE_KEYS.LISTINGS, JSON.stringify(updatedListings));
         return { success: true };

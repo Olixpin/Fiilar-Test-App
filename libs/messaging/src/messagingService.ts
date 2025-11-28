@@ -1,6 +1,7 @@
 import { Conversation, Message } from '@fiilar/types';
 import { addNotification } from '@fiilar/notifications';
 import { checkMessageSafety } from './safetyFilter';
+import { safeJSONParse } from '@fiilar/utils';
 
 export const STORAGE_KEYS = {
     CONVERSATIONS: 'fiilar_conversations',
@@ -11,8 +12,8 @@ export const getConversations = (userId: string): Conversation[] => {
     const c = localStorage.getItem(STORAGE_KEYS.CONVERSATIONS);
     const m = localStorage.getItem(STORAGE_KEYS.MESSAGES);
 
-    const conversations: Conversation[] = c ? JSON.parse(c) : [];
-    const allMessages: Message[] = m ? JSON.parse(m) : [];
+    const conversations: Conversation[] = safeJSONParse(c, []);
+    const allMessages: Message[] = safeJSONParse(m, []);
 
     const filtered = conversations.filter(conv => conv.participants.includes(userId));
 
@@ -32,7 +33,7 @@ export const getConversations = (userId: string): Conversation[] => {
 
 export const getMessages = (conversationId: string): Message[] => {
     const m = localStorage.getItem(STORAGE_KEYS.MESSAGES);
-    const messages: Message[] = m ? JSON.parse(m) : [];
+    const messages: Message[] = safeJSONParse(m, []);
     return messages.filter(msg => msg.conversationId === conversationId)
         .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 };
@@ -48,7 +49,7 @@ export const sendMessage = (conversationId: string, content: string, senderId: s
     }
 
     const m = localStorage.getItem(STORAGE_KEYS.MESSAGES);
-    const messages: Message[] = m ? JSON.parse(m) : [];
+    const messages: Message[] = safeJSONParse(m, []);
 
     const newMessage: Message = {
         id: Math.random().toString(36).substr(2, 9),
@@ -64,7 +65,7 @@ export const sendMessage = (conversationId: string, content: string, senderId: s
 
     // Update conversation lastMessage and updatedAt
     const c = localStorage.getItem(STORAGE_KEYS.CONVERSATIONS);
-    const conversations: Conversation[] = c ? JSON.parse(c) : [];
+    const conversations: Conversation[] = safeJSONParse(c, []);
     const idx = conversations.findIndex(conv => conv.id === conversationId);
 
     if (idx >= 0) {
@@ -96,7 +97,7 @@ export const sendMessage = (conversationId: string, content: string, senderId: s
 
 export const markAsRead = (conversationId: string, userId: string) => {
     const m = localStorage.getItem(STORAGE_KEYS.MESSAGES);
-    const messages: Message[] = m ? JSON.parse(m) : [];
+    const messages: Message[] = safeJSONParse(m, []);
 
     let hasUpdates = false;
     const updatedMessages = messages.map(msg => {
@@ -114,7 +115,7 @@ export const markAsRead = (conversationId: string, userId: string) => {
 
 export const startConversation = (userId: string, hostId: string, listingId?: string): string => {
     const c = localStorage.getItem(STORAGE_KEYS.CONVERSATIONS);
-    const conversations: Conversation[] = c ? JSON.parse(c) : [];
+    const conversations: Conversation[] = safeJSONParse(c, []);
 
     // Check if conversation already exists
     const existing = conversations.find(conv =>

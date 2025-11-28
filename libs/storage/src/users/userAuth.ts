@@ -1,10 +1,11 @@
 import { User, Role } from '@fiilar/types';
+import { safeJSONParse } from '@fiilar/utils';
 import { STORAGE_KEYS } from '../constants';
 import { db } from '../mockDb';
 import { generateVerificationToken, getTokenExpiry, sendVerificationEmail } from '../emailService';
-import { 
-    createSession, 
-    invalidateSession, 
+import {
+    createSession,
+    invalidateSession,
     validateSession,
     logAuditEvent
 } from '../security/authSecurity';
@@ -28,21 +29,21 @@ export const validateCurrentSession = (): { valid: boolean; user?: User; reason?
     if (!sessionId) {
         return { valid: false, reason: 'No session' };
     }
-    
+
     const sessionResult = validateSession(sessionId);
     if (!sessionResult.valid || !sessionResult.session) {
         localStorage.removeItem(SESSION_KEY);
         localStorage.removeItem(STORAGE_KEYS.USER);
         return { valid: false, reason: sessionResult.reason };
     }
-    
+
     const user = db.users.findById(sessionResult.session.userId);
     if (!user) {
         localStorage.removeItem(SESSION_KEY);
         localStorage.removeItem(STORAGE_KEYS.USER);
         return { valid: false, reason: 'User not found' };
     }
-    
+
     return { valid: true, user };
 };
 
@@ -64,14 +65,14 @@ export const loginUser = (
     profileData?: { firstName?: string; lastName?: string; avatar?: string }
 ): User => {
     console.log('🔵 loginUser called with:', { role, provider, identifier, hasProfileData: !!profileData });
-    
+
     // SECURITY: Auto-detect admin role from admin email domain
     let effectiveRole = role;
     if (identifier && (provider === 'email' || provider === 'google') && isAdminEmail(identifier)) {
         console.log('🔐 Admin email detected, setting admin role');
         effectiveRole = Role.ADMIN;
     }
-    
+
     // 1. Try to find existing user by identifier (if provided)
     if (identifier) {
         const users = db.users.findAll();
@@ -107,12 +108,12 @@ export const loginUser = (
             if (Object.keys(updates).length > 0) {
                 db.users.update(existingUser.id, updates);
                 const updatedUser = { ...existingUser, ...updates };
-                
+
                 // SECURITY: Create proper session
                 const session = createSession(updatedUser.id);
                 localStorage.setItem(SESSION_KEY, session.id);
                 localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(updatedUser));
-                
+
                 logAuditEvent({
                     action: 'LOGIN',
                     userId: updatedUser.id,
@@ -120,7 +121,7 @@ export const loginUser = (
                     success: true,
                     metadata: { provider, role: effectiveRole, existing: true }
                 });
-                
+
                 return updatedUser;
             }
 
@@ -128,7 +129,7 @@ export const loginUser = (
             const session = createSession(existingUser.id);
             localStorage.setItem(SESSION_KEY, session.id);
             localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(existingUser));
-            
+
             logAuditEvent({
                 action: 'LOGIN',
                 userId: existingUser.id,
@@ -136,7 +137,7 @@ export const loginUser = (
                 success: true,
                 metadata: { provider, role: effectiveRole, existing: true }
             });
-            
+
             return existingUser;
         }
     }
@@ -152,7 +153,7 @@ export const loginUser = (
         switch (role) {
             case Role.HOST: userId = DEMO_CONFIG.MOCK_HOST_ID; name = 'Jane Host'; email = DEMO_CONFIG.DEMO_EMAILS.HOST; break;
             case Role.USER: userId = DEMO_CONFIG.MOCK_USER_ID; name = 'John User'; email = DEMO_CONFIG.DEMO_EMAILS.USER; break;
-            case Role.ADMIN: 
+            case Role.ADMIN:
                 // SECURITY: Admin must authenticate with proper credentials
                 // Logging attempted admin bypass
                 logAuditEvent({
@@ -264,10 +265,10 @@ export const loginUser = (
     // SECURITY: Create proper session with expiry
     const session = createSession(user.id);
     localStorage.setItem(SESSION_KEY, session.id);
-    
+
     // Set as active session
     localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
-    
+
     // Log successful login
     logAuditEvent({
         action: 'LOGIN',
@@ -276,7 +277,7 @@ export const loginUser = (
         success: true,
         metadata: { provider, role: effectiveRole }
     });
-    
+
     return user as User;
 };
 
@@ -286,15 +287,15 @@ export const loginUser = (
  */
 export const logoutUser = () => {
     const sessionId = getCurrentSessionId();
-    const user = JSON.parse(localStorage.getItem(STORAGE_KEYS.USER) || 'null');
-    
+    const user = safeJSONParse<User | null>(localStorage.getItem(STORAGE_KEYS.USER), null);
+
     if (sessionId) {
         invalidateSession(sessionId);
         localStorage.removeItem(SESSION_KEY);
     }
-    
+
     localStorage.removeItem(STORAGE_KEYS.USER);
-    
+
     // Log logout
     if (user) {
         logAuditEvent({

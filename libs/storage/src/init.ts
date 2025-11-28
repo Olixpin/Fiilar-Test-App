@@ -11,7 +11,13 @@ const BULK_LISTING_COUNT = 200;
  */
 export const initStorage = () => {
     const storedListingsStr = localStorage.getItem(STORAGE_KEYS.LISTINGS);
-    let storedListings: Listing[] = storedListingsStr ? JSON.parse(storedListingsStr) : [];
+    let storedListings: Listing[] = [];
+    try {
+        storedListings = storedListingsStr ? JSON.parse(storedListingsStr) : [];
+    } catch (error) {
+        console.error('Failed to parse stored listings, resetting:', error);
+        storedListings = [];
+    }
 
     // Always update mock listings to ensure latest data/images
     // This merges the fresh MOCK_LISTINGS into the stored listings
@@ -31,18 +37,24 @@ export const initStorage = () => {
             console.log(`[initStorage] Generating ${BULK_LISTING_COUNT} mock listings for infinite scroll testing...`);
             const generatedListings = generateMockListings(BULK_LISTING_COUNT);
             storedListings = [...storedListings, ...generatedListings];
-            
+
             // Generate reviews for the new listings
             const generatedReviews = generateMockReviews(generatedListings);
-            
+
             // Get existing reviews
             const storedReviewsStr = localStorage.getItem(STORAGE_KEYS.REVIEWS);
-            let storedReviews: Review[] = storedReviewsStr ? JSON.parse(storedReviewsStr) : [];
-            
+            let storedReviews: Review[] = [];
+            try {
+                storedReviews = storedReviewsStr ? JSON.parse(storedReviewsStr) : [];
+            } catch (error) {
+                console.error('Failed to parse stored reviews, resetting:', error);
+                storedReviews = [];
+            }
+
             // Add new reviews
             storedReviews = [...storedReviews, ...generatedReviews];
             localStorage.setItem(STORAGE_KEYS.REVIEWS, JSON.stringify(storedReviews));
-            
+
             console.log(`[initStorage] Total listings: ${storedListings.length}, Total reviews: ${storedReviews.length}`);
         }
     }

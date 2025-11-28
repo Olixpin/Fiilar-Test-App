@@ -1,5 +1,6 @@
 import { Booking, EscrowTransaction, PlatformFinancials } from '@fiilar/types';
 import { BOOKING_CONFIG } from '@fiilar/storage';
+import { safeJSONParse } from '@fiilar/utils';
 
 const STORAGE_KEYS = {
     ESCROW_TRANSACTIONS: 'fiilar_escrow_transactions',
@@ -41,7 +42,7 @@ export const escrowService = {
             serviceFee: booking.serviceFee,
             cautionFee: booking.cautionFee
         });
-        
+
         await delay(1000);
 
         const transactions: EscrowTransaction[] = [];
@@ -86,12 +87,12 @@ export const escrowService = {
         const existing = await escrowService.getEscrowTransactions();
         localStorage.setItem(STORAGE_KEYS.ESCROW_TRANSACTIONS, JSON.stringify([...existing, ...transactions]));
 
-        console.log('✅ API RESPONSE: Payment processed', { 
-            success: true, 
+        console.log('✅ API RESPONSE: Payment processed', {
+            success: true,
             transactionIds,
             paystackReferences: transactions.map(t => t.paystackReference)
         });
-        
+
         return { success: true, transactionIds };
     },
 
@@ -134,14 +135,14 @@ export const escrowService = {
      */
     releaseFundsToHost: async (booking: Booking, hostId: string, notes?: string): Promise<{ success: boolean; transactionId: string }> => {
         const hostPayout = booking.totalPrice - booking.serviceFee - booking.cautionFee;
-        
+
         console.log('📤 API CALL: POST /api/escrow/release', {
             bookingId: booking.id,
             hostId,
             amount: hostPayout,
             notes: notes || 'Standard release'
         });
-        
+
         await delay(1500);
 
         const payoutTx: EscrowTransaction = {
@@ -169,7 +170,7 @@ export const escrowService = {
             hostPayout,
             paystackReference: payoutTx.paystackReference
         });
-        
+
         return { success: true, transactionId: payoutTx.id };
     },
 
@@ -188,7 +189,7 @@ export const escrowService = {
             originalAmount: booking.totalPrice,
             notes: notes || 'Refund'
         });
-        
+
         await delay(1000);
 
         const refundTx: EscrowTransaction = {
@@ -216,7 +217,7 @@ export const escrowService = {
             refundAmount,
             paystackReference: refundTx.paystackReference
         });
-        
+
         return { success: true, transactionId: refundTx.id };
     },
 
@@ -230,7 +231,7 @@ export const escrowService = {
         console.log('📤 API CALL: GET /api/escrow/transactions');
         await delay(300);
         const txs = localStorage.getItem(STORAGE_KEYS.ESCROW_TRANSACTIONS);
-        const result = txs ? JSON.parse(txs) : [];
+        const result = safeJSONParse(txs, []);
         console.log('✅ API RESPONSE: Retrieved', result.length, 'transactions');
         return result;
     },
@@ -277,9 +278,9 @@ export const escrowService = {
             pendingPayouts,
             totalRefunded,
         };
-        
+
         console.log('✅ API RESPONSE: Platform financials', financials);
-        
+
         return financials;
     },
 
@@ -321,7 +322,7 @@ export const escrowService = {
             adminNotes,
             amount: booking.totalPrice
         });
-        
+
         await delay(1000);
 
         if (decision === 'REFUND_GUEST') {
@@ -339,7 +340,7 @@ export const escrowService = {
             // Actually, releaseFundsToHost needs hostId.
             // Let's fetch the listing from storage to get hostId.
             const listingsStr = localStorage.getItem('fiilar_listings');
-            const listings: any[] = listingsStr ? JSON.parse(listingsStr) : [];
+            const listings: any[] = safeJSONParse(listingsStr, []);
             const listing = listings.find(l => l.id === booking.listingId);
 
             if (listing) {

@@ -1,4 +1,5 @@
 import { Review, User, Booking, Role } from '@fiilar/types';
+import { safeJSONParse } from '@fiilar/utils';
 
 const STORAGE_KEYS = {
     REVIEWS: 'fiilar_reviews',
@@ -10,7 +11,7 @@ const STORAGE_KEYS = {
 const getStorageData = <T>(key: string, defaultValue: T): T => {
     try {
         const data = localStorage.getItem(key);
-        return data ? JSON.parse(data) : defaultValue;
+        return safeJSONParse(data, defaultValue);
     } catch (error) {
         console.error(`Error reading from storage key "${key}":`, error);
         return defaultValue;

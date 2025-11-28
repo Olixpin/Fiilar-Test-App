@@ -1,12 +1,12 @@
 import { Booking, Listing } from '@fiilar/types';
 import { STORAGE_KEYS } from '../constants';
-import { generateVerificationCode } from '@fiilar/utils';
-import { 
-    validateBookingPriceDetailed, 
+import { generateVerificationCode, safeJSONParse } from '@fiilar/utils';
+import {
+    validateBookingPriceDetailed,
     checkBookingIdempotency,
     checkSlotAvailability,
     validateBookingIntegrity,
-    logSecurityEvent 
+    logSecurityEvent
 } from '../security/bookingSecurity';
 import { logAuditEvent } from '../security/authSecurity';
 import { authorizeBookingModification } from '../security/authorization';
@@ -44,7 +44,7 @@ export interface SecureBookingListingData {
 export const getBookings = (): Booking[] => {
     console.log('📤 API CALL: GET /api/bookings');
     const b = localStorage.getItem(STORAGE_KEYS.BOOKINGS);
-    const bookings = b ? JSON.parse(b) : [];
+    const bookings = safeJSONParse(b, []);
     console.log('✅ API RESPONSE: Retrieved', bookings.length, 'bookings');
     return bookings;
 };
@@ -77,7 +77,7 @@ export const createBooking = (booking: Booking): Booking => {
         totalPrice: booking.totalPrice,
         status: booking.status
     });
-    
+
     const bookings = getBookings();
 
     // Generate Handshake Codes using the robust utility
@@ -119,7 +119,7 @@ export const createBooking = (booking: Booking): Booking => {
         hostCode: newBooking.hostCode,
         handshakeStatus: newBooking.handshakeStatus
     });
-    
+
     return newBooking;
 };
 
@@ -141,18 +141,18 @@ export const createSecureBooking = (
 ): BookingResult => {
     // Determine if we have full listing data or simplified data
     const hasFullListing = 'listing' in listingData;
-    
+
     // 1. Validate price wasn't manipulated
     if (hasFullListing) {
         // Full validation with proper pricing calculation
         const { listing, datesCount = 1 } = listingData as SecureBookingListingData;
-        
+
         const priceValidation = validateBookingPriceDetailed(
             listing,
-            { 
+            {
                 total: booking.totalPrice * datesCount, // Scale back to full price for validation
-                service: booking.serviceFee * datesCount, 
-                caution: booking.cautionFee * datesCount 
+                service: booking.serviceFee * datesCount,
+                caution: booking.cautionFee * datesCount
             },
             booking.duration || 1,
             booking.guestCount || 1,
@@ -168,7 +168,7 @@ export const createSecureBooking = (
                 serverTotal: priceValidation.breakdown.total / datesCount,
                 errors: priceValidation.errors
             });
-            
+
             return {
                 success: false,
                 error: `Price validation failed: ${priceValidation.errors.join(', ')}`,
@@ -179,9 +179,9 @@ export const createSecureBooking = (
         // Simplified validation (for backward compatibility during transition)
         // Log warning that full listing should be provided
         console.warn('createSecureBooking: Using simplified validation. Provide full listing for better security.');
-        
+
         const simpleData = listingData as { basePrice: number; serviceFee?: number; cautionFee?: number };
-        
+
         // Basic sanity checks only
         if (booking.totalPrice <= 0) {
             return {
@@ -190,14 +190,14 @@ export const createSecureBooking = (
                 securityError: true
             };
         }
-        
+
         // Check if service fee is roughly 10% of base price
         const expectedMinServiceFee = simpleData.basePrice * 0.08; // Allow 8-12%
         const expectedMaxServiceFee = simpleData.basePrice * 0.12;
         if (booking.serviceFee < expectedMinServiceFee || booking.serviceFee > expectedMaxServiceFee) {
-            console.warn('Service fee outside expected range', { 
-                serviceFee: booking.serviceFee, 
-                expected: `${expectedMinServiceFee}-${expectedMaxServiceFee}` 
+            console.warn('Service fee outside expected range', {
+                serviceFee: booking.serviceFee,
+                expected: `${expectedMinServiceFee}-${expectedMaxServiceFee}`
             });
             // Don't fail, just warn - full validation should be used
         }
@@ -218,7 +218,7 @@ export const createSecureBooking = (
             listingId: booking.listingId,
             date: booking.date
         });
-        
+
         return {
             success: false,
             error: 'A booking for this date/time already exists',
@@ -242,10 +242,10 @@ export const createSecureBooking = (
             listingId: booking.listingId,
             date: booking.date
         });
-        
+
         return {
             success: false,
-            error: slotCheck.overlappingHours.length > 0 
+            error: slotCheck.overlappingHours.length > 0
                 ? `The following hours are already booked: ${slotCheck.overlappingHours.join(', ')}`
                 : 'This date/time slot is already booked',
             securityError: true
@@ -259,7 +259,7 @@ export const createSecureBooking = (
             bookingId: booking.id,
             issues: integrityCheck.issues
         });
-        
+
         return {
             success: false,
             error: `Booking validation failed: ${integrityCheck.issues?.join(', ')}`,
@@ -311,7 +311,7 @@ const VALID_STATUS_TRANSITIONS: Record<string, string[]> = {
 export const isValidStatusTransition = (from: string, to: string): boolean => {
     // Same status is always allowed (no transition)
     if (from === to) return true;
-    
+
     const allowedTransitions = VALID_STATUS_TRANSITIONS[from] || [];
     return allowedTransitions.includes(to);
 };
@@ -338,9 +338,9 @@ export const updateBooking = (booking: Booking): void => {
         console.warn('updateBooking: Booking not found', booking.id);
         return;
     }
-    
+
     const existingBooking = bookings[idx];
-    
+
     // Validate status transition if status is changing
     if (booking.status && existingBooking.status !== booking.status) {
         if (!isValidStatusTransition(existingBooking.status, booking.status)) {
@@ -364,7 +364,7 @@ export const updateBooking = (booking: Booking): void => {
             return;
         }
     }
-    
+
     bookings[idx] = booking;
     localStorage.setItem(STORAGE_KEYS.BOOKINGS, JSON.stringify(bookings));
 
@@ -391,9 +391,9 @@ export const updateBookingSecure = (booking: Booking): { success: boolean; error
     if (idx < 0) {
         return { success: false, error: 'Booking not found' };
     }
-    
+
     const existingBooking = bookings[idx];
-    
+
     // Validate status transition if status is changing
     if (booking.status && existingBooking.status !== booking.status) {
         if (!isValidStatusTransition(existingBooking.status, booking.status)) {
@@ -408,13 +408,13 @@ export const updateBookingSecure = (booking: Booking): { success: boolean; error
                     toStatus: booking.status
                 }
             });
-            return { 
-                success: false, 
-                error: `Invalid status transition from ${existingBooking.status} to ${booking.status}` 
+            return {
+                success: false,
+                error: `Invalid status transition from ${existingBooking.status} to ${booking.status}`
             };
         }
     }
-    
+
     bookings[idx] = booking;
     localStorage.setItem(STORAGE_KEYS.BOOKINGS, JSON.stringify(bookings));
 
@@ -474,6 +474,6 @@ export const deleteBooking = (id: string): boolean => {
     if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('fiilar:bookings-updated', { detail: { deletedId: id } }));
     }
-    
+
     return true;
 };

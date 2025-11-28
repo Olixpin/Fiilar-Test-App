@@ -15,14 +15,12 @@
         "@fiilar/kyc": "workspace:*",
         "@fiilar/reviews": "workspace:*",
         "@fiilar/storage": "workspace:*",
-        "react": "^18.2.0",
-        "react-dom": "^18.2.0",
         "lucide-react": "^0.344.0",
         "recharts": "^2.12.2",
         "framer-motion": "^11.0.8"
     },
     "peerDependencies": {
-        "react": "^18.2.0",
-        "react-dom": "^18.2.0"
+        "react": "^18.2.0 || ^19.0.0",
+        "react-dom": "^18.2.0 || ^19.0.0"
     }
 }

@@ -1,5 +1,5 @@
 import { Component, ErrorInfo, ReactNode } from 'react';
-import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
+import { AlertTriangle, RefreshCw, Home, Trash2 } from 'lucide-react';
 
 interface Props {
     children: ReactNode;
@@ -22,7 +22,7 @@ class ErrorBoundary extends Component<Props, State> {
 
     public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
         console.error('Error caught by boundary:', error, errorInfo);
-        
+
         // Send to analytics/monitoring
         if (window.gtag) {
             window.gtag('event', 'exception', {
@@ -37,6 +37,13 @@ class ErrorBoundary extends Component<Props, State> {
         window.location.href = '/';
     };
 
+    private handleClearData = () => {
+        if (window.confirm('Are you sure you want to reset all app data? This will clear your local storage and log you out.')) {
+            localStorage.clear();
+            window.location.reload();
+        }
+    };
+
     public render() {
         if (this.state.hasError) {
             return (
@@ -49,10 +56,13 @@ class ErrorBoundary extends Component<Props, State> {
                         <p className="text-gray-600 mb-6">
                             We're sorry for the inconvenience. The error has been logged and we'll fix it soon.
                         </p>
-                        {process.env.NODE_ENV === 'development' && this.state.error && (
+                        {this.state.error && (
                             <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 text-left">
                                 <p className="text-xs font-mono text-red-800 break-all">
                                     {this.state.error.message}
+                                </p>
+                                <p className="text-xs font-mono text-red-600 mt-2 break-all">
+                                    {this.state.error.stack?.split('\n').slice(0, 3).join('\n')}
                                 </p>
                             </div>
                         )}
@@ -70,6 +80,13 @@ class ErrorBoundary extends Component<Props, State> {
                             >
                                 <Home size={18} />
                                 Go Home
+                            </button>
+                            <button
+                                onClick={this.handleClearData}
+                                className="inline-flex items-center gap-2 px-6 py-3 bg-red-100 text-red-700 font-medium rounded-lg hover:bg-red-200 transition-all"
+                            >
+                                <Trash2 size={18} />
+                                Reset App Data
                             </button>
                         </div>
                     </div>

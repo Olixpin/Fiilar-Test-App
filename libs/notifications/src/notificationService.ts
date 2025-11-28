@@ -1,4 +1,5 @@
 import { Notification } from '@fiilar/types';
+import { safeJSONParse } from '@fiilar/utils';
 
 const STORAGE_KEYS = {
     NOTIFICATIONS: 'fiilar_notifications',
@@ -23,7 +24,7 @@ const STORAGE_KEYS = {
 export const getNotifications = (userId: string): Notification[] => {
     console.log('📤 API CALL: GET /api/notifications', { userId });
     const n = localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS);
-    const notifications: Notification[] = n ? JSON.parse(n) : [];
+    const notifications: Notification[] = safeJSONParse(n, []);
     const userNotifs = notifications
         .filter(notif => notif.userId === userId)
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -53,9 +54,9 @@ export const addNotification = (notification: Omit<Notification, 'id' | 'created
         type: notification.type,
         title: notification.title
     });
-    
+
     const n = localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS);
-    const notifications: Notification[] = n ? JSON.parse(n) : [];
+    const notifications: Notification[] = safeJSONParse(n, []);
 
     const newNotification: Notification = {
         ...notification,
@@ -65,7 +66,7 @@ export const addNotification = (notification: Omit<Notification, 'id' | 'created
 
     notifications.push(newNotification);
     localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(notifications));
-    
+
     console.log('✅ API RESPONSE: Notification created', { id: newNotification.id });
 };
 
@@ -76,7 +77,7 @@ export const addNotification = (notification: Omit<Notification, 'id' | 'created
 export const markNotificationAsRead = (notificationId: string) => {
     console.log('📤 API CALL: PATCH /api/notifications/' + notificationId + '/read');
     const n = localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS);
-    const notifications: Notification[] = n ? JSON.parse(n) : [];
+    const notifications: Notification[] = safeJSONParse(n, []);
 
     const idx = notifications.findIndex(notif => notif.id === notificationId);
     if (idx >= 0) {
@@ -93,7 +94,7 @@ export const markNotificationAsRead = (notificationId: string) => {
 export const markAllNotificationsAsRead = (userId: string) => {
     console.log('📤 API CALL: PATCH /api/notifications/read-all', { userId });
     const n = localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS);
-    const notifications: Notification[] = n ? JSON.parse(n) : [];
+    const notifications: Notification[] = safeJSONParse(n, []);
 
     let hasUpdates = false;
     const updatedNotifications = notifications.map(notif => {
@@ -117,7 +118,7 @@ export const markAllNotificationsAsRead = (userId: string) => {
 export const clearAllNotifications = (userId: string) => {
     console.log('📤 API CALL: DELETE /api/notifications', { userId });
     const n = localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS);
-    const notifications: Notification[] = n ? JSON.parse(n) : [];
+    const notifications: Notification[] = safeJSONParse(n, []);
 
     // Keep notifications that don't belong to this user
     const remainingNotifications = notifications.filter(notif => notif.userId !== userId);

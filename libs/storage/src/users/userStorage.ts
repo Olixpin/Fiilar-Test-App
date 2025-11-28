@@ -7,7 +7,12 @@ import { logAuditEvent } from '../security/authSecurity';
  */
 export const getAllUsers = (): User[] => {
     const u = localStorage.getItem(STORAGE_KEYS.USERS_DB);
-    return u ? JSON.parse(u) : [];
+    try {
+        return u ? JSON.parse(u) : [];
+    } catch (error) {
+        console.error('Failed to parse users DB, resetting:', error);
+        return [];
+    }
 };
 
 /**
@@ -23,7 +28,12 @@ export const getUserById = (id: string): User | undefined => {
  */
 export const getCurrentUser = (): User | null => {
     const u = localStorage.getItem(STORAGE_KEYS.USER);
-    return u ? JSON.parse(u) : null;
+    try {
+        return u ? JSON.parse(u) : null;
+    } catch (error) {
+        console.error('Failed to parse current user, resetting:', error);
+        return null;
+    }
 };
 
 /**
@@ -61,25 +71,25 @@ const saveUserInternal = (user: User) => {
  */
 export const saveUser = (user: User): { success: boolean; error?: string } => {
     const currentUser = getCurrentUser();
-    
+
     // Allow if not logged in (during registration flow)
     if (!currentUser) {
         saveUserInternal(user);
         return { success: true };
     }
-    
+
     // Users can modify their own profile
     if (currentUser.id === user.id) {
         saveUserInternal(user);
         return { success: true };
     }
-    
+
     // Admins can modify any user
     if (currentUser.role === Role.ADMIN) {
         saveUserInternal(user);
         return { success: true };
     }
-    
+
     // Unauthorized modification attempt
     logAuditEvent({
         action: 'SECURITY_VIOLATION',
@@ -91,12 +101,12 @@ export const saveUser = (user: User): { success: boolean; error?: string } => {
             attemptedBy: currentUser.id
         }
     });
-    
+
     console.error('🚨 SECURITY: Unauthorized user modification attempt', {
         targetUserId: user.id,
         attemptedBy: currentUser.id
     });
-    
+
     return { success: false, error: 'Not authorized to modify this user' };
 };
 
@@ -108,7 +118,7 @@ export const toggleFavorite = (userId: string, listingId: string): string[] => {
     console.log('Toggling favorite. User:', userId, 'Listing:', listingId);
 
     const currentUser = getCurrentUser();
-    
+
     // SECURITY CHECK: User can only toggle their own favorites
     if (!currentUser || currentUser.id !== userId) {
         console.error('🚨 SECURITY: Unauthorized favorites toggle attempt', {
@@ -151,7 +161,7 @@ export const toggleFavorite = (userId: string, listingId: string): string[] => {
  */
 export const updateUserWalletBalance = (userId: string, amount: number): { success: boolean; error?: string } => {
     const currentUser = getCurrentUser();
-    
+
     // Only admins can directly modify wallet balances
     // Regular users must go through payment service
     if (!currentUser || currentUser.role !== Role.ADMIN) {
@@ -199,12 +209,12 @@ export const updateUserProfile = (
     }
 ): { success: boolean; user?: User; error?: string } => {
     const currentUser = getCurrentUser();
-    
+
     // SECURITY CHECK: User can only update their own profile (unless admin)
     if (!currentUser) {
         return { success: false, error: 'Not authenticated' };
     }
-    
+
     if (currentUser.id !== userId && currentUser.role !== Role.ADMIN) {
         console.error('🚨 SECURITY: Unauthorized profile update attempt', {
             targetUserId: userId,
