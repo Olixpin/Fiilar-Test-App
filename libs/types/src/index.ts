@@ -187,6 +187,18 @@ export interface Listing {
   favoriteCount?: number;     // How many users favorited this
   trendingScore?: number;     // Calculated trending score (updated periodically)
   lastBookedAt?: string;      // ISO timestamp of last booking
+
+  // Physical Attributes
+  bedrooms?: number;
+  bathrooms?: number;
+  size?: number; // in sq meters or sq ft
+
+  // Access & Instructions
+  accessInfo?: string;
+
+  // Timestamps
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Booking {

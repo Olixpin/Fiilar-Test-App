@@ -56,14 +56,31 @@ export const getListingById = (id: string): Listing | undefined => {
 };
 
 /**
+ * Get raw listings from localStorage without transformations
+ * Used internally for save operations to avoid baking in defaults
+ */
+const getRawListings = (): Listing[] => {
+    const l = localStorage.getItem(STORAGE_KEYS.LISTINGS);
+    return safeJSONParse(l, []);
+};
+
+/**
  * Save a listing (create or update)
  * SECURITY: For updates, validates that the current user owns the listing or is an admin
  * For new listings, validates that user is a host
  */
 export const saveListing = (listing: Listing): { success: boolean; error?: string } => {
-    const listings = getListings();
-    const idx = listings.findIndex(l => l.id === listing.id);
+    // Use raw listings to avoid baking in transformed defaults
+    const rawListings = getRawListings();
+    const idx = rawListings.findIndex(l => l.id === listing.id);
     const isUpdate = idx >= 0;
+    
+    console.log('💾 saveListing called:', {
+        listingId: listing.id,
+        isUpdate,
+        imageCount: listing.images?.length || 0,
+        title: listing.title
+    });
 
     if (isUpdate) {
         // SECURITY CHECK: Verify user is authorized to modify this listing
@@ -75,7 +92,7 @@ export const saveListing = (listing: Listing): { success: boolean; error?: strin
             });
             return { success: false, error: authCheck.error };
         }
-        listings[idx] = listing;
+        rawListings[idx] = listing;
     } else {
         // For new listings, verify user is a host or admin
         const currentUser = getAuthenticatedUser();
@@ -116,11 +133,27 @@ export const saveListing = (listing: Listing): { success: boolean; error?: strin
             return { success: false, error: 'Cannot create listing for another user' };
         }
 
-        listings.push(listing);
+        rawListings.push(listing);
     }
 
     try {
-        localStorage.setItem(STORAGE_KEYS.LISTINGS, JSON.stringify(listings));
+        localStorage.setItem(STORAGE_KEYS.LISTINGS, JSON.stringify(rawListings));
+        console.log('✅ Listing saved to localStorage successfully:', listing.id);
+        
+        // Verify the save worked by reading it back
+        const verifyListings = getRawListings();
+        const savedListing = verifyListings.find(l => l.id === listing.id);
+        if (savedListing) {
+            console.log('✅ Verified listing in localStorage:', {
+                id: savedListing.id,
+                title: savedListing.title,
+                imageCount: savedListing.images?.length || 0,
+                firstImage: savedListing.images?.[0]?.substring(0, 50) + '...'
+            });
+        } else {
+            console.error('❌ Listing not found in localStorage after save!');
+        }
+        
         return { success: true };
     } catch (error) {
         if (error instanceof DOMException && error.name === 'QuotaExceededError') {
@@ -128,7 +161,7 @@ export const saveListing = (listing: Listing): { success: boolean; error?: strin
             // Try to clean up and retry
             cleanupStorageSpace();
             try {
-                localStorage.setItem(STORAGE_KEYS.LISTINGS, JSON.stringify(listings));
+                localStorage.setItem(STORAGE_KEYS.LISTINGS, JSON.stringify(rawListings));
                 return { success: true };
             } catch {
                 return { success: false, error: 'Storage quota exceeded. Please clear some browser data or remove old listings.' };

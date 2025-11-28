@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useToast } from '@fiilar/ui';
 import { Listing, ListingStatus, SpaceType, BookingType, ListingAddOn, CancellationPolicy, User, Booking, PricingModel } from '@fiilar/types';
 import { saveListing } from '@fiilar/storage';
-import { parseListingDescription } from '../../../services/geminiService';
 
 /**
  * Safely saves data to localStorage with error handling for quota exceeded
@@ -10,39 +9,49 @@ import { parseListingDescription } from '../../../services/geminiService';
  */
 const safeLocalStorageSave = (key: string, data: Partial<Listing> & { step?: number; savedAt?: string }): boolean => {
     try {
-        // Create a lightweight version without images (they're too large for localStorage)
-        const lightData = {
-            ...data,
-            // Store image count instead of actual images to indicate they exist
-            images: undefined,
-            imageCount: data.images?.length || 0,
-            // Also exclude proof of address document (can be large base64)
-            proofOfAddress: data.proofOfAddress ? '[document_uploaded]' : undefined,
-        };
-        
-        localStorage.setItem(key, JSON.stringify(lightData));
+        // First, try to save the FULL data including images
+        localStorage.setItem(key, JSON.stringify(data));
         return true;
     } catch (error) {
+        // If quota exceeded, try to save without images
         if (error instanceof DOMException && error.name === 'QuotaExceededError') {
-            console.warn('localStorage quota exceeded, attempting cleanup...');
-            // Try to clean up old drafts
-            cleanupOldDrafts();
-            // Try once more with minimal data
+            console.warn('localStorage quota exceeded, attempting to save without images...');
+
             try {
-                const minimalData = {
-                    title: data.title,
-                    description: data.description,
-                    type: data.type,
-                    price: data.price,
-                    location: data.location,
-                    step: data.step,
-                    savedAt: data.savedAt,
+                // Create a lightweight version without images
+                const lightData = {
+                    ...data,
+                    // Store image count instead of actual images to indicate they exist
+                    images: undefined,
+                    imageCount: data.images?.length || 0,
+                    // Also exclude proof of address document (can be large base64)
+                    proofOfAddress: data.proofOfAddress ? '[document_uploaded]' : undefined,
                 };
-                localStorage.setItem(key, JSON.stringify(minimalData));
+
+                // Try to clean up old drafts first
+                cleanupOldDrafts();
+
+                localStorage.setItem(key, JSON.stringify(lightData));
                 return true;
-            } catch {
-                console.error('Failed to save draft even after cleanup');
-                return false;
+            } catch (retryError) {
+                console.error('Failed to save lightweight draft:', retryError);
+
+                // Last resort: minimal data
+                try {
+                    const minimalData = {
+                        title: data.title,
+                        description: data.description,
+                        type: data.type,
+                        price: data.price,
+                        location: data.location,
+                        step: data.step,
+                        savedAt: data.savedAt,
+                    };
+                    localStorage.setItem(key, JSON.stringify(minimalData));
+                    return true;
+                } catch {
+                    return false;
+                }
             }
         }
         console.error('Failed to save to localStorage:', error);
@@ -57,7 +66,7 @@ const cleanupOldDrafts = () => {
     const keysToRemove: string[] = [];
     const now = Date.now();
     const ONE_WEEK = 7 * 24 * 60 * 60 * 1000;
-    
+
     for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
         if (key && key.startsWith('listing_draft_')) {
@@ -74,12 +83,12 @@ const cleanupOldDrafts = () => {
             }
         }
     }
-    
+
     keysToRemove.forEach(key => {
         localStorage.removeItem(key);
         console.log(`Cleaned up old draft: ${key}`);
     });
-    
+
     // If still need more space, remove the oldest drafts
     if (keysToRemove.length === 0) {
         const drafts: { key: string; savedAt: number }[] = [];
@@ -135,7 +144,7 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
     const [showAiInput, setShowAiInput] = useState(true);
 
     // Add-On Input State
-    const [tempAddOn, setTempAddOn] = useState<{ name: string; price: string; description: string; image?: string }>({ name: '', price: '', description: '', image: '' });
+    const [tempAddOn, setTempAddOn] = useState<{ id?: string; name: string; price: string; description: string; image?: string }>({ name: '', price: '', description: '', image: '' });
     const [tempRule, setTempRule] = useState('');
     const [customSafety, setCustomSafety] = useState('');
 
@@ -161,7 +170,6 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [lastSaved, setLastSaved] = useState<Date | null>(null);
     const [draggedImageIndex, setDraggedImageIndex] = useState<number | null>(null);
-    const [showSaveToast, setShowSaveToast] = useState(false);
 
     // Confirmation Dialog States
     const [draftRestoreDialog, setDraftRestoreDialog] = useState<{
@@ -179,7 +187,27 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
         if (!user) return;
 
         if (editingListing) {
-            // Edit Mode
+            // Edit Mode - check for local draft for non-live listings
+            if (editingListing.status !== ListingStatus.LIVE) {
+                // For non-live listings, check if there's a local draft saved
+                const draftKey = `listing_draft_${user.id}_${editingListing.id}`;
+                const savedDraft = localStorage.getItem(draftKey);
+
+                if (savedDraft) {
+                    try {
+                        const draft = JSON.parse(savedDraft);
+                        // If we have unsaved local changes, ask user which version to use
+                        if (draft.savedAt) {
+                            setDraftRestoreDialog({ isOpen: true, draftData: { ...draft, isEditDraft: true, listingId: editingListing.id } });
+                            return;
+                        }
+                    } catch (e) {
+                        // Invalid draft data, ignore
+                    }
+                }
+                // Set lastSaved to indicate form is loaded (not "saving..." on load)
+                setLastSaved(new Date());
+            }
             handleEditListing(editingListing);
         } else {
             // Create Mode - Check for draft
@@ -187,40 +215,73 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
             const savedDraft = localStorage.getItem(draftKey);
 
             if (savedDraft) {
-                const draft = JSON.parse(savedDraft);
-                setDraftRestoreDialog({ isOpen: true, draftData: draft });
+                try {
+                    const draft = JSON.parse(savedDraft);
+                    setDraftRestoreDialog({ isOpen: true, draftData: draft });
+                } catch (e) {
+                    // Invalid draft data, ignore
+                    localStorage.removeItem(draftKey);
+                }
             }
         }
     }, [editingListing, user]);
 
     // Auto-save draft with debounce (saves 2 seconds after last change)
+    // Allow auto-save for: new listings OR editing draft/rejected listings (any non-live listing can be edited)
+    const shouldAutoSave = !editingListing ||
+        editingListing.status === ListingStatus.DRAFT ||
+        editingListing.status === ListingStatus.REJECTED ||
+        editingListing.status === ListingStatus.PENDING_APPROVAL ||
+        editingListing.status === ListingStatus.PENDING_KYC;
+
     useEffect(() => {
-        if (!user || editingListing) return; // Don't auto-save draft if editing existing listing
+        if (!user) return;
+        if (!shouldAutoSave) return; // Don't auto-save if editing live listing
         // Skip if listing is completely empty
         if (!newListing.title && !newListing.description && !newListing.location && (!newListing.images || newListing.images.length === 0)) return;
 
-        const draftKey = `listing_draft_${user.id}_temp`;
-        
-        // Debounced save - saves 2 seconds after the last change
-        const debounceTimer = setTimeout(() => {
-            const saved = safeLocalStorageSave(draftKey, { ...newListing, step, savedAt: new Date().toISOString() });
-            if (saved) {
+        const timeoutId = setTimeout(() => {
+            const draftKey = editingListing
+                ? `listing_draft_${user.id}_${editingListing.id}` // Use listing ID for existing drafts
+                : `listing_draft_${user.id}_temp`; // Use temp key for new listings
+            const draftData = {
+                ...newListing,
+                step,
+                savedAt: new Date().toISOString()
+            };
+            try {
+                localStorage.setItem(draftKey, JSON.stringify(draftData));
                 setLastSaved(new Date());
-                setShowSaveToast(true);
-                setTimeout(() => setShowSaveToast(false), 2000);
+            } catch (e) {
+                console.error('Auto-save failed:', e);
             }
         }, 2000);
 
-        return () => clearTimeout(debounceTimer);
-    }, [newListing, step, user, editingListing]);
+        return () => clearTimeout(timeoutId);
+    }, [newListing, step, user, shouldAutoSave, editingListing]);
+
+    // Track unsaved changes for non-auto-saved listings (e.g. LIVE)
+    const isFirstRender = React.useRef(true);
+    useEffect(() => {
+        if (isFirstRender.current) {
+            isFirstRender.current = false;
+            return;
+        }
+        // If not auto-saving, mark as unsaved (null) whenever form changes
+        if (!shouldAutoSave) {
+            setLastSaved(null);
+        }
+    }, [newListing, shouldAutoSave]);
 
     // Periodic backup save every 10 seconds (in case debounce missed something)
     useEffect(() => {
-        if (!user || editingListing) return;
+        if (!user || !shouldAutoSave) return;
         if (!newListing.title && !newListing.description && !newListing.location && (!newListing.images || newListing.images.length === 0)) return;
 
         const interval = setInterval(() => {
-            const draftKey = `listing_draft_${user.id}_temp`;
+            const draftKey = editingListing
+                ? `listing_draft_${user.id}_${editingListing.id}`
+                : `listing_draft_${user.id}_temp`;
             const saved = safeLocalStorageSave(draftKey, { ...newListing, step, savedAt: new Date().toISOString() });
             if (saved) {
                 setLastSaved(new Date());
@@ -228,60 +289,51 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
         }, 10000);
 
         return () => clearInterval(interval);
-    }, [newListing, step, user, editingListing]);
+    }, [newListing, step, user, shouldAutoSave, editingListing]);
 
 
 
     const handleEditListing = (listing: Listing) => {
-        if (!user) return;
-        if (!user.emailVerified && !user.phoneVerified) {
-            toast.showToast({ message: "Please verify your email address or phone number to edit listings.", type: "info" });
-            return;
-        }
-        setNewListing({
-            ...listing,
-            // Explicitly preserve images - this is critical for editing drafts
-            images: listing.images || [],
-            // Preserve pricing model and related fields
-            pricingModel: listing.pricingModel || PricingModel.DAILY,
-            priceUnit: listing.priceUnit || BookingType.DAILY,
-            bookingConfig: listing.bookingConfig,
-            settings: listing.settings || { allowRecurring: true, minDuration: 1, instantBook: false },
-            capacity: listing.capacity || 1,
-            includedGuests: listing.includedGuests || 1,
-            pricePerExtraGuest: listing.pricePerExtraGuest || 0,
-            cautionFee: listing.cautionFee || 0,
-            addOns: listing.addOns || [],
-            amenities: listing.amenities || [],
-            cancellationPolicy: listing.cancellationPolicy || CancellationPolicy.MODERATE,
-            houseRules: listing.houseRules || [],
-            safetyItems: listing.safetyItems || []
-        });
-
-        setShowAiInput(false);
-        setIsEditingUpload(false);
-        setStep(1);
-        setView('create');
-        return true;
+        setNewListing(listing);
+        // Initialize schedule from listing availability if possible, or keep default
+        // This is complex because availability is date-based, not weekly-based in the final object
+        // So we might just keep the default weekly schedule or try to infer it.
+        // For now, we keep the default weekly schedule state but the listing has its availability.
     };
 
     const handleAiAutoFill = async () => {
         if (!aiPrompt.trim()) return;
+
         setIsAiGenerating(true);
         try {
-            const extracted = await parseListingDescription(aiPrompt);
+            // Simulate AI generation with a timeout
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            // Mock AI response based on prompt
+            const mockResponse = {
+                title: `Charming Space near ${aiPrompt.includes('beach') ? 'the Beach' : 'City Center'}`,
+                description: `Experience the best of local living in this ${aiPrompt}. Perfectly located for exploring the area.`,
+                price: 15000,
+                location: 'Lagos, Nigeria',
+                capacity: 2,
+                tags: ['Cozy', 'Modern', 'Central'],
+                houseRules: ['No smoking', 'No parties'],
+                safetyItems: ['Smoke Alarm', 'Fire Extinguisher']
+            };
+
+            // Merge with existing state
             setNewListing(prev => ({
                 ...prev,
-                title: extracted.title || prev.title,
-                description: extracted.description || prev.description,
-                type: (extracted.type as SpaceType) || prev.type,
-                price: extracted.price || prev.price,
-                priceUnit: (extracted.priceUnit as BookingType) || prev.priceUnit,
-                location: extracted.location || prev.location,
-                capacity: extracted.capacity || prev.capacity,
-                tags: extracted.tags || prev.tags,
-                houseRules: extracted.houseRules || prev.houseRules,
-                safetyItems: extracted.safetyItems || prev.safetyItems
+                ...mockResponse,
+                // Only override if empty
+                title: prev.title || mockResponse.title,
+                description: prev.description || mockResponse.description,
+                price: prev.price || mockResponse.price,
+                location: prev.location || mockResponse.location,
+                capacity: prev.capacity || mockResponse.capacity,
+                tags: prev.tags || mockResponse.tags,
+                houseRules: prev.houseRules || mockResponse.houseRules,
+                safetyItems: prev.safetyItems || mockResponse.safetyItems
             }));
             setShowAiInput(false);
         } catch (e) {
@@ -294,17 +346,34 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
 
     const handleAddAddOn = () => {
         if (!tempAddOn.name || !tempAddOn.price) return;
-        const newAddOn: ListingAddOn = {
-            id: Math.random().toString(36).substr(2, 9),
-            name: tempAddOn.name,
-            price: parseFloat(tempAddOn.price),
-            description: tempAddOn.description,
-            image: tempAddOn.image
-        };
-        setNewListing(prev => ({
-            ...prev,
-            addOns: [...(prev.addOns || []), newAddOn]
-        }));
+
+        if (tempAddOn.id) {
+            // Edit existing
+            setNewListing(prev => ({
+                ...prev,
+                addOns: (prev.addOns || []).map(a => a.id === tempAddOn.id ? {
+                    ...a,
+                    name: tempAddOn.name,
+                    price: parseFloat(tempAddOn.price),
+                    description: tempAddOn.description,
+                    image: tempAddOn.image
+                } : a)
+            }));
+        } else {
+            // Add new
+            const newAddOn: ListingAddOn = {
+                id: Math.random().toString(36).substr(2, 9),
+                name: tempAddOn.name,
+                price: parseFloat(tempAddOn.price),
+                description: tempAddOn.description,
+                image: tempAddOn.image
+            };
+            setNewListing(prev => ({
+                ...prev,
+                addOns: [...(prev.addOns || []), newAddOn]
+            }));
+        }
+
         setTempAddOn({ name: '', price: '', description: '', image: '' });
     };
 
@@ -397,13 +466,13 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
             toast.showToast({ message: `Title cannot exceed ${VALIDATION_RULES.MAX_TITLE_LENGTH} characters.`, type: "error" });
             return;
         }
-        
+
         // Validate pricing model is selected
         if (!newListing.pricingModel) {
             toast.showToast({ message: "Please select a pricing model (Overnight, Full Day, or Hourly).", type: "info" });
             return;
         }
-        
+
         // Validate minimum price (must be greater than 0 for non-drafts)
         if (newListing.price !== undefined && newListing.price < VALIDATION_RULES.MIN_PRICE) {
             toast.showToast({ message: `Price must be at least ${VALIDATION_RULES.MIN_PRICE}.`, type: "error" });
@@ -412,7 +481,7 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
 
         // Validate caution fee - max 2x base price (industry standard for high-value properties)
         if (newListing.cautionFee && newListing.price && newListing.cautionFee > newListing.price * VALIDATION_RULES.CAUTION_FEE_MAX_RATIO) {
-            toast.showToast({ message: `Security deposit cannot exceed 2x the base price.`, type: "error" });
+            toast.showToast({ message: `Caution fee cannot exceed 2x the base price.`, type: "error" });
             return;
         }
 
@@ -442,22 +511,32 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
             try {
                 const existingId = (newListing as any).id;
                 const originalListing = listings.find(l => l.id === existingId);
-                const isReadyForApproval = user.kycVerified && newListing.proofOfAddress && newListing.price;
                 const hasMinimumImages = (newListing.images?.length || 0) >= 5;
+                const hasRequiredFields = newListing.proofOfAddress && newListing.price && newListing.title;
+                const isHostVerified = user.kycVerified && user.kycStatus === 'verified';
                 const listingId = existingId || Math.random().toString(36).substr(2, 9);
 
                 let finalStatus = ListingStatus.DRAFT;
                 let finalRejectionReason = newListing.rejectionReason;
 
-                if (!hasMinimumImages) {
+                // Determine listing status based on completion and verification
+                if (!hasMinimumImages || !hasRequiredFields) {
+                    // Incomplete listing - stays as draft
                     finalStatus = ListingStatus.DRAFT;
                 } else if (originalListing && originalListing.status === ListingStatus.LIVE) {
+                    // Already approved listing being edited - stays live
                     finalStatus = ListingStatus.LIVE;
                     finalRejectionReason = undefined;
+                } else if (!isHostVerified) {
+                    // Host not verified yet - pending KYC
+                    finalStatus = ListingStatus.PENDING_KYC;
                 } else if (originalListing && originalListing.status === ListingStatus.REJECTED) {
-                    finalStatus = isReadyForApproval ? ListingStatus.LIVE : ListingStatus.DRAFT;
-                } else if (isReadyForApproval) {
-                    finalStatus = ListingStatus.LIVE;
+                    // Previously rejected listing being resubmitted - needs re-approval
+                    finalStatus = ListingStatus.PENDING_APPROVAL;
+                    finalRejectionReason = undefined; // Clear old rejection reason
+                } else {
+                    // Complete listing from verified host - pending admin approval
+                    finalStatus = ListingStatus.PENDING_APPROVAL;
                 }
 
                 let finalAvailability = newListing.availability;
@@ -498,10 +577,20 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
                     amenities: newListing.amenities || [],
                     cancellationPolicy: newListing.cancellationPolicy || CancellationPolicy.MODERATE,
                     houseRules: newListing.houseRules || [],
-                    safetyItems: newListing.safetyItems || []
+
+                    safetyItems: newListing.safetyItems || [],
+                    createdAt: newListing.createdAt || new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
                 };
 
-                saveListing(listing);
+                const saveResult = saveListing(listing);
+                if (!saveResult.success) {
+                    console.error('Failed to save listing:', saveResult.error);
+                    toast.showToast({ message: saveResult.error || 'Failed to save listing', type: 'error' });
+                    setIsSubmitting(false);
+                    return;
+                }
+
                 const isNew = !existingId || !listings.find(l => l.id === existingId);
                 if (isNew) {
                     if (typeof onCreateListing === 'function') onCreateListing(listing);
@@ -519,12 +608,17 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
                     // Ignore
                 }
 
-                // Show success message
-                const statusMessage = finalStatus === ListingStatus.DRAFT
-                    ? 'Draft saved successfully!'
-                    : (finalStatus as unknown as string) === ListingStatus.PENDING_APPROVAL
-                        ? 'Listing submitted for approval!'
-                        : isNew ? 'Listing published successfully!' : 'Listing updated successfully!';
+                // Show success message based on status
+                let statusMessage = 'Listing saved!';
+                if (finalStatus === ListingStatus.DRAFT) {
+                    statusMessage = 'Draft saved successfully!';
+                } else if (finalStatus === ListingStatus.PENDING_KYC) {
+                    statusMessage = 'Listing saved! Complete identity verification to submit for approval.';
+                } else if (finalStatus === ListingStatus.PENDING_APPROVAL) {
+                    statusMessage = 'Listing submitted for admin approval! You\'ll be notified once reviewed.';
+                } else if (finalStatus === ListingStatus.LIVE) {
+                    statusMessage = isNew ? 'Listing published successfully!' : 'Listing updated successfully!';
+                }
                 toast.showToast({ message: statusMessage, type: "info" });
 
                 // Reset form and return to listings view
@@ -550,6 +644,18 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
                 });
                 setStep(1);
                 setLastSaved(null);
+
+                // Clear local draft after successful save
+                if (user) {
+                    const tempDraftKey = `listing_draft_${user.id}_temp`;
+                    localStorage.removeItem(tempDraftKey);
+                    // Also clear listing-specific draft if editing
+                    if (existingId) {
+                        const listingDraftKey = `listing_draft_${user.id}_${existingId}`;
+                        localStorage.removeItem(listingDraftKey);
+                    }
+                }
+
                 setView('listings'); // Return to listings view instead of staying in wizard
                 return true; // Signal success
             } catch (error) {
@@ -561,6 +667,112 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
         }, 1500);
     };
 
+    const handleSaveAndExit = async () => {
+        if (!user) return;
+
+        // Don't save if completely empty
+        if (!newListing.title && !newListing.description && !newListing.location && (!newListing.images || newListing.images.length === 0)) {
+            setView('listings');
+            return;
+        }
+
+        setIsSubmitting(true);
+
+        try {
+            const existingId = (newListing as any).id;
+            const listingId = existingId || Math.random().toString(36).substr(2, 9);
+
+            // Determine status - if it's already live/pending, keep it, otherwise DRAFT
+            let status = ListingStatus.DRAFT;
+            if (existingId) {
+                const original = listings.find(l => l.id === existingId);
+                if (original) {
+                    status = original.status;
+                }
+            }
+
+            let finalAvailability = newListing.availability;
+            if (!finalAvailability || Object.keys(finalAvailability).length === 0) {
+                finalAvailability = generateAvailabilityMap(weeklySchedule);
+            }
+
+            const listing: Listing = {
+                id: listingId,
+                hostId: user.id,
+                title: newListing.title || 'Untitled Draft',
+                description: newListing.description || '',
+                type: newListing.type || SpaceType.APARTMENT,
+                price: newListing.price || 0,
+                priceUnit: newListing.priceUnit || BookingType.DAILY,
+                pricingModel: newListing.pricingModel || PricingModel.DAILY,
+                bookingConfig: newListing.bookingConfig,
+                location: newListing.location || 'No Location',
+                address: newListing.address,
+                status: status,
+                images: newListing.images || [],
+                tags: newListing.tags || [],
+                amenities: newListing.amenities || [],
+                houseRules: newListing.houseRules || [],
+                safetyItems: newListing.safetyItems || [],
+                capacity: newListing.capacity || 1,
+                includedGuests: newListing.includedGuests || 1,
+                pricePerExtraGuest: newListing.pricePerExtraGuest || 0,
+                cautionFee: newListing.cautionFee || 0,
+                bedrooms: newListing.bedrooms || 1,
+                bathrooms: newListing.bathrooms || 1,
+                size: newListing.size || 0,
+                availability: finalAvailability,
+                rating: (newListing as any).rating || 0,
+                reviewCount: (newListing as any).reviewCount || 0,
+                createdAt: (newListing as any).createdAt || new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                addOns: newListing.addOns || [],
+                proofOfAddress: newListing.proofOfAddress,
+                rejectionReason: newListing.rejectionReason,
+                accessInfo: newListing.accessInfo,
+            };
+
+            // Save to backend
+            const result = saveListing(listing);
+
+            if (result.success) {
+                // Update parent state only if save succeeded
+                if (existingId && onUpdateListing) {
+                    onUpdateListing(listing);
+                } else if (!existingId && onCreateListing) {
+                    onCreateListing(listing);
+                }
+
+                // Clear local storage draft
+                try {
+                    const draftKey = `listing_draft_${user.id}_${existingId || 'temp'}`;
+                    localStorage.removeItem(draftKey);
+                    // Also clear the step
+                    localStorage.removeItem(`${draftKey}_step`);
+                } catch (e) {
+                    console.error('Failed to clear local draft', e);
+                }
+
+                toast.showToast({
+                    message: editingListing?.status === ListingStatus.LIVE ? "Changes saved successfully" : "Draft saved successfully",
+                    type: "success"
+                });
+                setView('listings');
+            } else {
+                console.error('Failed to save listing:', result.error);
+                toast.showToast({
+                    message: `Failed to save ${editingListing?.status === ListingStatus.LIVE ? 'changes' : 'draft'}: ${result.error}`,
+                    type: "error"
+                });
+            }
+        } catch (error) {
+            console.error('Failed to save draft:', error);
+            toast.showToast({ message: "Failed to save draft", type: "error" });
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     const MAX_IMAGE_SIZE_MB = 10;
     const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024;
 
@@ -570,22 +782,22 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
             Array.from(files).forEach((file: File) => {
                 // Validate image size
                 if (file.size > MAX_IMAGE_SIZE_BYTES) {
-                    toast.showToast({ 
-                        message: `Image "${file.name}" exceeds ${MAX_IMAGE_SIZE_MB}MB limit. Please use a smaller image.`, 
-                        type: "info" 
+                    toast.showToast({
+                        message: `Image "${file.name}" exceeds ${MAX_IMAGE_SIZE_MB}MB limit. Please use a smaller image.`,
+                        type: "info"
                     });
                     return;
                 }
-                
+
                 // Validate image type
                 if (!file.type.startsWith('image/')) {
-                    toast.showToast({ 
-                        message: `File "${file.name}" is not a valid image.`, 
-                        type: "info" 
+                    toast.showToast({
+                        message: `File "${file.name}" is not a valid image.`,
+                        type: "info"
                     });
                     return;
                 }
-                
+
                 const reader = new FileReader();
                 reader.onloadend = () => {
                     setNewListing(prev => ({
@@ -725,6 +937,11 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
                 images: draftRestoreDialog.draftData.images || [],
                 settings: draftRestoreDialog.draftData.settings || { allowRecurring: true, minDuration: 1, instantBook: false },
             };
+            // Remove internal flags before setting
+            delete restoredData.isEditDraft;
+            delete restoredData.listingId;
+            delete restoredData.savedAt;
+            delete restoredData.step;
             setNewListing(restoredData);
             setStep(draftRestoreDialog.draftData.step || 1);
             setShowAiInput(false);
@@ -733,9 +950,17 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
     };
 
     const handleDiscardDraft = () => {
-        if (user) {
-            const draftKey = `listing_draft_${user.id}_temp`;
+        if (user && draftRestoreDialog.draftData) {
+            // Clear the correct draft key based on whether we're editing or creating
+            const draftKey = draftRestoreDialog.draftData.isEditDraft && draftRestoreDialog.draftData.listingId
+                ? `listing_draft_${user.id}_${draftRestoreDialog.draftData.listingId}`
+                : `listing_draft_${user.id}_temp`;
             localStorage.removeItem(draftKey);
+
+            // If discarding while editing a draft, load from the server data
+            if (draftRestoreDialog.draftData.isEditDraft && editingListing) {
+                handleEditListing(editingListing);
+            }
         }
         setDraftRestoreDialog({ isOpen: false, draftData: null });
     };
@@ -770,7 +995,6 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
         isSubmitting,
         lastSaved,
         draggedImageIndex,
-        showSaveToast,
 
         handleEditListing,
         handleAiAutoFill,
@@ -781,6 +1005,7 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
         toggleSafetyItem,
         handleAddCustomSafety,
         handleCreateListing,
+        handleSaveAndExit,
         handleImageUpload,
         handleImageDragStart,
         handleImageDragOver,

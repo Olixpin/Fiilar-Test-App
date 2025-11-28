@@ -1,5 +1,5 @@
 import React from 'react';
-import { Listing, User, Booking } from '@fiilar/types';
+import { Listing, User, Booking, ListingStatus } from '@fiilar/types';
 import { Button, ConfirmDialog } from '@fiilar/ui';
 import { Eye, X } from 'lucide-react';
 import ListingBasicInfo from './CreateListingWizard/ListingBasicInfo';
@@ -32,13 +32,14 @@ const CreateListingWizard: React.FC<CreateListingWizardProps> = ({
         tempRule, setTempRule, handleAddRule,
         customSafety, setCustomSafety, handleAddCustomSafety, toggleSafetyItem,
         handleImageUpload, handleImageDragStart, handleImageDragOver, handleImageDragEnd, removeImage,
-        handleProofUpload, availTab, setAvailTab, weeklySchedule, toggleDaySchedule, updateDayTime, applyWeeklySchedule,
+        handleProofUpload, weeklySchedule, toggleDaySchedule, updateDayTime, applyWeeklySchedule,
         currentMonth, setCurrentMonth, getDaysInMonth, handleDateClick, toggleHourOverride,
         isSubmitting, handleCreateListing, lastSaved,
         formatDate,
         selectedCalendarDate, setSelectedCalendarDate, draggedImageIndex,
         draftRestoreDialog, handleRestoreDraft, handleDiscardDraft,
-        blockDateDialog, handleConfirmBlockDate, handleCancelBlockDate
+        blockDateDialog, handleConfirmBlockDate, handleCancelBlockDate,
+        handleSaveAndExit
     } = useListingForm(user, listings, activeBookings, editingListing, refreshData, setView, onCreateListing, onUpdateListing);
 
     return (
@@ -46,30 +47,47 @@ const CreateListingWizard: React.FC<CreateListingWizardProps> = ({
             {/* Left: Form Steps */}
             <div className="flex-1 overflow-y-auto pr-2 pb-32 scrollbar-hide">
                 <div className="mb-8">
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setView('listings')}
-                        className="mb-6 pl-0 hover:bg-white/50 text-gray-500 hover:text-gray-900 transition-all duration-300"
-                        leftIcon={<span className="text-lg">←</span>}
-                    >
-                        Back to listings
-                    </Button>
-
-                    <div className="flex justify-between items-end mb-4">
+                    <div className="flex justify-between items-start mb-4">
                         <div>
+                            <div className="flex items-center gap-3 mb-2">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setView('listings')}
+                                    className="pl-0 hover:bg-white/50 text-gray-500 hover:text-gray-900 transition-all duration-300"
+                                    leftIcon={<span className="text-lg">←</span>}
+                                >
+                                    Back
+                                </Button>
+                                <div className="h-4 w-px bg-gray-300"></div>
+                                <span className="text-sm font-medium text-gray-500">
+                                    {lastSaved
+                                        ? (editingListing?.status === ListingStatus.LIVE ? 'Changes saved' : 'Draft saved')
+                                        : 'Unsaved changes'}
+                                </span>
+                            </div>
                             <h2 className="text-3xl font-bold text-gray-900 tracking-tight">
                                 {(newListing as any).id ? 'Edit Listing' : 'Create New Listing'}
                             </h2>
                             <p className="text-gray-500 mt-1">Step {step} of 5</p>
                         </div>
-                        <div className="text-right hidden sm:block">
-                            <span className="text-xs font-bold text-brand-600 bg-brand-50 px-3 py-1 rounded-full border border-brand-100">
-                                {step === 1 ? 'Basic Info' :
-                                    step === 2 ? 'Photos' :
-                                        step === 3 ? 'Availability' :
-                                            step === 4 ? 'Verification' : 'Review'}
-                            </span>
+                        <div className="flex items-center gap-3">
+                            <Button
+                                variant="secondary"
+                                size="sm"
+                                onClick={handleSaveAndExit}
+                                className="hidden sm:flex"
+                                isLoading={isSubmitting}
+                            >
+                                Save & Exit
+                            </Button>
+                            <button
+                                onClick={() => setView('listings')}
+                                className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500 hover:text-gray-900"
+                                title="Close Wizard"
+                            >
+                                <X size={24} />
+                            </button>
                         </div>
                     </div>
 
@@ -101,6 +119,7 @@ const CreateListingWizard: React.FC<CreateListingWizardProps> = ({
                                 handleAiAutoFill={handleAiAutoFill}
                                 showAiInput={showAiInput}
                                 setShowAiInput={setShowAiInput}
+                                activeBookings={activeBookings}
                             />
                         )}
 
@@ -122,8 +141,6 @@ const CreateListingWizard: React.FC<CreateListingWizardProps> = ({
                                 newListing={newListing}
                                 setNewListing={setNewListing}
                                 setStep={setStep}
-                                availTab={availTab}
-                                setAvailTab={setAvailTab}
                                 weeklySchedule={weeklySchedule}
                                 toggleDaySchedule={toggleDaySchedule}
                                 updateDayTime={updateDayTime}
@@ -215,6 +232,7 @@ const CreateListingWizard: React.FC<CreateListingWizardProps> = ({
                                 <button
                                     onClick={() => setShowMobilePreview(false)}
                                     className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                                    aria-label="Close preview"
                                 >
                                     <X size={20} className="text-gray-500" />
                                 </button>

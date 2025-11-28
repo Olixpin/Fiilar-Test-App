@@ -132,7 +132,7 @@ const HostPhoneCollectionModal: React.FC<HostPhoneCollectionModalProps> = ({ use
                             <Phone className="text-brand-600" size={24} />
                         </div>
                         <h2 className="text-3xl font-bold text-gray-900 tracking-tight mb-3">Add your phone number</h2>
-                        <p className="text-lg text-gray-500 leading-relaxed">To ensure safety and trust, we need to verify your phone number before you can publish a listing.</p>
+                        <p className="text-lg text-gray-500 leading-relaxed">To ensure safety and trust, we need to verify your phone number before you can submit a listing for approval.</p>
                     </div>
 
                     <Form {...form}>

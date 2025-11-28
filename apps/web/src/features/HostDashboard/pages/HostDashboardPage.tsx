@@ -48,12 +48,17 @@ const HostDashboardPage: React.FC<HostDashboardPageProps> = ({ user, listings, r
 
     // Derived view state from URL
     const viewParam = searchParams.get('view');
+    const listingIdParam = searchParams.get('listingId');
     const view: View = (viewParam && ['overview', 'listings', 'create', 'edit', 'calendar', 'settings', 'bookings', 'earnings', 'payouts', 'messages', 'notifications', 'verify'].includes(viewParam))
         ? (viewParam as View)
         : 'overview';
 
-    const setView = (newView: View) => {
-        setSearchParams({ view: newView });
+    const setView = (newView: View, listingId?: string) => {
+        if (listingId) {
+            setSearchParams({ view: newView, listingId });
+        } else {
+            setSearchParams({ view: newView });
+        }
     };
 
     // Filter listings to only show those belonging to the current user
@@ -92,8 +97,24 @@ const HostDashboardPage: React.FC<HostDashboardPageProps> = ({ user, listings, r
         };
     }, []);
 
-    // Editing State
-    const [editingListing, setEditingListing] = useState<Listing | null>(null);
+    // Editing State - restore from URL if listingId is present
+    const [editingListing, setEditingListing] = useState<Listing | null>(() => {
+        if (listingIdParam && listings.length > 0) {
+            return listings.find(l => l.id === listingIdParam) || null;
+        }
+        return null;
+    });
+
+    // Restore editing listing when listings load (for page refresh)
+    useEffect(() => {
+        if (listingIdParam && !editingListing && listings.length > 0) {
+            const listing = listings.find(l => l.id === listingIdParam);
+            if (listing) {
+                setEditingListing(listing);
+            }
+        }
+    }, [listingIdParam, listings, editingListing]);
+
     const [unreadNotifications, setUnreadNotifications] = useState(0);
 
     // Poll for notifications
@@ -117,6 +138,40 @@ const HostDashboardPage: React.FC<HostDashboardPageProps> = ({ user, listings, r
         handleAcceptBooking, handleRejectBooking, handleReleaseFunds, handleVerifyGuest,
         handleAllowModification
     } = useHostBookings(user, hostListings, refreshData);
+
+    // Merge local drafts into listings for display
+    // This ensures the dashboard shows the latest "work in progress" images/titles
+    // Merge local drafts into listings for display
+    // This ensures the dashboard shows the latest "work in progress" images/titles
+    const mergedListings = React.useMemo(() => {
+        return hostListings.map(listing => {
+            try {
+                const draftKey = `listing_draft_${user.id}_${listing.id}`;
+                const savedDraft = localStorage.getItem(draftKey);
+                if (savedDraft) {
+                    const draft = JSON.parse(savedDraft);
+                    // Merge draft data if it exists
+                    // We prioritize draft data for editable fields
+                    return {
+                        ...listing,
+                        title: draft.title || listing.title,
+                        description: draft.description || listing.description,
+                        // Use draft images if they exist, otherwise keep original
+                        images: (draft.images && draft.images.length > 0) ? draft.images : listing.images,
+                        price: draft.price || listing.price,
+                        location: draft.location || listing.location,
+                        amenities: draft.amenities || listing.amenities,
+                        houseRules: draft.houseRules || listing.houseRules,
+                        safetyItems: draft.safetyItems || listing.safetyItems,
+                        // Keep original status and id
+                    };
+                }
+            } catch (e) {
+                console.error('Failed to load draft for listing', listing.id, e);
+            }
+            return listing;
+        });
+    }, [hostListings, user.id, view]);
 
     const {
         bankDetails, setBankDetails, isVerifyingBank, hostTransactions,
@@ -152,7 +207,11 @@ const HostDashboardPage: React.FC<HostDashboardPageProps> = ({ user, listings, r
 
     const handleEditListing = (listing: Listing) => {
         setEditingListing(listing);
-        setView('create');
+        setView('create', listing.id); // Include listing ID in URL for refresh persistence
+    };
+
+    const handlePreviewListing = (id: string) => {
+        window.open(`/listing/${id}`, '_blank');
     };
 
     return (
@@ -348,7 +407,7 @@ const HostDashboardPage: React.FC<HostDashboardPageProps> = ({ user, listings, r
                                     </>
                                 ) : (
                                     <>
-                                        <span className="font-bold block sm:inline">Account Verification Needed:</span> Verify your identity to publish listings.
+                                        <span className="font-bold block sm:inline">Account Verification Needed:</span> Verify your identity to submit listings for approval.
                                     </>
                                 )}
                             </div>
@@ -366,113 +425,116 @@ const HostDashboardPage: React.FC<HostDashboardPageProps> = ({ user, listings, r
 
                 {/* Content Area */}
                 <main className="flex-1 overflow-y-auto px-4 lg:px-8 pb-24 lg:pb-8">
-                    <div className="bg-white rounded-t-[32px] lg:rounded-3xl min-h-full shadow-xl shadow-gray-200/50 -mx-4 lg:mx-0 px-4 sm:px-6 lg:px-8 py-8 max-w-[1600px] mx-auto">
+                    <div className="lg:max-w-[1600px] lg:mx-auto">
+                        <div className="bg-white rounded-t-[32px] lg:rounded-3xl min-h-full shadow-xl shadow-gray-200/50 -mx-4 lg:mx-0 px-4 sm:px-6 lg:px-8 py-8">
 
-                        {view === 'overview' && (
-                            <HostOverview
-                                user={user}
-                                listings={hostListings}
-                                hostBookings={hostBookings}
-                                setView={setView}
-                                handleStartNewListing={handleStartNewListing}
-                                onNavigateToBooking={handleNavigateToBooking}
-                            />
-                        )}
-
-                        {view === 'listings' && (
-                            <HostListings
-                                listings={hostListings}
-                                onEdit={handleEditListing}
-                                onDelete={handleDeleteListing}
-                                onCreate={handleStartNewListing}
-                            />
-                        )}
-
-                        {view === 'create' && (
-                            <CreateListingWizard
-                                user={user}
-                                listings={hostListings}
-                                activeBookings={hostBookings}
-                                editingListing={editingListing}
-                                setView={setView}
-                                refreshData={refreshData}
-                                onCreateListing={onCreateListing}
-                                onUpdateListing={onUpdateListing}
-                            />
-                        )}
-
-                        {view === 'bookings' && (
-                            <HostBookings
-                                bookings={hostBookings}
-                                listings={hostListings}
-                                filter={bookingFilter}
-                                setFilter={setBookingFilter}
-                                view={bookingView}
-                                setView={setBookingView}
-                                onAccept={handleAcceptBooking}
-                                onReject={handleRejectBooking}
-                                onRelease={handleReleaseFunds}
-                                onVerify={handleVerifyGuest}
-                                onAllowModification={handleAllowModification}
-                            />
-                        )}
-
-                        {view === 'verify' && (
-                            <HostVerify
-                                user={user}
-                                listings={hostListings}
-                                onVerifySuccess={() => {
-                                    refreshData();
-                                }}
-                            />
-                        )}
-
-                        {view === 'earnings' && (
-                            <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
-                                <HostEarnings
-                                    hostBookings={hostBookings}
-                                    transactions={hostTransactions}
-                                    hostId={user.id}
-                                    listings={hostListings}
-                                />
-                            </div>
-                        )}
-
-                        {view === 'payouts' && (
-                            <HostFinancials
-                                user={user}
-                                bankDetails={bankDetails}
-                                hostBookings={hostBookings}
-                                hostTransactions={hostTransactions}
-                                isVerifyingBank={isVerifyingBank}
-                                onVerifyBank={handleVerifyBank}
-                                onSaveBankDetails={handleSaveBankDetails}
-                                setBankDetails={setBankDetails}
-                            />
-                        )}
-
-                        {view === 'messages' && (
-                            <HostMessages
-                                user={user}
-                                hostBookings={hostBookings}
-                            />
-                        )}
-
-                        {view === 'settings' && (
-                            <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
-                                <HostSettings
+                            {view === 'overview' && (
+                                <HostOverview
                                     user={user}
-                                    onUpdateUser={() => refreshData()}
+                                    listings={mergedListings}
+                                    hostBookings={hostBookings}
+                                    setView={setView}
+                                    handleStartNewListing={handleStartNewListing}
+                                    onNavigateToBooking={handleNavigateToBooking}
                                 />
-                            </div>
-                        )}
+                            )}
 
-                        {view === 'notifications' && (
-                            <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
-                                <NotificationsPage userId={user.id} />
-                            </div>
-                        )}
+                            {view === 'listings' && (
+                                <HostListings
+                                    listings={mergedListings}
+                                    onEdit={handleEditListing}
+                                    onDelete={handleDeleteListing}
+                                    onCreate={handleStartNewListing}
+                                    onPreview={handlePreviewListing}
+                                />
+                            )}
 
+                            {view === 'create' && (
+                                <CreateListingWizard
+                                    user={user}
+                                    listings={hostListings}
+                                    activeBookings={hostBookings}
+                                    editingListing={editingListing}
+                                    setView={setView}
+                                    refreshData={refreshData}
+                                    onCreateListing={onCreateListing}
+                                    onUpdateListing={onUpdateListing}
+                                />
+                            )}
+
+                            {view === 'bookings' && (
+                                <HostBookings
+                                    bookings={hostBookings}
+                                    listings={hostListings}
+                                    filter={bookingFilter}
+                                    setFilter={setBookingFilter}
+                                    view={bookingView}
+                                    setView={setBookingView}
+                                    onAccept={handleAcceptBooking}
+                                    onReject={handleRejectBooking}
+                                    onRelease={handleReleaseFunds}
+                                    onVerify={handleVerifyGuest}
+                                    onAllowModification={handleAllowModification}
+                                />
+                            )}
+
+                            {view === 'verify' && (
+                                <HostVerify
+                                    user={user}
+                                    listings={hostListings}
+                                    onVerifySuccess={() => {
+                                        refreshData();
+                                    }}
+                                />
+                            )}
+
+                            {view === 'earnings' && (
+                                <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
+                                    <HostEarnings
+                                        hostBookings={hostBookings}
+                                        transactions={hostTransactions}
+                                        hostId={user.id}
+                                        listings={hostListings}
+                                    />
+                                </div>
+                            )}
+
+                            {view === 'payouts' && (
+                                <HostFinancials
+                                    user={user}
+                                    bankDetails={bankDetails}
+                                    hostBookings={hostBookings}
+                                    hostTransactions={hostTransactions}
+                                    isVerifyingBank={isVerifyingBank}
+                                    onVerifyBank={handleVerifyBank}
+                                    onSaveBankDetails={handleSaveBankDetails}
+                                    setBankDetails={setBankDetails}
+                                />
+                            )}
+
+                            {view === 'messages' && (
+                                <HostMessages
+                                    user={user}
+                                    hostBookings={hostBookings}
+                                />
+                            )}
+
+                            {view === 'settings' && (
+                                <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
+                                    <HostSettings
+                                        user={user}
+                                        onUpdateUser={() => refreshData()}
+                                    />
+                                </div>
+                            )}
+
+                            {view === 'notifications' && (
+                                <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
+                                    <NotificationsPage userId={user.id} />
+                                </div>
+                            )}
+
+                        </div>
                     </div>
                 </main>
             </div>

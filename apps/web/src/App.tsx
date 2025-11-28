@@ -38,10 +38,47 @@ const ListingDetailsRoute: React.FC<{
   onVerify: () => void;
   onLogin: () => void;
   onRefreshUser: () => void;
-}> = ({ listings, user, onBook, onVerify, onLogin, onRefreshUser }) => {
+}> = ({ user, onBook, onVerify, onLogin, onRefreshUser }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const listing = listings.find(l => l.id === id);
+
+  // IMPORTANT: Fetch listing directly from localStorage for freshest data
+  // This ensures new tabs see the latest data, not stale React state
+  const listing = React.useMemo(() => {
+    if (!id) return undefined;
+    const baseListing = getListings().find(l => l.id === id);
+
+    // If user is host, check for local draft to show latest preview
+    if (baseListing && user && baseListing.hostId === user.id) {
+      try {
+        const draftKey = `listing_draft_${user.id}_${baseListing.id}`;
+        const savedDraft = localStorage.getItem(draftKey);
+        if (savedDraft) {
+          const draft = JSON.parse(savedDraft);
+          // Merge draft data if it exists
+          // We prioritize draft data for editable fields
+          console.log('🎨 Showing draft preview for host');
+          return {
+            ...baseListing,
+            title: draft.title || baseListing.title,
+            description: draft.description || baseListing.description,
+            // Use draft images if they exist, otherwise keep original
+            images: (draft.images && draft.images.length > 0) ? draft.images : baseListing.images,
+            price: draft.price || baseListing.price,
+            location: draft.location || baseListing.location,
+            amenities: draft.amenities || baseListing.amenities,
+            houseRules: draft.houseRules || baseListing.houseRules,
+            safetyItems: draft.safetyItems || baseListing.safetyItems,
+            // Keep original status and id
+          };
+        }
+      } catch (e) {
+        console.error('Failed to load draft for preview', e);
+      }
+    }
+
+    return baseListing;
+  }, [id, user]);
 
   if (!listing) {
     return <div>Listing not found</div>;
@@ -81,7 +118,20 @@ const App: React.FC = () => {
     initStorage();
     const storedUser = getCurrentUser();
     setUser(storedUser);
-    setListings(getListings());
+    const loadedListings = getListings();
+
+    // Debug: Log listings to trace data persistence issues
+    console.log('📋 App.tsx: Loaded listings from storage:', {
+      count: loadedListings.length,
+      userListings: loadedListings.filter(l => l.hostId === storedUser?.id).map(l => ({
+        id: l.id,
+        title: l.title,
+        imageCount: l.images?.length || 0,
+        firstImage: l.images?.[0]?.substring(0, 50)
+      }))
+    });
+
+    setListings(loadedListings);
     setAllUsers(getAllUsers());
     setLoading(false);
 
@@ -538,14 +588,13 @@ const App: React.FC = () => {
                               hideUI={showCompleteProfile}
                               onLogout={handleLogout}
                               onUpdateListing={(updated) => {
-                                const newListings = listings.map(l => l.id === updated.id ? updated : l);
-                                setListings(newListings);
-                                localStorage.setItem(STORAGE_KEYS.LISTINGS, JSON.stringify(newListings));
+                                // Just update React state - localStorage is already updated by saveListing()
+                                // DON'T write to localStorage here - it would overwrite raw data with transformed data
+                                setListings(prev => prev.map(l => l.id === updated.id ? updated : l));
                               }}
                               onCreateListing={(newListing) => {
-                                const newListings = [...listings, newListing];
-                                setListings(newListings);
-                                localStorage.setItem(STORAGE_KEYS.LISTINGS, JSON.stringify(newListings));
+                                // Just update React state - localStorage is already updated by saveListing()
+                                setListings(prev => [...prev, newListing]);
                               }}
                             />
                   } />

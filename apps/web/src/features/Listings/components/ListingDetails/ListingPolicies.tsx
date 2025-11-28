@@ -1,6 +1,6 @@
 import React from 'react';
 import { Listing, CancellationPolicy } from '@fiilar/types';
-import { ShieldCheck, Flame, Cross, AlertTriangle, Camera, Lock, CircleParking } from 'lucide-react';
+import { ShieldCheck, Flame, Cross, AlertTriangle, Camera, Lock, ParkingCircle } from 'lucide-react';
 
 interface ListingPoliciesProps {
   listing: Listing;
@@ -22,7 +22,7 @@ const getSafetyIcon = (item: string) => {
     return <Lock size={14} className="text-gray-600" />;
   }
   if (lowerItem.includes('parking') || lowerItem.includes('car')) {
-    return <CircleParking size={14} className="text-gray-500" />;
+    return <ParkingCircle size={14} className="text-gray-500" />;
   }
   if (lowerItem.includes('warning') || lowerItem.includes('hazard') || lowerItem.includes('caution')) {
     return <AlertTriangle size={14} className="text-yellow-500" />;

@@ -9,11 +9,12 @@ interface HostListingsProps {
     onEdit: (listing: Listing) => void;
     onDelete: (id: string, status: ListingStatus) => void;
     onCreate: () => void;
+    onPreview: (id: string) => void;
 }
 
 type FilterType = 'ALL' | 'LIVE' | 'PENDING' | 'OFF_MARKET';
 
-const HostListings: React.FC<HostListingsProps> = ({ listings, onEdit, onDelete, onCreate }) => {
+const HostListings: React.FC<HostListingsProps> = ({ listings, onEdit, onDelete, onCreate, onPreview }) => {
     const { locale } = useLocale();
     const [activeFilter, setActiveFilter] = useState<FilterType>('ALL');
 
@@ -23,7 +24,16 @@ const HostListings: React.FC<HostListingsProps> = ({ listings, onEdit, onDelete,
         if (activeFilter === 'PENDING') return listing.status === ListingStatus.PENDING_APPROVAL || listing.status === ListingStatus.PENDING_KYC;
         if (activeFilter === 'OFF_MARKET') return listing.status === ListingStatus.DRAFT || listing.status === ListingStatus.REJECTED;
         return true;
+    }).sort((a, b) => {
+        // Sort by createdAt descending (newest first)
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return dateB - dateA;
     });
+
+    const liveCount = listings.filter(l => l.status === ListingStatus.LIVE).length;
+    const pendingCount = listings.filter(l => l.status === ListingStatus.PENDING_APPROVAL || l.status === ListingStatus.PENDING_KYC).length;
+    const offMarketCount = listings.filter(l => l.status === ListingStatus.DRAFT || l.status === ListingStatus.REJECTED).length;
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
@@ -66,7 +76,7 @@ const HostListings: React.FC<HostListingsProps> = ({ listings, onEdit, onDelete,
                         )}
                     >
                         {activeFilter === 'LIVE' && <span className="w-2 h-2 bg-white rounded-full animate-pulse" />}
-                        Live
+                        Live ({liveCount})
                     </button>
                     <button
                         onClick={() => setActiveFilter('PENDING')}
@@ -77,7 +87,7 @@ const HostListings: React.FC<HostListingsProps> = ({ listings, onEdit, onDelete,
                                 : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-200"
                         )}
                     >
-                        Pending
+                        Pending ({pendingCount})
                     </button>
                     <button
                         onClick={() => setActiveFilter('OFF_MARKET')}
@@ -88,7 +98,7 @@ const HostListings: React.FC<HostListingsProps> = ({ listings, onEdit, onDelete,
                                 : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-200"
                         )}
                     >
-                        Off Market
+                        Off Market ({offMarketCount})
                     </button>
                 </div>
             )}
@@ -210,7 +220,7 @@ const HostListings: React.FC<HostListingsProps> = ({ listings, onEdit, onDelete,
                                         <span>Edit</span>
                                     </button>
                                     <button
-                                        onClick={() => { }} // Placeholder for preview
+                                        onClick={() => onPreview(listing.id)}
                                         className="flex-1 md:flex-none w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-blue-600 transition-colors"
                                     >
                                         <Eye size={16} />

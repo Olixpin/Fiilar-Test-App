@@ -8,10 +8,11 @@ interface ListingVerificationProps {
     setStep: (step: number) => void;
     handleProofUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
     user: User;
+    onExit?: () => void;
 }
 
 const ListingVerification: React.FC<ListingVerificationProps> = ({
-    newListing, setStep, handleProofUpload, user
+    newListing, setStep, handleProofUpload, user, onExit
 }) => {
     const addressUploaded = !!newListing.proofOfAddress;
     const identityVerified = !!user.kycVerified;
@@ -36,12 +37,12 @@ const ListingVerification: React.FC<ListingVerificationProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Identity Verification Card */}
                 <div className={`
-                    glass-card p-6 rounded-3xl border transition-all duration-300 relative overflow-hidden group
-                    ${identityVerified ? 'border-green-200 bg-green-50/30' : 'border-white/40 shadow-sm hover:shadow-md hover:border-brand-200'}
+                    glass-card p-6 rounded-3xl border transition-all duration-500 relative overflow-hidden group hover:shadow-xl
+                    ${identityVerified ? 'border-green-200 bg-green-50/30' : 'border-white/40 shadow-lg shadow-brand-900/5 hover:border-brand-300'}
                 `}>
                     <div className="flex justify-between items-start mb-6">
                         <div className="flex items-center gap-3">
-                            <div className={`p-3 rounded-2xl ${identityVerified ? 'bg-green-100 text-green-600' : 'bg-brand-50 text-brand-600'}`}>
+                            <div className={`p-3 rounded-2xl transition-colors duration-300 ${identityVerified ? 'bg-green-100 text-green-600' : 'bg-brand-50 text-brand-600 group-hover:bg-brand-100 group-hover:text-brand-700'}`}>
                                 <ShieldCheck size={24} />
                             </div>
                             <div>
@@ -62,13 +63,13 @@ const ListingVerification: React.FC<ListingVerificationProps> = ({
                                 <p className="text-xs text-green-600">Your account is fully verified</p>
                             </div>
                         ) : (
-                            <div className="w-full border-2 border-dashed border-gray-200 bg-white/50 hover:bg-brand-50/30 hover:border-brand-400 rounded-2xl p-8 text-center transition-all">
-                                <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                                    <AlertCircle size={24} className="text-gray-500" />
+                            <div className="w-full border-2 border-dashed border-gray-200 bg-white/50 hover:bg-brand-50/30 hover:border-brand-400 rounded-2xl p-8 text-center transition-all duration-300">
+                                <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform">
+                                    <AlertCircle size={24} className="text-gray-500 group-hover:text-brand-600" />
                                 </div>
-                                <p className="text-sm font-bold text-gray-700">Verification Required</p>
+                                <p className="text-sm font-bold text-gray-700 group-hover:text-brand-700">Verification Required</p>
                                 <p className="text-xs text-gray-500 mb-4">Please verify your account identity first</p>
-                                <Button variant="outline" size="sm" onClick={() => window.open('/settings/verification', '_blank')}>
+                                <Button variant="outline" size="sm" onClick={() => window.open('/settings/verification', '_blank')} className="hover:bg-white">
                                     Verify Identity
                                 </Button>
                             </div>
@@ -78,12 +79,12 @@ const ListingVerification: React.FC<ListingVerificationProps> = ({
 
                 {/* Proof of Address Card */}
                 <div className={`
-                    glass-card p-6 rounded-3xl border transition-all duration-300 relative overflow-hidden group
-                    ${addressUploaded ? 'border-green-200 bg-green-50/30' : 'border-white/40 shadow-sm hover:shadow-md hover:border-brand-200'}
+                    glass-card p-6 rounded-3xl border transition-all duration-500 relative overflow-hidden group hover:shadow-xl
+                    ${addressUploaded ? 'border-green-200 bg-green-50/30' : 'border-white/40 shadow-lg shadow-brand-900/5 hover:border-brand-300'}
                 `}>
                     <div className="flex justify-between items-start mb-6">
                         <div className="flex items-center gap-3">
-                            <div className={`p-3 rounded-2xl ${addressUploaded ? 'bg-green-100 text-green-600' : 'bg-brand-50 text-brand-600'}`}>
+                            <div className={`p-3 rounded-2xl transition-colors duration-300 ${addressUploaded ? 'bg-green-100 text-green-600' : 'bg-brand-50 text-brand-600 group-hover:bg-brand-100 group-hover:text-brand-700'}`}>
                                 <FileText size={24} />
                             </div>
                             <div>
@@ -130,7 +131,7 @@ const ListingVerification: React.FC<ListingVerificationProps> = ({
             </div>
 
             {/* Info Box */}
-            <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-4 flex gap-3 items-start">
+            <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-4 flex gap-3 items-start backdrop-blur-sm">
                 <AlertCircle className="text-blue-600 shrink-0 mt-0.5" size={20} />
                 <div>
                     <h4 className="text-sm font-bold text-blue-900">Why do we need this?</h4>
@@ -145,9 +146,9 @@ const ListingVerification: React.FC<ListingVerificationProps> = ({
             <div className="flex justify-between items-center pt-6 border-t border-white/20">
                 <Button
                     onClick={() => setStep(3)}
-                    variant="outline"
+                    variant="ghost"
                     size="lg"
-                    className="border-gray-300 hover:bg-gray-50"
+                    className="text-gray-500 hover:text-gray-900"
                 >
                     Back
                 </Button>
@@ -156,10 +157,12 @@ const ListingVerification: React.FC<ListingVerificationProps> = ({
                     disabled={!canContinue}
                     variant="primary"
                     size="lg"
-                    className="shadow-lg shadow-brand-500/20 hover:shadow-brand-500/40 transition-all hover:scale-[1.02]"
+                    className="shadow-xl shadow-brand-500/20 hover:shadow-brand-500/40 transition-all hover:scale-[1.02] relative overflow-hidden group"
                     rightIcon={<ArrowRight size={18} />}
                 >
-                    Continue to Review
+                    <span className="relative z-10">Continue to Review</span>
+                    {/* Shine effect */}
+                    <div className="absolute inset-0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent z-0"></div>
                 </Button>
             </div>
         </div>

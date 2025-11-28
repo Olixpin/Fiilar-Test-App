@@ -1,5 +1,5 @@
 import React from 'react';
-import { Listing, PricingModel, CancellationPolicy } from '@fiilar/types';
+import { Listing, PricingModel, CancellationPolicy, ListingStatus } from '@fiilar/types';
 import { useLocale } from '@fiilar/ui';
 import {
     Sparkles, CheckCircle, Clock, ImageIcon, MapPin, Users, Repeat, Shield, PackagePlus, FileText, Calendar as CalendarIcon,
@@ -18,24 +18,51 @@ const ListingLivePreview: React.FC<ListingLivePreviewProps> = ({
 }) => {
     const { locale } = useLocale();
 
+    // Track if form is dirty (has unsaved changes since last save)
+    const [isDirty, setIsDirty] = React.useState(false);
+    const prevListingRef = React.useRef(newListing);
+
+    // Detect changes to mark form as dirty
+    React.useEffect(() => {
+        const hasChanged = JSON.stringify(prevListingRef.current) !== JSON.stringify(newListing);
+        if (hasChanged) {
+            setIsDirty(true);
+            prevListingRef.current = newListing;
+        }
+    }, [newListing]);
+
+    // When lastSaved updates, form is no longer dirty
+    React.useEffect(() => {
+        if (lastSaved) {
+            setIsDirty(false);
+        }
+    }, [lastSaved]);
+
     return (
         <div className="w-full shrink-0">
             <div className="space-y-4">
                 {/* Auto-save indicator */}
                 {(newListing.title || newListing.description) && (
-                    <div className={`rounded-lg px-3 py-2 text-xs flex items-center gap-2 transition-all ${lastSaved && new Date().getTime() - lastSaved.getTime() < 5000
-                        ? 'bg-green-50 border border-green-200 text-green-700'
-                        : 'bg-gray-50 border border-gray-200 text-gray-600'
+                    <div className={`rounded-lg px-3 py-2 text-xs flex items-center gap-2 transition-all ${isDirty
+                        ? 'bg-amber-50 border border-amber-200 text-amber-700'
+                        : lastSaved
+                            ? 'bg-green-50 border border-green-200 text-green-700'
+                            : 'bg-gray-50 border border-gray-200 text-gray-600'
                         } `}>
-                        {lastSaved && new Date().getTime() - lastSaved.getTime() < 5000 ? (
+                        {isDirty ? (
+                            <>
+                                <Clock size={12} className="animate-pulse" />
+                                <span>Saving...</span>
+                            </>
+                        ) : lastSaved ? (
                             <>
                                 <CheckCircle size={12} className="animate-in fade-in" />
-                                <span>Draft saved</span>
+                                <span>{(newListing.status as any) === ListingStatus.LIVE ? 'Changes saved' : 'Draft saved'}</span>
                             </>
                         ) : (
                             <>
                                 <Clock size={12} />
-                                <span>Auto-saving...</span>
+                                <span>Draft</span>
                             </>
                         )}
                     </div>
@@ -86,10 +113,10 @@ const ListingLivePreview: React.FC<ListingLivePreviewProps> = ({
                         {newListing.pricingModel && (
                             <div className="flex items-center gap-2 mb-3">
                                 <span className={`text-xs px-2 py-1 rounded-full flex items-center gap-1 ${newListing.pricingModel === PricingModel.NIGHTLY
-                                        ? 'bg-indigo-100 text-indigo-700'
-                                        : newListing.pricingModel === PricingModel.HOURLY
-                                            ? 'bg-amber-100 text-amber-700'
-                                            : 'bg-teal-100 text-teal-700'
+                                    ? 'bg-indigo-100 text-indigo-700'
+                                    : newListing.pricingModel === PricingModel.HOURLY
+                                        ? 'bg-amber-100 text-amber-700'
+                                        : 'bg-teal-100 text-teal-700'
                                     }`}>
                                     {newListing.pricingModel === PricingModel.NIGHTLY && <><Moon size={10} /> Overnight</>}
                                     {newListing.pricingModel === PricingModel.DAILY && <><CalendarIcon size={10} /> Full Day</>}
@@ -103,7 +130,7 @@ const ListingLivePreview: React.FC<ListingLivePreviewProps> = ({
                             </div>
                         )}
 
-                        {/* Guest & Fee Info - Only show if tiered pricing (extra guest fee > 0) or has security deposit */}
+                        {/* Guest & Fee Info - Only show if tiered pricing (extra guest fee > 0) or has caution fee */}
                         {(Number(newListing.pricePerExtraGuest) > 0 || Number(newListing.cautionFee) > 0) && (
                             <div className="text-xs text-gray-600 mb-3 space-y-1">
                                 {/* Only show included guests when tiered pricing is active (has extra guest fee) */}
@@ -115,7 +142,7 @@ const ListingLivePreview: React.FC<ListingLivePreviewProps> = ({
                                 )}
                                 {Number(newListing.cautionFee) > 0 && (
                                     <p className="flex items-center gap-1">
-                                        <Shield size={10} /> {locale.currencySymbol}{newListing.cautionFee} security deposit
+                                        <Shield size={10} /> {locale.currencySymbol}{newListing.cautionFee} caution fee (refundable)
                                     </p>
                                 )}
                             </div>

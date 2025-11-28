@@ -63,7 +63,7 @@ const Home: React.FC<HomeProps> = ({
     const [showMobileFilters, setShowMobileFilters] = React.useState(false);
     const [isLoading, setIsLoading] = React.useState(true);
     const [visibleCount, setVisibleCount] = React.useState(12);
-    
+
     // Batch image loading tracking - cards reveal together per row (4 cards per batch)
     const BATCH_SIZE = 4;
     const [loadedImages, setLoadedImages] = React.useState<Set<string>>(new Set());
@@ -169,7 +169,14 @@ const Home: React.FC<HomeProps> = ({
         }
 
         // Then apply advanced filters
-        return filterListings(filtered, filters).filter(l => l.status === ListingStatus.LIVE);
+        return filterListings(filtered, filters)
+            .filter(l => l.status === ListingStatus.LIVE)
+            .sort((a, b) => {
+                // Sort by createdAt descending (newest first)
+                const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+                const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+                return dateB - dateA;
+            });
     }, [listings, activeCategory, filters]);
 
     // Handle image load callback from ListingCard
@@ -181,22 +188,22 @@ const Home: React.FC<HomeProps> = ({
     React.useEffect(() => {
         const visibleListings = displayListings.slice(0, visibleCount);
         const newReadyBatches = new Set(readyBatches);
-        
+
         for (let batchIndex = 0; batchIndex * BATCH_SIZE < visibleListings.length; batchIndex++) {
             if (readyBatches.has(batchIndex)) continue; // Already marked ready
-            
+
             const batchStart = batchIndex * BATCH_SIZE;
             const batchEnd = Math.min(batchStart + BATCH_SIZE, visibleListings.length);
             const batchListings = visibleListings.slice(batchStart, batchEnd);
-            
+
             // Check if all images in this batch are loaded
             const allLoaded = batchListings.every(l => loadedImages.has(l.id));
-            
+
             if (allLoaded) {
                 newReadyBatches.add(batchIndex);
             }
         }
-        
+
         if (newReadyBatches.size !== readyBatches.size) {
             setReadyBatches(newReadyBatches);
         }
@@ -239,18 +246,18 @@ const Home: React.FC<HomeProps> = ({
 
         // Slice the listings for display
         const visibleListings = displayListings.slice(0, visibleCount);
-        
+
         // First 8 items get priority loading (above the fold)
         const PRIORITY_COUNT = 8;
 
         visibleListings.forEach((l, index) => {
             const batchIndex = Math.floor(index / BATCH_SIZE);
             const isBatchReady = readyBatches.has(batchIndex);
-            
+
             items.push(
-                <ListingCard 
-                    key={l.id} 
-                    listing={l} 
+                <ListingCard
+                    key={l.id}
+                    listing={l}
                     priority={index < PRIORITY_COUNT}
                     index={index % BATCH_SIZE} // Index within batch for stagger
                     onImageLoad={handleImageLoad}

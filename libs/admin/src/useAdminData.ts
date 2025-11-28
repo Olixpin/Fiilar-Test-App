@@ -37,7 +37,11 @@ export const useAdminData = ({ users, listings, refreshData }: UseAdminDataProps
 
     // Derived Data - with null safety
     const unverifiedHosts = (users || []).filter(u => !u.kycVerified && u.role === 'HOST');
-    const pendingListings = (listings || []).filter(l => l.status === ListingStatus.PENDING_APPROVAL);
+    const pendingListings = (listings || []).filter(l => l.status === ListingStatus.PENDING_APPROVAL).sort((a, b) => {
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return dateB - dateA;
+    });
     const openDisputes = (bookings || []).filter(b => b.disputeStatus === 'OPEN');
 
     // Load financial data when financials or escrow tab is active

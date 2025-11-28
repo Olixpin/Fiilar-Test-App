@@ -1,7 +1,7 @@
 import React from 'react';
 import { Listing, CancellationPolicy, PricingModel, NightlyConfig, DailyConfig, HourlyConfig } from '@fiilar/types';
 import { Button, useLocale } from '@fiilar/ui';
-import { X, Plus, FileText, PackagePlus, Settings, Repeat, Zap, Shield, Image, Clock } from 'lucide-react';
+import { X, Plus, FileText, PackagePlus, Settings, Repeat, Zap, Shield, Clock } from 'lucide-react';
 
 const SAFETY_OPTIONS = ['Smoke Alarm', 'Carbon Monoxide Alarm', 'Fire Extinguisher', 'First Aid Kit', 'Emergency Exit'];
 
@@ -22,8 +22,8 @@ interface RulesTabProps {
     tempRule: string;
     setTempRule: (rule: string) => void;
     handleAddRule: () => void;
-    tempAddOn: { name: string; price: string; description: string; image?: string };
-    setTempAddOn: React.Dispatch<React.SetStateAction<{ name: string; price: string; description: string; image?: string }>>;
+    tempAddOn: { id?: string; name: string; price: string; description: string; image?: string };
+    setTempAddOn: React.Dispatch<React.SetStateAction<{ id?: string; name: string; price: string; description: string; image?: string }>>;
     handleAddAddOn: () => void;
     handleRemoveAddOn: (id: string) => void;
     customSafety: string;
@@ -73,29 +73,24 @@ const RulesTab: React.FC<RulesTabProps> = ({
                                     : "Guests can only book single sessions."}
                             </p>
                         </div>
-                        <button
-                            onClick={() => setNewListing({
-                                ...newListing,
-                                settings: {
-                                    ...newListing.settings,
-                                    allowRecurring: !newListing.settings?.allowRecurring,
-                                    minDuration: newListing.settings?.minDuration || 1,
-                                    instantBook: newListing.settings?.instantBook || false
-                                }
-                            })}
-                            className={`
-                                relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none
-                                ${newListing.settings?.allowRecurring ? 'bg-brand-600' : 'bg-gray-200'}
-                            `}
-                            title="Toggle recurring bookings"
-                        >
-                            <span
-                                className={`
-                                    inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm
-                                    ${newListing.settings?.allowRecurring ? 'translate-x-6' : 'translate-x-1'}
-                                `}
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                                type="checkbox"
+                                className="sr-only peer"
+                                checked={newListing.settings?.allowRecurring}
+                                onChange={() => setNewListing({
+                                    ...newListing,
+                                    settings: {
+                                        ...newListing.settings,
+                                        allowRecurring: !newListing.settings?.allowRecurring,
+                                        minDuration: newListing.settings?.minDuration || 1,
+                                        instantBook: newListing.settings?.instantBook || false
+                                    }
+                                })}
+                                title="Toggle recurring bookings"
                             />
-                        </button>
+                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-brand-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-500 shadow-inner"></div>
+                        </label>
                     </div>
 
                     {/* Instant Book Toggle */}
@@ -108,29 +103,24 @@ const RulesTab: React.FC<RulesTabProps> = ({
                                 Allow guests to book without waiting for your approval.
                             </p>
                         </div>
-                        <button
-                            onClick={() => setNewListing({
-                                ...newListing,
-                                settings: {
-                                    ...newListing.settings,
-                                    instantBook: !newListing.settings?.instantBook,
-                                    allowRecurring: newListing.settings?.allowRecurring || false,
-                                    minDuration: newListing.settings?.minDuration || 1
-                                }
-                            })}
-                            className={`
-                                relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none
-                                ${newListing.settings?.instantBook ? 'bg-brand-600' : 'bg-gray-200'}
-                            `}
-                            title="Toggle instant book"
-                        >
-                            <span
-                                className={`
-                                    inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm
-                                    ${newListing.settings?.instantBook ? 'translate-x-6' : 'translate-x-1'}
-                                `}
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                                type="checkbox"
+                                className="sr-only peer"
+                                checked={newListing.settings?.instantBook}
+                                onChange={() => setNewListing({
+                                    ...newListing,
+                                    settings: {
+                                        ...newListing.settings,
+                                        instantBook: !newListing.settings?.instantBook,
+                                        allowRecurring: newListing.settings?.allowRecurring || false,
+                                        minDuration: newListing.settings?.minDuration || 1
+                                    }
+                                })}
+                                title="Toggle instant book"
                             />
-                        </button>
+                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-brand-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-500 shadow-inner"></div>
+                        </label>
                     </div>
 
                     {/* Minimum Duration */}
@@ -140,7 +130,7 @@ const RulesTab: React.FC<RulesTabProps> = ({
                         </label>
                         <div className="relative">
                             <select
-                                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none appearance-none bg-white transition-all hover:border-gray-300 cursor-pointer text-sm"
+                                className="w-full px-4 py-3 pr-10 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-100 focus:border-brand-300 outline-none appearance-none bg-gray-50 transition-all hover:border-gray-300 cursor-pointer text-sm"
                                 value={newListing.settings?.minDuration || 1}
                                 onChange={(e) => setNewListing({
                                     ...newListing,
@@ -155,12 +145,15 @@ const RulesTab: React.FC<RulesTabProps> = ({
                             >
                                 {newListing.pricingModel === PricingModel.HOURLY ? (
                                     <>
-                                        <option value="1">1 hour</option>
-                                        <option value="2">2 hours</option>
-                                        <option value="3">3 hours</option>
-                                        <option value="4">4 hours</option>
-                                        <option value="6">6 hours</option>
-                                        <option value="8">8 hours</option>
+                                        <option value={1}>1 hour</option>
+                                        <option value={2}>2 hours</option>
+                                        <option value={3}>3 hours</option>
+                                        <option value={4}>4 hours</option>
+                                        <option value={8}>8 hours (Full day)</option>
+                                        <option value={24}>1 day</option>
+                                        <option value={48}>2 days</option>
+                                        <option value={72}>3 days</option>
+                                        <option value={168}>1 week</option>
                                     </>
                                 ) : newListing.pricingModel === PricingModel.NIGHTLY ? (
                                     <>
@@ -208,10 +201,10 @@ const RulesTab: React.FC<RulesTabProps> = ({
                         title="Response Time"
                     >
                         <option value="" disabled>Select typical response time</option>
-                        <option value="0-15 mins">0-15 mins</option>
-                        <option value="15-30 mins">15-30 mins</option>
-                        <option value="30-60 mins">30-60 mins</option>
-                        <option value="1-2 hours">1-2 hours</option>
+                        <option value="Within 1 hour">Within 1 hour</option>
+                        <option value="Within 2 hours">Within 2 hours</option>
+                        <option value="Within 4 hours">Within 4 hours</option>
+                        <option value="Within 12 hours">Within 12 hours</option>
                         <option value="Within 24 hours">Within 24 hours</option>
                     </select>
                     <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none">
@@ -223,7 +216,7 @@ const RulesTab: React.FC<RulesTabProps> = ({
                 <p className="text-xs text-gray-500 mt-1.5">
                     {newListing.settings?.instantBook
                         ? "Let guests know how quickly you respond to messages and inquiries."
-                        : "Let guests know how quickly you respond to booking requests and messages."}
+                        : "Let guests know how quickly you respond to booking requests. Pending bookings auto-cancel after 24 hours (or 4 hours for same-day bookings) to protect guests."}
                 </p>
             </div>
 
@@ -499,14 +492,19 @@ const RulesTab: React.FC<RulesTabProps> = ({
                     <p className="text-xs text-gray-600 mt-1">Set clear expectations for your guests</p>
                 </div>
                 <div className="p-5 space-y-4">
-                    {/* Common Rules Checklist */}
+                    {/* Combined Rules Checklist */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {COMMON_RULES.map((rule) => {
+                        {[
+                            ...COMMON_RULES,
+                            ...(newListing.houseRules || [])
+                                .filter(rule => !COMMON_RULES.map(r => r.label).includes(rule))
+                                .map(rule => ({ id: rule, label: rule, icon: '✨' }))
+                        ].map((rule) => {
                             const isChecked = newListing.houseRules?.includes(rule.label) || false;
                             return (
                                 <label
                                     key={rule.id}
-                                    className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${isChecked
+                                    className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all group ${isChecked
                                         ? 'border-brand-500 bg-brand-50'
                                         : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                                         }`}
@@ -530,18 +528,34 @@ const RulesTab: React.FC<RulesTabProps> = ({
                                         className="w-4 h-4 text-brand-600 border-gray-300 rounded focus:ring-brand-500"
                                     />
                                     <span className="text-lg">{rule.icon}</span>
-                                    <span className={`text-sm ${isChecked ? 'font-medium text-gray-900' : 'text-gray-700'}`}>
+                                    <span className={`text-sm flex-1 ${isChecked ? 'font-medium text-gray-900' : 'text-gray-700'}`}>
                                         {rule.label}
                                     </span>
+                                    {/* Show delete button only for custom rules (those with the sparkle icon) */}
+                                    {rule.icon === '✨' && (
+                                        <button
+                                            onClick={(e) => {
+                                                e.preventDefault(); // Prevent toggling the checkbox
+                                                setNewListing({
+                                                    ...newListing,
+                                                    houseRules: (newListing.houseRules || []).filter(r => r !== rule.label)
+                                                });
+                                            }}
+                                            className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1"
+                                            title="Remove custom rule"
+                                        >
+                                            <X size={16} />
+                                        </button>
+                                    )}
                                 </label>
                             );
                         })}
                     </div>
 
-                    {/* Custom Rules Section */}
+                    {/* Add Custom Rule Input */}
                     <div className="pt-4 border-t border-gray-200">
                         <p className="text-xs font-medium text-gray-600 mb-3">Add custom rules:</p>
-                        <div className="flex gap-2 mb-3">
+                        <div className="flex gap-2">
                             <input
                                 type="text"
                                 className="flex-1 p-3 text-sm border-2 border-gray-200 rounded-xl outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-all"
@@ -558,30 +572,6 @@ const RulesTab: React.FC<RulesTabProps> = ({
                             >
                                 <Plus size={20} />
                             </Button>
-                        </div>
-                        {/* Custom rules list (excluding common ones) */}
-                        <div className="space-y-2">
-                            {newListing.houseRules?.filter(rule =>
-                                !COMMON_RULES.map(r => r.label).includes(rule)
-                            ).map((rule, idx) => (
-                                <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl text-sm group hover:shadow-sm transition-all border border-gray-200">
-                                    <span className="font-medium text-gray-900">{rule}</span>
-                                    <Button
-                                        onClick={() => {
-                                            setNewListing({
-                                                ...newListing,
-                                                houseRules: (newListing.houseRules || []).filter(r => r !== rule)
-                                            });
-                                        }}
-                                        variant="ghost"
-                                        size="sm"
-                                        className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all hover:scale-110 p-1 h-auto min-w-0"
-                                        title="Remove rule"
-                                    >
-                                        <X size={18} />
-                                    </Button>
-                                </div>
-                            ))}
                         </div>
                     </div>
                 </div>
@@ -600,11 +590,19 @@ const RulesTab: React.FC<RulesTabProps> = ({
                     <div className="flex flex-col gap-3 mb-4">
                         <div className="flex gap-3">
                             {/* Image Upload */}
-                            <div className="relative w-12 h-12 bg-gray-100 rounded-xl overflow-hidden border-2 border-gray-200 flex items-center justify-center shrink-0 hover:border-brand-300 transition-colors group">
+                            <div className="relative w-16 h-16 bg-gray-50 rounded-xl overflow-hidden border-2 border-dashed border-gray-300 flex flex-col items-center justify-center shrink-0 hover:border-brand-400 hover:bg-brand-50 transition-colors group cursor-pointer">
                                 {tempAddOn.image ? (
-                                    <img src={tempAddOn.image} alt="Preview" className="w-full h-full object-cover" />
+                                    <>
+                                        <img src={tempAddOn.image} alt="Preview" className="w-full h-full object-cover" />
+                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                            <span className="text-white text-xs font-medium">Change</span>
+                                        </div>
+                                    </>
                                 ) : (
-                                    <Image size={20} className="text-gray-400 group-hover:text-brand-500" />
+                                    <>
+                                        <Plus size={16} className="text-gray-400 group-hover:text-brand-500 mb-0.5" />
+                                        <span className="text-[10px] text-gray-400 group-hover:text-brand-500 font-medium">Photo</span>
+                                    </>
                                 )}
                                 <input
                                     type="file"
@@ -620,7 +618,7 @@ const RulesTab: React.FC<RulesTabProps> = ({
                                             reader.readAsDataURL(file);
                                         }
                                     }}
-                                    title="Upload image"
+                                    title="Upload image for add-on"
                                 />
                             </div>
 
@@ -647,38 +645,59 @@ const RulesTab: React.FC<RulesTabProps> = ({
                                 />
                             </div>
 
-                            {/* Add Button */}
-                            <Button
-                                onClick={handleAddAddOn}
-                                variant="primary"
-                                leftIcon={<Plus size={20} />}
-                                className="px-6"
-                            >
-                                Add
-                            </Button>
+                            {/* Add/Update Button */}
+                            <div className="flex gap-2">
+                                {tempAddOn.id && (
+                                    <Button
+                                        onClick={() => setTempAddOn({ name: '', price: '', description: '', image: '' })}
+                                        variant="ghost"
+                                        className="px-4 text-gray-500 hover:text-gray-700"
+                                    >
+                                        Cancel
+                                    </Button>
+                                )}
+                                <Button
+                                    onClick={handleAddAddOn}
+                                    variant="primary"
+                                    leftIcon={tempAddOn.id ? undefined : <Plus size={20} />}
+                                    className="px-6"
+                                >
+                                    {tempAddOn.id ? 'Update' : 'Add'}
+                                </Button>
+                            </div>
                         </div>
                     </div>
                     <div className="space-y-2">
                         {newListing.addOns?.map((addon) => (
-                            <div key={addon.id} className="flex items-center justify-between p-3.5 bg-linear-to-r from-green-50 to-emerald-50 rounded-xl text-sm group hover:shadow-sm transition-all border border-green-200">
+                            <div
+                                key={addon.id}
+                                onClick={() => setTempAddOn({ ...addon, price: addon.price.toString(), description: addon.description || '' })}
+                                className="flex items-center justify-between p-3.5 bg-white border border-gray-200 rounded-xl text-sm group hover:border-brand-300 hover:shadow-md hover:shadow-brand-500/5 transition-all cursor-pointer"
+                            >
                                 <div className="flex items-center gap-3">
                                     {addon.image && (
-                                        <img src={addon.image} alt={addon.name} className="w-10 h-10 rounded-lg object-cover border border-green-200" />
+                                        <img src={addon.image} alt={addon.name} className="w-10 h-10 rounded-lg object-cover border border-gray-100" />
                                     )}
                                     <div>
                                         <span className="font-semibold text-gray-900 block">{addon.name}</span>
-                                        <span className="text-green-700 font-bold">{locale.currencySymbol}{addon.price}</span>
+                                        <span className="text-brand-600 font-bold">{locale.currencySymbol}{addon.price}</span>
                                     </div>
                                 </div>
-                                <Button
-                                    onClick={() => handleRemoveAddOn(addon.id)}
-                                    variant="ghost"
-                                    size="sm"
-                                    className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all hover:scale-110 p-1 h-auto min-w-0"
-                                    title="Remove add-on"
-                                >
-                                    <X size={18} />
-                                </Button>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs font-medium text-brand-600 opacity-0 group-hover:opacity-100 transition-opacity">Edit</span>
+                                    <Button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleRemoveAddOn(addon.id);
+                                        }}
+                                        variant="ghost"
+                                        size="sm"
+                                        className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1 h-auto min-w-0"
+                                        title="Remove add-on"
+                                    >
+                                        <X size={18} />
+                                    </Button>
+                                </div>
                             </div>
                         ))}
                         {(!newListing.addOns || newListing.addOns.length === 0) && (

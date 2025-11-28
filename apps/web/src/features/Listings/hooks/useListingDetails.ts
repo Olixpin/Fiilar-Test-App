@@ -107,10 +107,10 @@ export const useListingDetails = ({ listing, user, onBook, onVerify, onLogin, on
         const newFavs = toggleFavorite(user.id, listing.id);
         const nowFavorite = newFavs.includes(listing.id);
         setIsFavorite(nowFavorite);
-        
+
         // Track favorite/unfavorite for analytics
         trackFavorite(listing.id, user.id, nowFavorite);
-        
+
         if (onRefreshUser) {
             onRefreshUser();
         }
@@ -220,7 +220,7 @@ export const useListingDetails = ({ listing, user, onBook, onVerify, onLogin, on
             setRecurrenceFreq(draft.recurrenceFreq);
             setRecurrenceCount(draft.recurrenceCount);
             setAgreedToTerms(draft.agreedToTerms);
-            
+
             toast.showToast({ message: 'Your previous booking progress has been restored!', type: 'success' });
         }
         setDraftRestoreDialog({ isOpen: false, draft: null });
@@ -236,23 +236,23 @@ export const useListingDetails = ({ listing, user, onBook, onVerify, onLogin, on
     // Auto-save booking draft when user makes changes
     const saveBookingDraftData = useCallback(() => {
         if (!user) return;
-        
+
         // Don't save if booking was already submitted
         if (isBookingSubmitted) return;
-        
+
         // Check if user already has an active booking for this listing
-        const existingActiveBooking = getBookings().find(b => 
-            b.userId === user.id && 
-            b.listingId === listing.id && 
+        const existingActiveBooking = getBookings().find(b =>
+            b.userId === user.id &&
+            b.listingId === listing.id &&
             (b.status === 'Pending' || b.status === 'Confirmed' || b.status === 'Started')
         );
-        
+
         // If there's an active booking, don't save draft and clean up any existing draft
         if (existingActiveBooking) {
             deleteBookingDraft(user.id, listing.id);
             return;
         }
-        
+
         // Only save if user has made some selections beyond defaults
         const hasHourlySelections = isHourly && selectedHours.length > 0;
         const hasDailySelections = !isHourly && selectedDays > 1;
@@ -260,14 +260,14 @@ export const useListingDetails = ({ listing, user, onBook, onVerify, onLogin, on
         const hasAddOns = selectedAddOns.length > 0;
         const hasRecurring = isRecurring;
         const hasAgreed = agreedToTerms;
-        
-        const hasSelections = hasHourlySelections || 
-                              hasDailySelections ||
-                              hasGuestChanges || 
-                              hasAddOns || 
-                              hasRecurring ||
-                              hasAgreed;
-        
+
+        const hasSelections = hasHourlySelections ||
+            hasDailySelections ||
+            hasGuestChanges ||
+            hasAddOns ||
+            hasRecurring ||
+            hasAgreed;
+
         if (hasSelections) {
             saveBookingDraft({
                 listingId: listing.id,
@@ -291,11 +291,11 @@ export const useListingDetails = ({ listing, user, onBook, onVerify, onLogin, on
     useEffect(() => {
         // Don't save if we haven't checked for existing draft yet or dialog is open
         if (!draftCheckedRef.current || draftRestoreDialog.isOpen) return;
-        
+
         const timeoutId = setTimeout(() => {
             saveBookingDraftData();
         }, 1000); // Debounce by 1 second
-        
+
         return () => clearTimeout(timeoutId);
     }, [saveBookingDraftData, draftRestoreDialog.isOpen]);
 
@@ -523,16 +523,16 @@ export const useListingDetails = ({ listing, user, onBook, onVerify, onLogin, on
 
     const saveDraftBooking = (silent = false) => {
         if (!user) return;
-        
+
         // Check if there's already a Reserved booking for this listing
-        const existingReserved = getBookings().find(b => 
-            b.userId === user.id && 
-            b.listingId === listing.id && 
+        const existingReserved = getBookings().find(b =>
+            b.userId === user.id &&
+            b.listingId === listing.id &&
             b.status === 'Reserved'
         );
-        
+
         const fees = calculateFees();
-        
+
         if (existingReserved) {
             // Update existing Reserved booking instead of creating new one
             const updatedBooking: Booking = {
@@ -570,7 +570,7 @@ export const useListingDetails = ({ listing, user, onBook, onVerify, onLogin, on
             };
             saveBooking(reservedBooking);
         }
-        
+
         if (!silent) {
             toast.showToast({ message: "Booking saved to Reserve List! You can complete it later from your dashboard.", type: "success" });
         }
@@ -612,6 +612,12 @@ export const useListingDetails = ({ listing, user, onBook, onVerify, onLogin, on
             onLogin();
             return;
         }
+
+        if (user.id === listing.hostId) {
+            toast.showToast({ message: "You cannot chat with yourself.", type: "info" });
+            return;
+        }
+
         const conversationId = startConversation(user.id, listing.hostId, listing.id);
         navigate(`/dashboard?tab=messages&conversationId=${conversationId}`);
     };
@@ -633,14 +639,14 @@ export const useListingDetails = ({ listing, user, onBook, onVerify, onLogin, on
                 pendingBooking.guestCount,
                 pendingBooking.selectedAddOns
             );
-            
+
             // Only show success and send notifications if bookings were actually created
             if (bookings.length === 0) {
                 toast.showToast({ message: "Booking creation failed. Please try again.", type: "error" });
                 setIsBookingSubmitted(false);
                 return;
             }
-            
+
             setConfirmedBookings(bookings);
             setShowSuccessModal(true);
             if (user) {
@@ -664,14 +670,14 @@ export const useListingDetails = ({ listing, user, onBook, onVerify, onLogin, on
                     actionRequired: true,
                     metadata: { link: '/dashboard?view=bookings' }
                 });
-                
+
                 // Clear the booking draft after successful booking
                 deleteBookingDraft(user.id, listing.id);
-                
+
                 // Also remove any Reserved booking for this listing since we now have a real booking
-                const reservedBooking = getBookings().find(b => 
-                    b.userId === user.id && 
-                    b.listingId === listing.id && 
+                const reservedBooking = getBookings().find(b =>
+                    b.userId === user.id &&
+                    b.listingId === listing.id &&
                     b.status === 'Reserved'
                 );
                 if (reservedBooking) {

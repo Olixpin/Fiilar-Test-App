@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Listing, User } from '@fiilar/types';
-import { Button, useToast } from '@fiilar/ui';
+import { Button, useToast, useLocale } from '@fiilar/ui';
 import { CheckCircle, MapPin, Shield, Loader2, PartyPopper, PackagePlus } from 'lucide-react';
 
 interface ListingReviewProps {
@@ -17,26 +17,84 @@ const ListingReview: React.FC<ListingReviewProps> = ({
     newListing, setStep, isSubmitting, handleCreateListing
 }) => {
     const { showToast } = useToast();
+    const { locale } = useLocale();
     const [agreedToTerms, setAgreedToTerms] = useState(false);
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
 
-    const handlePublish = () => {
+    const handleInitialSubmit = () => {
         if (!agreedToTerms) {
             showToast({ message: "Please agree to the terms and conditions", type: "error" });
             return;
         }
+        setShowConfirmModal(true);
+    };
+
+    const handleConfirmSubmit = () => {
+        setShowConfirmModal(false);
         handleCreateListing();
     };
 
     return (
-        <div className="space-y-8 animate-in slide-in-from-right duration-500">
+        <div className="space-y-8 animate-in slide-in-from-right duration-500 relative">
+            {/* Confirmation Modal */}
+            {showConfirmModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-3xl max-w-md w-full p-8 shadow-2xl animate-in zoom-in-95 duration-200 relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-brand-500 to-purple-600"></div>
+
+                        <div className="text-center mb-6">
+                            <div className="w-16 h-16 bg-brand-50 text-brand-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                                <PartyPopper size={32} />
+                            </div>
+                            <h3 className="text-2xl font-bold text-gray-900 mb-2">Final Confirmation</h3>
+                            <p className="text-gray-600">
+                                You are about to submit your listing for approval. Once submitted, our team will review it within 24 hours.
+                            </p>
+                        </div>
+
+                        <div className="bg-gray-50 rounded-xl p-4 mb-6 text-sm text-gray-600 space-y-2 border border-gray-100">
+                            <div className="flex justify-between">
+                                <span>Listing Title:</span>
+                                <span className="font-medium text-gray-900 truncate max-w-[200px]">{newListing.title}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span>Price:</span>
+                                <span className="font-medium text-gray-900">{locale.currencySymbol}{newListing.price} / {newListing.priceUnit}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span>Location:</span>
+                                <span className="font-medium text-gray-900 truncate max-w-[200px]">{newListing.location}</span>
+                            </div>
+                        </div>
+
+                        <div className="flex gap-3">
+                            <Button
+                                onClick={() => setShowConfirmModal(false)}
+                                variant="ghost"
+                                className="flex-1"
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                onClick={handleConfirmSubmit}
+                                variant="primary"
+                                className="flex-1 shadow-lg shadow-brand-500/20"
+                            >
+                                Confirm Submission
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Header */}
             <div className="text-center mb-8">
                 <div className="w-20 h-20 bg-gradient-to-br from-brand-500 to-purple-600 text-white rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-brand-500/20 animate-in zoom-in duration-500">
                     <CheckCircle size={40} />
                 </div>
-                <h3 className="font-bold text-3xl text-gray-900 tracking-tight">Ready to Publish?</h3>
+                <h3 className="font-bold text-3xl text-gray-900 tracking-tight">Ready to Submit?</h3>
                 <p className="text-gray-500 text-lg mt-2 max-w-lg mx-auto">
-                    Review your listing details one last time before making it live for guests to book.
+                    Review your listing details one last time before submitting for approval.
                 </p>
             </div>
 
@@ -57,7 +115,7 @@ const ListingReview: React.FC<ListingReviewProps> = ({
                                 </div>
                             )}
                             <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md px-4 py-2 rounded-full text-sm font-bold text-brand-700 shadow-lg">
-                                ${newListing.price} <span className="text-gray-500 font-normal">/ {newListing.priceUnit}</span>
+                                {locale.currencySymbol}{newListing.price} <span className="text-gray-500 font-normal">/ {newListing.priceUnit}</span>
                             </div>
                             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-6 pt-20">
                                 <h4 className="text-2xl font-bold text-white mb-1">{newListing.title}</h4>
@@ -153,7 +211,7 @@ const ListingReview: React.FC<ListingReviewProps> = ({
                     </div>
 
                     <Button
-                        onClick={handlePublish}
+                        onClick={handleInitialSubmit}
                         disabled={isSubmitting || !agreedToTerms}
                         variant="primary"
                         size="lg"
@@ -161,11 +219,11 @@ const ListingReview: React.FC<ListingReviewProps> = ({
                     >
                         {isSubmitting ? (
                             <div className="flex items-center justify-center gap-2">
-                                <Loader2 className="animate-spin" size={20} /> Publishing...
+                                <Loader2 className="animate-spin" size={20} /> Submitting...
                             </div>
                         ) : (
                             <div className="flex items-center justify-center gap-2">
-                                <PartyPopper size={20} className="group-hover:animate-bounce" /> Publish Listing
+                                <PartyPopper size={20} className="group-hover:animate-bounce" /> Submit for Approval
                             </div>
                         )}
                         {/* Shine effect */}

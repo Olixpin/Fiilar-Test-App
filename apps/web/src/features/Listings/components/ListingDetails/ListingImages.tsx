@@ -1,6 +1,6 @@
 import React from 'react';
 import { Listing } from '@fiilar/types';
-import { Images } from 'lucide-react';
+import { Image } from 'lucide-react';
 
 interface ListingImagesProps {
   listing: Listing;
@@ -81,7 +81,7 @@ export const ListingImages: React.FC<ListingImagesProps> = ({
 
           {/* Image Counter Badge - Visible on Mobile & Desktop - Outside Mask */}
           <div className="absolute bottom-32 md:bottom-4 right-4 bg-black/70 backdrop-blur-sm text-white px-3 py-1.5 rounded-lg text-xs font-semibold border border-white/20 flex items-center gap-1.5 z-20">
-            <Images size={14} className="md:hidden" />
+            <Image size={14} className="md:hidden" />
             1 / {count}
           </div>
         </div>
@@ -117,7 +117,7 @@ export const ListingImages: React.FC<ListingImagesProps> = ({
 
               {/* Counter Badge - Visible on Mobile & Desktop - Outside Mask */}
               <div className="absolute bottom-32 md:bottom-4 right-4 bg-black/70 backdrop-blur-sm text-white px-3 py-1.5 rounded-lg text-xs font-semibold border border-white/20 flex items-center gap-1.5 z-20 md:hidden">
-                <Images size={14} />
+                <Image size={14} />
                 {index + 2} / {count}
               </div>
 
@@ -125,7 +125,7 @@ export const ListingImages: React.FC<ListingImagesProps> = ({
               {isLastDesktopSlot && count > 5 && (
                 <div className="absolute inset-0 bg-black/20 hover:bg-black/30 transition-colors hidden md:flex items-center justify-center z-30 pointer-events-none">
                   <button className="bg-white/90 backdrop-blur-md px-4 py-2 rounded-lg font-semibold text-sm shadow-lg flex items-center gap-2 hover:bg-white hover:scale-105 transition-all pointer-events-auto">
-                    <Images size={16} />
+                    <Image size={16} />
                     Show all {count} photos
                   </button>
                 </div>

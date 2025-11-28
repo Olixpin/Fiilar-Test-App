@@ -1,7 +1,7 @@
 import React from 'react';
 import { X, Info, ShieldCheck } from 'lucide-react';
 import { useScrollLock } from '../../../../hooks/useScrollLock';
-import { Listing, BookingType } from '@fiilar/types';
+import { Listing } from '@fiilar/types';
 import { formatCurrency } from '../../../../utils/currency';
 
 interface PriceBreakdownModalProps {
@@ -43,6 +43,7 @@ export const PriceBreakdownModal: React.FC<PriceBreakdownModalProps> = ({
                         <button
                             onClick={onClose}
                             className="p-2 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+                            aria-label="Close"
                         >
                             <X size={20} className="text-gray-500" />
                         </button>

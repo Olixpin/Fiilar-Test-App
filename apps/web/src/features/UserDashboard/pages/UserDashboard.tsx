@@ -474,7 +474,8 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings, onRefresh
 
         {/* Content Area with White Background Card */}
         <main className="flex-1 overflow-y-auto px-4 lg:px-8 pb-24 lg:pb-8">
-          <div className="bg-white rounded-t-[32px] lg:rounded-3xl min-h-full shadow-xl shadow-gray-200/50 -mx-4 lg:mx-0 px-4 sm:px-6 lg:px-8 py-8 max-w-[1600px] mx-auto">
+          <div className="lg:max-w-[1600px] lg:mx-auto">
+            <div className="bg-white rounded-t-[32px] lg:rounded-3xl min-h-full shadow-xl shadow-gray-200/50 -mx-4 lg:mx-0 px-4 sm:px-6 lg:px-8 py-8">
 
             {activeTab === 'wallet' && (
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
@@ -674,6 +675,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings, onRefresh
               </div>
             )}
 
+            </div>
           </div>
         </main>
       </div>

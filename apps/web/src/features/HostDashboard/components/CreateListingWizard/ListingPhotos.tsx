@@ -176,9 +176,9 @@ const ListingPhotos: React.FC<ListingPhotosProps> = ({
             <div className="flex justify-between items-center pt-6 border-t border-white/20">
                 <Button
                     onClick={() => setStep(1)}
-                    variant="outline"
+                    variant="ghost"
                     size="lg"
-                    className="border-gray-300 hover:bg-gray-50"
+                    className="text-gray-500 hover:text-gray-900"
                 >
                     Back
                 </Button>
@@ -187,10 +187,12 @@ const ListingPhotos: React.FC<ListingPhotosProps> = ({
                     disabled={false}
                     variant="primary"
                     size="lg"
-                    className="shadow-lg shadow-brand-500/20 hover:shadow-brand-500/40 transition-all hover:scale-[1.02]"
+                    className="shadow-xl shadow-brand-500/20 hover:shadow-brand-500/40 transition-all hover:scale-[1.02] relative overflow-hidden group"
                     rightIcon={<ArrowRight size={18} />}
                 >
-                    Continue to Availability
+                    <span className="relative z-10">Continue to Availability</span>
+                    {/* Shine effect */}
+                    <div className="absolute inset-0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent z-0"></div>
                 </Button>
             </div>
 

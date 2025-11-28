@@ -1,11 +1,12 @@
 import React, { useMemo, useState } from 'react';
-import { Listing, SpaceType, BookingType, PricingModel } from '@fiilar/types';
+import { Listing, SpaceType, BookingType, PricingModel, Booking } from '@fiilar/types';
 import { Input, Select, TextArea, useLocale } from '@fiilar/ui';
-import { Home, Moon, Calendar, Clock, Users, UserPlus, ChevronDown, ChevronUp, Settings2, Shield } from 'lucide-react';
+import { Home, Moon, Calendar, Clock, Users, UserPlus, ChevronDown, ChevronUp, Settings2, Shield, Lock } from 'lucide-react';
 
 interface BasicInfoFormProps {
     newListing: Partial<Listing>;
     setNewListing: React.Dispatch<React.SetStateAction<Partial<Listing>>>;
+    activeBookings?: Booking[];
 }
 
 // Validation rules configuration - based on industry standards (Airbnb, Peerspace)
@@ -17,7 +18,7 @@ const VALIDATION_RULES = {
     MAX_TITLE_LENGTH: 100,
 };
 
-const BasicInfoForm: React.FC<BasicInfoFormProps> = ({ newListing, setNewListing }) => {
+const BasicInfoForm: React.FC<BasicInfoFormProps> = ({ newListing, setNewListing, activeBookings = [] }) => {
     const { locale } = useLocale();
 
     // Track pricing mode with explicit state
@@ -54,7 +55,7 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({ newListing, setNewListing
         if (cautionFee !== undefined && cautionFee > 0 && price !== undefined && price > 0) {
             const maxCautionFee = price * VALIDATION_RULES.CAUTION_FEE_MAX_RATIO;
             if (cautionFee > maxCautionFee) {
-                errors.cautionFee = `Security deposit seems too high. Maximum recommended: ${locale.currencySymbol}${maxCautionFee.toLocaleString()}`;
+                errors.cautionFee = `Caution fee seems too high. Maximum recommended: ${locale.currencySymbol}${maxCautionFee.toLocaleString()}`;
             }
         }
 
@@ -96,6 +97,19 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({ newListing, setNewListing
 
             <div className="p-6 space-y-6">
                 {/* Listing Title */}
+                {/* Active Bookings Warning */}
+                {activeBookings.length > 0 && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3 mb-6">
+                        <Lock className="text-amber-600 shrink-0 mt-0.5" size={18} />
+                        <div>
+                            <h4 className="text-sm font-bold text-amber-900">Some settings are locked</h4>
+                            <p className="text-xs text-amber-700 mt-1">
+                                Because you have {activeBookings.length} active booking{activeBookings.length > 1 ? 's' : ''}, critical details like location and pricing model cannot be changed to prevent conflicts.
+                            </p>
+                        </div>
+                    </div>
+                )}
+
                 <div className="group">
                     <Input
                         label="Listing Title"
@@ -123,6 +137,7 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({ newListing, setNewListing
                         onChange={(e) => setNewListing({ ...newListing, type: e.target.value as SpaceType })}
                         variant="glass"
                         helperText="What type of space are you listing?"
+                        disabled={activeBookings.length > 0}
                     >
                         {Object.values(SpaceType).map(t => <option key={t} value={t}>{t}</option>)}
                     </Select>
@@ -133,13 +148,14 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({ newListing, setNewListing
                         value={newListing.location || ''}
                         onChange={(e) => setNewListing({ ...newListing, location: e.target.value })}
                         variant="glass"
-                        helperText="Visible to everyone. Use city and area name only."
+                        helperText={activeBookings.length > 0 ? "Locked due to active bookings" : "Visible to everyone. Use city and area name only."}
                         fullWidth
+                        disabled={activeBookings.length > 0}
                     />
                 </div>
 
                 {/* Private Address */}
-                <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                <div className={`bg-gray-50 rounded-xl p-4 border border-gray-200 ${activeBookings.length > 0 ? 'opacity-75' : ''}`}>
                     <div className="flex items-start gap-3 mb-3">
                         <Shield size={18} className="text-brand-600 mt-0.5 shrink-0" />
                         <div>
@@ -153,6 +169,7 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({ newListing, setNewListing
                         onChange={(e) => setNewListing({ ...newListing, address: e.target.value })}
                         variant="glass"
                         fullWidth
+                        disabled={activeBookings.length > 0}
                     />
                     <p className="text-xs text-gray-400 mt-2 italic">Include street number, street name, and any landmarks if helpful</p>
                 </div>
@@ -163,6 +180,7 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({ newListing, setNewListing
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <button
                             type="button"
+                            disabled={activeBookings.length > 0}
                             onClick={() => setNewListing({
                                 ...newListing,
                                 pricingModel: PricingModel.NIGHTLY,
@@ -171,7 +189,7 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({ newListing, setNewListing
                             className={`p-4 rounded-xl border transition-all text-left relative overflow-hidden group ${newListing.pricingModel === PricingModel.NIGHTLY
                                 ? 'bg-brand-50/50 border-brand-500 shadow-lg shadow-brand-500/10'
                                 : 'bg-white/50 border-gray-200 hover:border-brand-300 hover:bg-white/80'
-                                }`}
+                                } ${activeBookings.length > 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
                             <div className="flex items-center gap-2 mb-2">
                                 <Moon size={20} className={newListing.pricingModel === PricingModel.NIGHTLY ? 'text-brand-600' : 'text-gray-400'} />
@@ -183,6 +201,7 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({ newListing, setNewListing
 
                         <button
                             type="button"
+                            disabled={activeBookings.length > 0}
                             onClick={() => setNewListing({
                                 ...newListing,
                                 pricingModel: PricingModel.DAILY,
@@ -191,7 +210,7 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({ newListing, setNewListing
                             className={`p-4 rounded-xl border transition-all text-left relative overflow-hidden group ${newListing.pricingModel === PricingModel.DAILY
                                 ? 'bg-brand-50/50 border-brand-500 shadow-lg shadow-brand-500/10'
                                 : 'bg-white/50 border-gray-200 hover:border-brand-300 hover:bg-white/80'
-                                }`}
+                                } ${activeBookings.length > 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
                             <div className="flex items-center gap-2 mb-2">
                                 <Calendar size={20} className={newListing.pricingModel === PricingModel.DAILY ? 'text-brand-600' : 'text-gray-400'} />
@@ -203,6 +222,7 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({ newListing, setNewListing
 
                         <button
                             type="button"
+                            disabled={activeBookings.length > 0}
                             onClick={() => setNewListing({
                                 ...newListing,
                                 pricingModel: PricingModel.HOURLY,
@@ -211,7 +231,7 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({ newListing, setNewListing
                             className={`p-4 rounded-xl border transition-all text-left relative overflow-hidden group ${newListing.pricingModel === PricingModel.HOURLY
                                 ? 'bg-brand-50/50 border-brand-500 shadow-lg shadow-brand-500/10'
                                 : 'bg-white/50 border-gray-200 hover:border-brand-300 hover:bg-white/80'
-                                }`}
+                                } ${activeBookings.length > 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
                             <div className="flex items-center gap-2 mb-2">
                                 <Clock size={20} className={newListing.pricingModel === PricingModel.HOURLY ? 'text-brand-600' : 'text-gray-400'} />
@@ -236,9 +256,10 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({ newListing, setNewListing
                             setNewListing({ ...newListing, price: isNaN(val) ? undefined : val });
                         }}
                         variant="glass"
-                        helperText={!validationErrors.price ? `Per ${newListing.pricingModel === PricingModel.NIGHTLY ? 'night' : newListing.pricingModel === PricingModel.DAILY ? 'day' : 'hour'}` : undefined}
+                        helperText={activeBookings.length > 0 ? "Locked due to active bookings" : !validationErrors.price ? `Per ${newListing.pricingModel === PricingModel.NIGHTLY ? 'night' : newListing.pricingModel === PricingModel.DAILY ? 'day' : 'hour'}` : undefined}
                         error={validationErrors.price}
                         fullWidth
+                        disabled={activeBookings.length > 0}
                     />
 
                     <Input
@@ -393,11 +414,11 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({ newListing, setNewListing
                                 </div>
                             )}
 
-                            {/* Security Deposit */}
+                            {/* Caution Fee */}
                             <div>
                                 <div className="flex items-center gap-2 mb-2">
                                     <Shield size={14} className="text-gray-400" />
-                                    <label className="text-sm font-medium text-gray-700">Security Deposit</label>
+                                    <label className="text-sm font-medium text-gray-700">Caution Fee</label>
                                 </div>
                                 <Input
                                     label={`Amount (${locale.currencySymbol})`}
@@ -411,7 +432,7 @@ const BasicInfoForm: React.FC<BasicInfoFormProps> = ({ newListing, setNewListing
                                         setNewListing({ ...newListing, cautionFee: isNaN(val) ? undefined : val });
                                     }}
                                     variant="glass"
-                                    helperText={!validationErrors.cautionFee ? "Refundable deposit held during booking" : undefined}
+                                    helperText={!validationErrors.cautionFee ? "Refundable caution fee held during booking" : undefined}
                                     error={validationErrors.cautionFee}
                                     fullWidth
                                 />

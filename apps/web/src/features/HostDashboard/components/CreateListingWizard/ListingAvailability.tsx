@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Listing, Booking } from '@fiilar/types';
 import { Button } from '@fiilar/ui';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, ChevronDown, ChevronUp, Calendar, Clock, Shield } from 'lucide-react';
 import ScheduleTab from './ScheduleTab';
 import CalendarTab from './CalendarTab';
 import RulesTab from './RulesTab';
@@ -10,8 +10,7 @@ interface ListingAvailabilityProps {
     newListing: Partial<Listing>;
     setNewListing: React.Dispatch<React.SetStateAction<Partial<Listing>>>;
     setStep: (step: number) => void;
-    availTab: 'schedule' | 'calendar' | 'rules';
-    setAvailTab: (tab: 'schedule' | 'calendar' | 'rules') => void;
+    // availTab props removed as we're switching to collapsible sections
     weeklySchedule: Record<number, { enabled: boolean; start: number; end: number }>;
     toggleDaySchedule: (dayIndex: number) => void;
     updateDayTime: (dayIndex: number, field: 'start' | 'end', value: number) => void;
@@ -40,49 +39,44 @@ interface ListingAvailabilityProps {
 
 const ListingAvailability: React.FC<ListingAvailabilityProps> = ({
     newListing, setNewListing, setStep,
-    availTab, setAvailTab, weeklySchedule, toggleDaySchedule, updateDayTime, applyWeeklySchedule,
+    weeklySchedule, toggleDaySchedule, updateDayTime, applyWeeklySchedule,
     currentMonth, setCurrentMonth, getDaysInMonth, handleDateClick, toggleHourOverride,
     activeBookings, formatDate, selectedCalendarDate, setSelectedCalendarDate,
     tempRule, setTempRule, handleAddRule,
     tempAddOn, setTempAddOn, handleAddAddOn, handleRemoveAddOn,
     customSafety, setCustomSafety, handleAddCustomSafety, toggleSafetyItem
 }) => {
-    return (
-        <div className="space-y-8 animate-in slide-in-from-right duration-500">
-            {/* Modern Pill Tabs */}
-            <div className="flex p-1.5 rounded-2xl mb-6 bg-gray-100/50 backdrop-blur-sm border border-gray-200/50">
-                <button
-                    onClick={() => setAvailTab('schedule')}
-                    className={`flex-1 py-3 px-4 text-sm font-bold rounded-xl transition-all duration-300 ${availTab === 'schedule'
-                        ? 'bg-white shadow-lg shadow-brand-500/10 text-brand-600 scale-[1.02]'
-                        : 'text-gray-500 hover:text-gray-900 hover:bg-white/50'
-                        }`}
-                >
-                    Weekly Schedule
-                </button>
-                <button
-                    onClick={() => setAvailTab('calendar')}
-                    className={`flex-1 py-3 px-4 text-sm font-bold rounded-xl transition-all duration-300 ${availTab === 'calendar'
-                        ? 'bg-white shadow-lg shadow-brand-500/10 text-brand-600 scale-[1.02]'
-                        : 'text-gray-500 hover:text-gray-900 hover:bg-white/50'
-                        }`}
-                >
-                    Calendar Override
-                </button>
-                <button
-                    onClick={() => setAvailTab('rules')}
-                    className={`flex-1 py-3 px-4 text-sm font-bold rounded-xl transition-all duration-300 ${availTab === 'rules'
-                        ? 'bg-white shadow-lg shadow-brand-500/10 text-brand-600 scale-[1.02]'
-                        : 'text-gray-500 hover:text-gray-900 hover:bg-white/50'
-                        }`}
-                >
-                    Rules & Extras
-                </button>
-            </div>
+    // Default to having the first section (Schedule) open
+    const [expandedSections, setExpandedSections] = useState<number[]>([1]);
 
-            <div className="min-h-[400px] glass-card p-6 rounded-3xl border border-white/40 shadow-sm bg-white/40">
-                {availTab === 'schedule' && (
-                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+    const toggleSection = (section: number) => {
+        setExpandedSections(prev =>
+            prev.includes(section)
+                ? prev.filter(s => s !== section)
+                : [...prev, section]
+        );
+    };
+
+    return (
+        <div className="space-y-6 animate-in slide-in-from-right duration-500">
+
+            {/* Section 1: Weekly Schedule */}
+            <div className="glass-card rounded-2xl border border-white/40 shadow-sm overflow-hidden transition-all duration-300">
+                <button
+                    onClick={() => toggleSection(1)}
+                    className="w-full p-6 flex items-center justify-between hover:bg-white/40 transition-colors text-left"
+                >
+                    <h3 className="text-lg font-bold text-gray-900 flex items-center gap-3">
+                        <span className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shadow-sm">
+                            <Clock size={20} />
+                        </span>
+                        Weekly Schedule
+                    </h3>
+                    {expandedSections.includes(1) ? <ChevronUp className="text-gray-400" /> : <ChevronDown className="text-gray-400" />}
+                </button>
+
+                <div className={`transition-all duration-300 ease-in-out ${expandedSections.includes(1) ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0 overflow-hidden'}`}>
+                    <div className="p-6 pt-0 border-t border-white/20">
                         <ScheduleTab
                             weeklySchedule={weeklySchedule}
                             toggleDaySchedule={toggleDaySchedule}
@@ -90,10 +84,26 @@ const ListingAvailability: React.FC<ListingAvailabilityProps> = ({
                             applyWeeklySchedule={applyWeeklySchedule}
                         />
                     </div>
-                )}
+                </div>
+            </div>
 
-                {availTab === 'calendar' && (
-                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* Section 2: Calendar Override */}
+            <div className="glass-card rounded-2xl border border-white/40 shadow-sm overflow-hidden transition-all duration-300">
+                <button
+                    onClick={() => toggleSection(2)}
+                    className="w-full p-6 flex items-center justify-between hover:bg-white/40 transition-colors text-left"
+                >
+                    <h3 className="text-lg font-bold text-gray-900 flex items-center gap-3">
+                        <span className="w-10 h-10 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center shadow-sm">
+                            <Calendar size={20} />
+                        </span>
+                        Calendar Override
+                    </h3>
+                    {expandedSections.includes(2) ? <ChevronUp className="text-gray-400" /> : <ChevronDown className="text-gray-400" />}
+                </button>
+
+                <div className={`transition-all duration-300 ease-in-out ${expandedSections.includes(2) ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0 overflow-hidden'}`}>
+                    <div className="p-6 pt-0 border-t border-white/20">
                         <CalendarTab
                             newListing={newListing}
                             currentMonth={currentMonth}
@@ -107,10 +117,26 @@ const ListingAvailability: React.FC<ListingAvailabilityProps> = ({
                             setSelectedCalendarDate={setSelectedCalendarDate}
                         />
                     </div>
-                )}
+                </div>
+            </div>
 
-                {availTab === 'rules' && (
-                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* Section 3: Rules & Extras */}
+            <div className="glass-card rounded-2xl border border-white/40 shadow-sm overflow-hidden transition-all duration-300">
+                <button
+                    onClick={() => toggleSection(3)}
+                    className="w-full p-6 flex items-center justify-between hover:bg-white/40 transition-colors text-left"
+                >
+                    <h3 className="text-lg font-bold text-gray-900 flex items-center gap-3">
+                        <span className="w-10 h-10 rounded-full bg-green-100 text-green-600 flex items-center justify-center shadow-sm">
+                            <Shield size={20} />
+                        </span>
+                        Rules & Extras
+                    </h3>
+                    {expandedSections.includes(3) ? <ChevronUp className="text-gray-400" /> : <ChevronDown className="text-gray-400" />}
+                </button>
+
+                <div className={`transition-all duration-300 ease-in-out ${expandedSections.includes(3) ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0 overflow-hidden'}`}>
+                    <div className="p-6 pt-0 border-t border-white/20">
                         <RulesTab
                             newListing={newListing}
                             setNewListing={setNewListing}
@@ -127,24 +153,25 @@ const ListingAvailability: React.FC<ListingAvailabilityProps> = ({
                             toggleSafetyItem={toggleSafetyItem}
                         />
                     </div>
-                )}
+                </div>
             </div>
 
             {/* Navigation */}
-            <div className="flex justify-between items-center pt-6 border-t border-white/20">
+            <div className="flex justify-between items-center pt-6 border-t border-white/20 mt-8">
                 <Button
                     onClick={() => setStep(2)}
-                    variant="outline"
+                    variant="ghost"
                     size="lg"
-                    className="border-gray-300 hover:bg-gray-50"
+                    className="text-gray-500 hover:text-gray-900 hover:bg-white/50"
+                    leftIcon={<span className="text-lg">←</span>}
                 >
-                    Back
+                    Back to Photos
                 </Button>
                 <Button
                     onClick={() => setStep(4)}
                     variant="primary"
                     size="lg"
-                    className="shadow-lg shadow-brand-500/20 hover:shadow-brand-500/40 transition-all hover:scale-[1.02]"
+                    className="shadow-xl shadow-brand-500/20 hover:shadow-brand-500/40 transition-all hover:scale-[1.02] px-8"
                     rightIcon={<ArrowRight size={18} />}
                 >
                     Continue to Verification

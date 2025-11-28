@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Listing } from '@fiilar/types';
+import { Listing, Booking } from '@fiilar/types';
 import { Button } from '@fiilar/ui';
 import { ArrowRight, ChevronDown, ChevronUp } from 'lucide-react';
 import AIAutoFill from './AIAutoFill';
@@ -17,6 +17,7 @@ interface ListingBasicInfoProps {
     handleAiAutoFill: () => void;
     showAiInput: boolean;
     setShowAiInput: (show: boolean) => void;
+    activeBookings: Booking[];
 }
 
 const ListingBasicInfo: React.FC<ListingBasicInfoProps> = ({
@@ -28,7 +29,8 @@ const ListingBasicInfo: React.FC<ListingBasicInfoProps> = ({
     isAiGenerating,
     handleAiAutoFill,
     showAiInput,
-    setShowAiInput
+    setShowAiInput,
+    activeBookings
 }) => {
     const canContinue = !!(newListing.title && newListing.location && newListing.price && newListing.price >= 1 && newListing.pricingModel);
     const [expandedSections, setExpandedSections] = useState<number[]>([1, 2, 3]);
@@ -68,11 +70,12 @@ const ListingBasicInfo: React.FC<ListingBasicInfoProps> = ({
                     {expandedSections.includes(1) ? <ChevronUp className="text-gray-400" /> : <ChevronDown className="text-gray-400" />}
                 </button>
 
-                <div className={`transition-all duration-300 ease-in-out ${expandedSections.includes(1) ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0 overflow-hidden'}`}>
+                <div className={`transition - all duration - 300 ease -in -out ${expandedSections.includes(1) ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0 overflow-hidden'} `}>
                     <div className="p-6 pt-0 border-t border-white/20">
                         <BasicInfoForm
                             newListing={newListing}
                             setNewListing={setNewListing}
+                            activeBookings={activeBookings}
                         />
                     </div>
                 </div>
@@ -91,7 +94,7 @@ const ListingBasicInfo: React.FC<ListingBasicInfoProps> = ({
                     {expandedSections.includes(2) ? <ChevronUp className="text-gray-400" /> : <ChevronDown className="text-gray-400" />}
                 </button>
 
-                <div className={`transition-all duration-300 ease-in-out ${expandedSections.includes(2) ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0 overflow-hidden'}`}>
+                <div className={`transition - all duration - 300 ease -in -out ${expandedSections.includes(2) ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0 overflow-hidden'} `}>
                     <div className="p-6 pt-0 border-t border-white/20">
                         <AmenitiesSelector
                             newListing={newListing}
@@ -114,7 +117,7 @@ const ListingBasicInfo: React.FC<ListingBasicInfoProps> = ({
                     {expandedSections.includes(3) ? <ChevronUp className="text-gray-400" /> : <ChevronDown className="text-gray-400" />}
                 </button>
 
-                <div className={`transition-all duration-300 ease-in-out ${expandedSections.includes(3) ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0 overflow-hidden'}`}>
+                <div className={`transition - all duration - 300 ease -in -out ${expandedSections.includes(3) ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0 overflow-hidden'} `}>
                     <div className="p-6 pt-0 border-t border-white/20">
                         <TagsInput
                             newListing={newListing}

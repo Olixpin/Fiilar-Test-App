@@ -49,7 +49,7 @@ export const SectionNav: React.FC = () => {
     const scrollToSection = (id: string) => {
         const element = document.getElementById(id);
         if (element) {
-            const offset = 80; // Height of nav + buffer
+            const offset = 120; // Height of nav + buffer (increased from 80)
             const elementPosition = element.getBoundingClientRect().top;
             const offsetPosition = elementPosition + window.pageYOffset - offset;
 

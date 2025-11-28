@@ -184,6 +184,8 @@ const HostFinancials: React.FC<HostFinancialsProps> = ({
                             className="bg-gray-50 border-none text-sm font-medium text-gray-600 rounded-lg px-3 py-1.5 focus:ring-0 cursor-pointer hover:bg-gray-100 transition-colors"
                             value={timeRange}
                             onChange={(e) => setTimeRange(e.target.value as 'week' | 'month' | 'year')}
+                            title="Select time range"
+                            aria-label="Select time range"
                         >
                             <option value="week">This Week</option>
                             <option value="month">Last Month</option>
@@ -253,12 +255,14 @@ const HostFinancials: React.FC<HostFinancialsProps> = ({
                     <div className="space-y-4 flex-1">
                         <div className="grid grid-cols-2 gap-4">
                             <div className="col-span-2">
-                                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1.5">Bank Name</label>
+                                <label htmlFor="bank-name-select" className="block text-xs font-semibold text-gray-500 uppercase mb-1.5">Bank Name</label>
                                 <select
+                                    id="bank-name-select"
                                     className="w-full p-2.5 bg-gray-50 border-none rounded-lg text-sm focus:ring-2 focus:ring-brand-500 transition-all"
                                     value={bankDetails.bankName}
                                     onChange={(e) => setBankDetails({ ...bankDetails, bankName: e.target.value, isVerified: false })}
                                     disabled={bankDetails.isVerified}
+                                    aria-label="Select bank name"
                                 >
                                     <option value="">Select Bank</option>
                                     <option value="GTBank">Guaranty Trust Bank</option>

@@ -116,6 +116,14 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
         listing={listing}
       />
 
+      {/* Host Preview Banner */}
+      {isHost && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[60] bg-amber-100 border border-amber-200 text-amber-800 px-4 py-2 rounded-full shadow-lg flex items-center gap-2 animate-in slide-in-from-top-4 fade-in duration-500 pointer-events-none">
+          <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse" />
+          <span className="text-sm font-medium">Host Preview Mode</span>
+        </div>
+      )}
+
       <ImmersiveGallery
         images={listing.images}
         initialIndex={currentImageIndex}
@@ -236,7 +244,7 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
             <div className="lg:col-span-8 space-y-12">
 
               {/* Title & Header moved here */}
-              <div id="overview">
+              <div id="overview" className="scroll-mt-32">
                 <ListingHeader listing={listing} />
               </div>
 
@@ -249,16 +257,16 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
                 <HostProfileCard listing={listing} host={host} handleContactHost={handleContactHost} />
               </div>
 
-              <div id="amenities" className="border-b border-gray-100 pb-10">
+              <div id="amenities" className="border-b border-gray-100 pb-10 scroll-mt-32">
                 <ListingAmenities listing={listing} />
                 <ListingAccessInfo listing={listing} />
               </div>
 
-              <div id="reviews" className="border-b border-gray-100 pb-10">
+              <div id="reviews" className="border-b border-gray-100 pb-10 scroll-mt-32">
                 <ListingReviews listing={listing} onShowAllReviews={() => setShowReviewsModal(true)} />
               </div>
 
-              <div id="policies">
+              <div id="policies" className="scroll-mt-32">
                 <ListingPolicies listing={listing} />
               </div>
 

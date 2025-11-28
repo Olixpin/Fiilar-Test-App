@@ -19,24 +19,38 @@ export const initStorage = () => {
         storedListings = [];
     }
 
-    // Always update mock listings to ensure latest data/images
-    // This merges the fresh MOCK_LISTINGS into the stored listings
+    // Debug: Log what we have BEFORE any modifications
+    const userListings = storedListings.filter(l => !l.id.startsWith('mock-') && !l.id.startsWith('generated-'));
+    console.log('[initStorage] Before modifications:', {
+        totalListings: storedListings.length,
+        userCreatedListings: userListings.map(l => ({
+            id: l.id,
+            title: l.title,
+            imageCount: l.images?.length || 0,
+            firstImage: l.images?.[0]?.substring(0, 80)
+        }))
+    });
+
+    // Only add mock listings if they don't already exist
+    // DO NOT overwrite existing listings - user may have edited them!
+    let listingsAdded = false;
     MOCK_LISTINGS.forEach((mockListing: Listing) => {
-        const index = storedListings.findIndex(l => l.id === mockListing.id);
-        if (index >= 0) {
-            storedListings[index] = mockListing;
-        } else {
+        const exists = storedListings.some(l => l.id === mockListing.id);
+        if (!exists) {
             storedListings.push(mockListing);
+            listingsAdded = true;
         }
     });
 
     // Add bulk generated listings for testing infinite scroll
+    let generatedAdded = false;
     if (ENABLE_BULK_LISTINGS) {
         const hasGeneratedListings = storedListings.some(l => l.id.startsWith('generated-'));
         if (!hasGeneratedListings) {
             console.log(`[initStorage] Generating ${BULK_LISTING_COUNT} mock listings for infinite scroll testing...`);
             const generatedListings = generateMockListings(BULK_LISTING_COUNT);
             storedListings = [...storedListings, ...generatedListings];
+            generatedAdded = true;
 
             // Generate reviews for the new listings
             const generatedReviews = generateMockReviews(generatedListings);
@@ -59,7 +73,13 @@ export const initStorage = () => {
         }
     }
 
-    localStorage.setItem(STORAGE_KEYS.LISTINGS, JSON.stringify(storedListings));
+    // Only write back if we actually added something
+    if (listingsAdded || generatedAdded) {
+        console.log('[initStorage] Writing back to localStorage (added mock/generated listings)');
+        localStorage.setItem(STORAGE_KEYS.LISTINGS, JSON.stringify(storedListings));
+    } else {
+        console.log('[initStorage] No changes made, skipping localStorage write');
+    }
 
     // Initialize Users DB if empty
     if (!localStorage.getItem(STORAGE_KEYS.USERS_DB)) {
