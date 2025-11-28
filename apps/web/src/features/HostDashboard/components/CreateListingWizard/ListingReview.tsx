@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Listing, User } from '@fiilar/types';
 import { Button, useToast } from '@fiilar/ui';
-import { CheckCircle, MapPin, Shield, ArrowRight, Loader2, PartyPopper, PackagePlus } from 'lucide-react';
+import { CheckCircle, MapPin, Shield, Loader2, PartyPopper, PackagePlus } from 'lucide-react';
 
 interface ListingReviewProps {
     newListing: Partial<Listing>;
