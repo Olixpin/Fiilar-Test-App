@@ -168,6 +168,7 @@ export const useListingDetails = ({ listing, user, onBook, onVerify, onLogin, on
             return true;
         });
 
+        // For non-hourly (per-day / nightly) listings, any overlapping booking blocks the day
         if (!isHourly) {
             const isBooked = activeBookings.some(b => {
                 if (b.date === dateStr) return true;
@@ -180,13 +181,15 @@ export const useListingDetails = ({ listing, user, onBook, onVerify, onLogin, on
 
             if (isBooked) return 'ALREADY_BOOKED';
         } else {
-            const dayBookings = activeBookings.filter(b => b.date === dateStr);
-            const bookedHours = dayBookings.reduce((acc, curr) => [...acc, ...(curr.hours || [])], [] as number[]);
-
-            if (hostHours.length > 0) {
-                const allSlotsTaken = hostHours.every(h => bookedHours.includes(h));
-                if (allSlotsTaken) return 'FULLY_BOOKED';
+            // For hourly listings we still need a simple day-level signal for the calendar.
+            // If *any* active booking exists on this date, we treat the day as booked so
+            // users can't start another series on that date from the high-level picker.
+            const hasAnyBookingOnDate = activeBookings.some(b => b.date === dateStr);
+            if (hasAnyBookingOnDate) {
+                return 'ALREADY_BOOKED';
             }
+
+            // Hour-level availability is still enforced separately via isSlotBooked.
         }
 
         return 'AVAILABLE';
@@ -715,10 +718,20 @@ export const useListingDetails = ({ listing, user, onBook, onVerify, onLogin, on
         setIsShareModalOpen(true);
     };
 
+    // Check if the current user has an active (confirmed/started/reserved) booking for this listing
+    const hasActiveBooking = useMemo(() => {
+        if (!user) return false;
+        return listingBookings.some(
+            b => b.userId === user.id && 
+            (b.status === 'Confirmed' || b.status === 'Started' || b.status === 'Reserved')
+        );
+    }, [user, listingBookings]);
+
     return {
         host,
+        hasActiveBooking,
         paymentMethod, setPaymentMethod,
-        walletBalance,
+        walletBalance, setWalletBalance,
         currentMonth, setCurrentMonth,
         selectedDate, setSelectedDate,
         isCalendarOpen, setIsCalendarOpen,
