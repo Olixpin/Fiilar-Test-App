@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom';
 import LoginOptions from '../../Auth/components/Login/LoginOptions';
 import EmailLogin from '../../Auth/components/Login/EmailLogin';
 import OtpVerification from '../../Auth/components/Login/OtpVerification';
+import GoogleAccountPicker from '../../Auth/components/Login/GoogleAccountPicker';
 import { sendVerificationEmail, verifyEmailOtp } from '@fiilar/storage';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -26,6 +27,7 @@ const HostOnboarding: React.FC<HostOnboardingProps> = ({ onLogin, onBack }) => {
     const [otp, setOtp] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [showGooglePicker, setShowGooglePicker] = useState(false);
     const { showToast } = useToast();
 
     // Form Schema
@@ -156,11 +158,7 @@ const HostOnboarding: React.FC<HostOnboardingProps> = ({ onLogin, onBack }) => {
                                         handleStepChange(1);
                                     }
                                 }}
-                                onGoogleLogin={() => onLogin(Role.HOST, 'google', 'alex.taylor@gmail.example.com', {
-                                    firstName: 'Alex',
-                                    lastName: 'Taylor',
-                                    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=AlexTaylor'
-                                })}
+                                onGoogleLogin={() => setShowGooglePicker(true)}
                                 title="Become a Host"
                                 subtitle="Enter your email to start hosting."
                                 variant="glass-dark"
@@ -211,6 +209,17 @@ const HostOnboarding: React.FC<HostOnboardingProps> = ({ onLogin, onBack }) => {
                     </div>
                 </div>
             </div>
+
+            {/* Google Account Picker */}
+            <GoogleAccountPicker
+                isOpen={showGooglePicker}
+                onClose={() => setShowGooglePicker(false)}
+                onSelectAccount={(role, email, profileData) => {
+                    // Always use HOST role for host onboarding
+                    onLogin(Role.HOST, 'google', email, profileData);
+                }}
+                defaultRole={Role.HOST}
+            />
         </div>
     );
 };

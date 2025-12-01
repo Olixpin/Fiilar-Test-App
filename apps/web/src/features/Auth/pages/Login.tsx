@@ -7,6 +7,7 @@ import { Link } from 'react-router-dom';
 import LoginOptions from '../components/Login/LoginOptions';
 import EmailLogin from '../components/Login/EmailLogin';
 import OtpVerification from '../components/Login/OtpVerification';
+import GoogleAccountPicker from '../components/Login/GoogleAccountPicker';
 import { sendVerificationEmail, verifyEmailOtp, getUserById } from '@fiilar/storage';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -27,6 +28,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onBack }) => {
     const [otp, setOtp] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [showGooglePicker, setShowGooglePicker] = useState(false);
     const { showToast } = useToast();
 
     // Form Schemas
@@ -138,11 +140,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onBack }) => {
                                     handleStepChange(1);
                                 }
                             }}
-                            onGoogleLogin={() => onLogin(Role.USER, 'google', 'jessica.lee@gmail.example.com', {
-                                firstName: 'Jessica',
-                                lastName: 'Lee',
-                                avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=JessicaLee'
-                            })}
+                            onGoogleLogin={() => setShowGooglePicker(true)}
                         />
                     )}
 
@@ -188,6 +186,15 @@ const Login: React.FC<LoginProps> = ({ onLogin, onBack }) => {
                     )}
                 </div>
             </div>
+
+            {/* Google Account Picker */}
+            <GoogleAccountPicker
+                isOpen={showGooglePicker}
+                onClose={() => setShowGooglePicker(false)}
+                onSelectAccount={(role, email, profileData) => {
+                    onLogin(role, 'google', email, profileData);
+                }}
+            />
         </div>
     );
 };
