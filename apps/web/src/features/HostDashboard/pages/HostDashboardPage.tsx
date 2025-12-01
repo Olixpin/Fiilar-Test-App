@@ -408,7 +408,7 @@ const HostDashboardPage: React.FC<HostDashboardPageProps> = ({ user, listings, r
                 </header>
 
                 {/* Mobile Header */}
-                {!hideUI && view !== 'explore' && (
+                {!hideUI && view !== 'explore' && view !== 'create' && view !== 'edit' && (
                     <div className="lg:hidden bg-white border-b border-gray-200 p-4 sticky top-0 z-30">
                         <div className="flex items-center justify-between">
                             <h1 className="text-xl font-bold text-gray-900">Host Dashboard</h1>
@@ -422,12 +422,12 @@ const HostDashboardPage: React.FC<HostDashboardPageProps> = ({ user, listings, r
                                     <Search size={20} />
                                 </button>
                                 <button
-                                    onClick={handleStartNewListing}
-                                    className="p-2 bg-brand-600 text-white rounded-full shadow-sm hover:bg-brand-700 transition-colors"
-                                    title="Create New Listing"
-                                    aria-label="Create New Listing"
+                                    onClick={() => setView('notifications')}
+                                    className="p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                                    title="Notifications"
+                                    aria-label="Notifications"
                                 >
-                                    <Plus size={20} />
+                                    <Bell size={20} />
                                 </button>
                             </div>
                         </div>
@@ -698,8 +698,20 @@ const HostDashboardPage: React.FC<HostDashboardPageProps> = ({ user, listings, r
                 onCancel={cancelDelete}
             />
 
+            {/* Mobile Floating Action Button - Create Listing */}
+            {!hideUI && view !== 'create' && view !== 'edit' && (
+                <button
+                    onClick={handleStartNewListing}
+                    className="lg:hidden fixed bottom-24 right-4 z-50 w-14 h-14 bg-brand-600 text-white rounded-full shadow-lg hover:bg-brand-700 hover:shadow-xl transition-all active:scale-95 flex items-center justify-center"
+                    title="Create New Listing"
+                    aria-label="Create New Listing"
+                >
+                    <Plus size={24} />
+                </button>
+            )}
+
             {/* Mobile Bottom Navigation */}
-            {!hideUI && (
+            {!hideUI && view !== 'create' && view !== 'edit' && (
                 <HostBottomNav
                     view={view}
                     setView={setView}

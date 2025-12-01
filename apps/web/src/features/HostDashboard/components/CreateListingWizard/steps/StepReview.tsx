@@ -92,9 +92,9 @@ const StepReview: React.FC<StepReviewProps> = ({
             isSubmitting={isSubmitting}
             canContinue={true}
         >
-            <div className="space-y-6">
+            <div className="space-y-5">
                 {/* Status Banner */}
-                <div className={`flex items-start gap-3 p-4 rounded-xl border ${
+                <div className={`flex items-start gap-4 p-5 rounded-2xl border ${
                     statusInfo.color === 'green' 
                         ? 'bg-green-50 border-green-100' 
                         : 'bg-amber-50 border-amber-100'
@@ -117,106 +117,106 @@ const StepReview: React.FC<StepReviewProps> = ({
                 </div>
 
                 {/* Preview Card */}
-                <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+                <div className="bg-gray-50 border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
                     {/* Cover Image */}
                     {images.length > 0 ? (
-                        <div className="aspect-video bg-gray-100 relative">
+                        <div className="aspect-[4/3] bg-gray-100 relative">
                             <img
                                 src={images[0]}
                                 alt="Cover"
                                 className="w-full h-full object-cover"
                             />
-                            <div className="absolute bottom-3 right-3 bg-black/60 backdrop-blur-sm px-2 py-1 rounded-lg">
-                                <span className="text-white text-sm font-medium flex items-center gap-1">
+                            <div className="absolute bottom-3 right-3 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-lg">
+                                <span className="text-white text-sm font-medium flex items-center gap-1.5">
                                     <Camera size={14} />
                                     {images.length}
                                 </span>
                             </div>
                         </div>
                     ) : (
-                        <div className="aspect-video bg-gray-100 flex items-center justify-center">
+                        <div className="aspect-[4/3] bg-gray-100 flex items-center justify-center">
                             <div className="text-center text-gray-400">
-                                <Camera size={32} className="mx-auto mb-2" />
-                                <p>No photos yet</p>
+                                <Camera size={40} className="mx-auto mb-3" />
+                                <p className="text-base">No photos yet</p>
                             </div>
                         </div>
                     )}
 
                     {/* Details */}
-                    <div className="p-5">
-                        <h3 className="text-xl font-bold text-gray-900 mb-2">
+                    <div className="p-6">
+                        <h3 className="text-xl font-bold text-gray-900 mb-3">
                             {newListing.title || 'Untitled Listing'}
                         </h3>
                         
-                        <div className="flex items-center gap-4 text-sm text-gray-500 mb-3">
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-500 mb-4">
                             {newListing.location && (
-                                <span className="flex items-center gap-1">
-                                    <MapPin size={14} />
+                                <span className="flex items-center gap-1.5">
+                                    <MapPin size={15} />
                                     {newListing.location}
                                 </span>
                             )}
                             {newListing.capacity && (
-                                <span className="flex items-center gap-1">
-                                    <Users size={14} />
+                                <span className="flex items-center gap-1.5">
+                                    <Users size={15} />
                                     {newListing.capacity} guests
                                 </span>
                             )}
                         </div>
                         
                         {/* Key badges that guests will see */}
-                        <div className="flex flex-wrap gap-2 mb-4">
+                        <div className="flex flex-wrap gap-2 mb-5">
                             {newListing.settings?.instantBook && (
-                                <span className="inline-flex items-center gap-1 text-xs font-medium text-yellow-700 bg-yellow-100 px-2 py-1 rounded-full">
+                                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-yellow-700 bg-yellow-100 px-2.5 py-1.5 rounded-full">
                                     <Zap size={12} /> Instant Book
                                 </span>
                             )}
                             {newListing.requiresIdentityVerification && (
-                                <span className="inline-flex items-center gap-1 text-xs font-medium text-blue-700 bg-blue-100 px-2 py-1 rounded-full">
+                                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-700 bg-blue-100 px-2.5 py-1.5 rounded-full">
                                     <BadgeCheck size={12} /> ID Verified Guests
                                 </span>
                             )}
                             {newListing.cautionFee && newListing.cautionFee > 0 && (
-                                <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-600 bg-gray-100 px-2 py-1 rounded-full">
+                                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-600 bg-gray-100 px-2.5 py-1.5 rounded-full">
                                     <Shield size={12} /> Security Deposit
                                 </span>
                             )}
                             {newListing.settings?.allowRecurring && (
-                                <span className="inline-flex items-center gap-1 text-xs font-medium text-purple-700 bg-purple-100 px-2 py-1 rounded-full">
+                                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-purple-700 bg-purple-100 px-2.5 py-1.5 rounded-full">
                                     <Repeat size={12} /> Recurring OK
                                 </span>
                             )}
                         </div>
 
                         {newListing.price ? (
-                            <div className="flex items-baseline gap-1">
+                            <div className="flex items-baseline gap-1.5 pt-2 border-t border-gray-100">
                                 <span className="text-2xl font-bold text-gray-900">
                                     ₦{newListing.price.toLocaleString()}
                                 </span>
                                 <span className="text-gray-500">/ {priceLabel}</span>
                             </div>
                         ) : (
-                            <p className="text-gray-400">No price set</p>
+                            <p className="text-gray-400 pt-2 border-t border-gray-100">No price set</p>
                         )}
                     </div>
                 </div>
 
                 {/* Completion Checklist */}
-                <div className="p-4 bg-gray-50 rounded-xl">
-                    <h4 className="font-medium text-gray-900 mb-3">Listing checklist</h4>
-                    <div className="space-y-2">
+                <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100">
+                    <h4 className="font-semibold text-gray-900 mb-4">Listing checklist</h4>
+                    <div className="space-y-3">
                         {completionItems.map((item) => (
                             <button
                                 key={item.label}
                                 onClick={() => setStep(item.step)}
-                                className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                                className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-white transition-colors"
                             >
                                 <div className="flex items-center gap-3">
-                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
+                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
                                         item.complete ? 'bg-green-500' : 'bg-gray-300'
                                     }`}>
-                                        {item.complete && <CheckCircle size={12} className="text-white" />}
+                                        {item.complete && <CheckCircle size={14} className="text-white" />}
                                     </div>
-                                    <span className={item.complete ? 'text-gray-900' : 'text-gray-500'}>
+                                    <span className={`text-sm ${item.complete ? 'text-gray-900' : 'text-gray-500'}`}>
                                         {item.label}
                                     </span>
                                 </div>

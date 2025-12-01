@@ -43,13 +43,13 @@ const CreateListingWizard: React.FC<CreateListingWizardProps> = ({
     } = useListingForm(user, listings, activeBookings, editingListing, refreshData, setView, onCreateListing, onUpdateListing);
 
     return (
-        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 h-[calc(100dvh-70px)] w-full px-3 sm:px-4 lg:px-8 pb-4">
+        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 h-[calc(100dvh-70px)] w-full px-0 sm:px-4 lg:px-8 pb-0 sm:pb-4">
             {/* Left: Form Steps */}
-            <div className="flex-1 overflow-y-auto pr-1 sm:pr-2 pb-24 lg:pb-32 scrollbar-hide">
-                <div className="mb-6 lg:mb-8 pt-4">
-                    <div className="flex justify-between items-start mb-4">
+            <div className="flex-1 overflow-y-auto pr-0 sm:pr-2 pb-24 lg:pb-32 scrollbar-hide">
+                <div className="mb-4 lg:mb-8 pt-2 sm:pt-4 px-4 sm:px-0">
+                    <div className="flex justify-between items-start mb-3 sm:mb-4">
                         <div>
-                            <div className="flex items-center gap-3 mb-2">
+                            <div className="flex items-center gap-3 mb-1.5 sm:mb-2">
                                 <Button
                                     variant="ghost"
                                     size="sm"
@@ -66,10 +66,10 @@ const CreateListingWizard: React.FC<CreateListingWizardProps> = ({
                                         : 'Unsaved changes'}
                                 </span>
                             </div>
-                            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
+                            <h2 className="text-xl sm:text-3xl font-bold text-gray-900 tracking-tight">
                                 {(newListing as any).id ? 'Edit Listing' : 'Create New Listing'}
                             </h2>
-                            <p className="text-gray-500 mt-1 text-sm sm:text-base">Step {step} of 5</p>
+                            <p className="text-gray-500 mt-0.5 sm:mt-1 text-xs sm:text-base">Step {step} of 5</p>
                         </div>
                         <div className="flex items-center gap-1 sm:gap-3">
                             {/* Mobile Preview Toggle in Header */}
@@ -78,7 +78,7 @@ const CreateListingWizard: React.FC<CreateListingWizardProps> = ({
                                 className="lg:hidden p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500 hover:text-brand-600"
                                 title="Preview Listing"
                             >
-                                <Eye size={24} />
+                                <Eye size={20} />
                             </button>
 
                             <div className="hidden lg:block">
@@ -101,7 +101,7 @@ const CreateListingWizard: React.FC<CreateListingWizardProps> = ({
                                 {isSubmitting ? (
                                     <div className="w-5 h-5 border-2 border-gray-500 rounded-full border-t-transparent animate-spin" />
                                 ) : (
-                                    <CheckCircle size={24} />
+                                    <CheckCircle size={20} />
                                 )}
                             </button>
 
@@ -110,13 +110,13 @@ const CreateListingWizard: React.FC<CreateListingWizardProps> = ({
                                 className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500 hover:text-gray-900"
                                 title="Close Wizard"
                             >
-                                <X size={24} />
+                                <X size={20} />
                             </button>
                         </div>
                     </div>
 
                     {/* Animated Progress Bar */}
-                    <div className="w-full bg-gray-100 h-1.5 sm:h-2 rounded-full mt-2 overflow-hidden shadow-inner">
+                    <div className="w-full bg-gray-100 h-1 sm:h-2 rounded-full mt-2 overflow-hidden shadow-inner">
                         <div
                             className="h-full bg-gradient-to-r from-brand-500 to-purple-600 transition-all duration-700 ease-out shadow-[0_0_10px_rgba(231,76,60,0.4)] relative"
                             style={{ width: `${(step / 5) * 100}%` }}

@@ -280,35 +280,33 @@ const CreateListingWizardV2: React.FC<CreateListingWizardProps> = ({
     return (
         <div className="min-h-screen bg-white flex flex-col">
             {/* Top Header with Phase Navigation */}
-            <header className="h-12 sm:h-14 border-b border-gray-100 px-3 sm:px-4 flex items-center justify-between bg-white">
+            <header className="h-14 border-b border-gray-100 px-4 sm:px-6 flex items-center justify-between bg-white">
                 {/* Left: Close Button */}
                 <button
                     onClick={() => setView('listings')}
-                    className="p-1.5 sm:p-2 -ml-1 sm:-ml-2 hover:bg-gray-100 rounded-full transition-colors"
+                    className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-900 transition-colors -ml-1"
                     aria-label="Close"
                 >
-                    <X size={18} className="sm:hidden text-gray-600" />
-                    <X size={20} className="hidden sm:block text-gray-600" />
+                    <X size={22} />
                 </button>
 
-                {/* Center: Phase Navigation */}
-                <div className="flex items-center gap-0.5 sm:gap-1 overflow-x-auto no-scrollbar">
+                {/* Center: Phase Navigation - Hidden on mobile */}
+                <div className="hidden sm:flex items-center gap-0.5 sm:gap-1 overflow-x-auto no-scrollbar">
                     {PHASES.map((phase, index) => {
                         const PhaseIcon = phase.icon;
                         const isActive = phase.id === currentPhase.id;
                         const isCompleted = phase.id < currentPhase.id;
-                        
+
                         return (
                             <React.Fragment key={phase.id}>
                                 <button
                                     onClick={() => goToStep(phase.steps[0])}
-                                    className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap ${
-                                        isActive
-                                            ? 'bg-brand-600 text-white shadow-sm'
-                                            : isCompleted
+                                    className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap ${isActive
+                                        ? 'bg-brand-600 text-white shadow-sm'
+                                        : isCompleted
                                             ? 'bg-brand-50 text-brand-700 hover:bg-brand-100'
                                             : 'text-gray-400 hover:text-gray-600'
-                                    }`}
+                                        }`}
                                 >
                                     <PhaseIcon size={12} className="sm:hidden" />
                                     <PhaseIcon size={14} className="hidden sm:block" />
@@ -322,7 +320,7 @@ const CreateListingWizardV2: React.FC<CreateListingWizardProps> = ({
                     })}
                 </div>
 
-                {/* Right: Exit - Hidden on mobile, just use X */}
+                {/* Right: Exit - Hidden on mobile */}
                 <button
                     onClick={() => setView('listings')}
                     className="hidden sm:block px-3 py-1.5 text-xs font-medium text-gray-500 hover:text-brand-600 border border-gray-200 rounded-full hover:border-brand-200 hover:bg-brand-50 transition-colors"
@@ -330,7 +328,7 @@ const CreateListingWizardV2: React.FC<CreateListingWizardProps> = ({
                     Exit
                 </button>
                 {/* Spacer for mobile to balance the header */}
-                <div className="w-8 sm:hidden" />
+                <div className="w-10 sm:hidden" />
             </header>
 
             {/* Main Split Layout */}
@@ -351,70 +349,120 @@ const CreateListingWizardV2: React.FC<CreateListingWizardProps> = ({
             </div>
 
             {/* Bottom Footer - Full Width */}
-            <footer className="sticky bottom-0 bg-white border-t border-gray-200 px-4 py-3 sm:px-6 sm:py-4 z-10">
-                <div className="max-w-7xl mx-auto flex items-center justify-between">
-                    {/* Left: Go Back + Auto-save Status */}
-                    <div className="flex items-center gap-2 sm:gap-4">
-                        {step > 1 && (
+            <footer className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-4 sm:px-6 sm:py-4 z-10 pb-safe">
+                <div className="max-w-7xl mx-auto">
+                    {/* Mobile: Full width button layout */}
+                    <div className="flex sm:hidden flex-col gap-3">
+                        {/* Progress indicator */}
+                        <div className="flex items-center justify-between text-xs text-gray-500">
+                            <span>Step {step} of {TOTAL_STEPS}</span>
+                            <div className="flex-1 mx-4 h-1 bg-gray-200 rounded-full overflow-hidden">
+                                <div
+                                    className="h-full bg-brand-600 transition-all duration-500 rounded-full"
+                                    style={{ width: `${(step / TOTAL_STEPS) * 100}%` }}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Buttons row */}
+                        <div className="flex gap-3">
+                            {step > 1 && (
+                                <button
+                                    onClick={goBack}
+                                    className="flex-1 py-3 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                                >
+                                    Back
+                                </button>
+                            )}
+                            {step === TOTAL_STEPS ? (
+                                <button
+                                    onClick={handleCreateListing}
+                                    disabled={isSubmitting}
+                                    className={`${step > 1 ? 'flex-1' : 'w-full'} py-3 bg-brand-600 rounded-xl text-sm font-semibold text-white hover:bg-brand-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2`}
+                                >
+                                    {isSubmitting ? (
+                                        <>
+                                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                            Publishing...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Check size={18} />
+                                            Publish Listing
+                                        </>
+                                    )}
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={goNext}
+                                    className={`${step > 1 ? 'flex-1' : 'w-full'} py-3 bg-brand-600 rounded-xl text-sm font-semibold text-white hover:bg-brand-700 transition-colors`}
+                                >
+                                    Next
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Desktop: Original layout */}
+                    <div className="hidden sm:flex items-center justify-between">
+                        {/* Left: Go Back + Auto-save Status */}
+                        <div className="flex items-center gap-4">
+                            {step > 1 && (
+                                <button
+                                    onClick={goBack}
+                                    className="flex items-center gap-2 text-gray-600 hover:text-gray-900 text-sm font-medium transition-colors"
+                                >
+                                    <ArrowLeft size={16} />
+                                    Go Back
+                                </button>
+                            )}
+
+                            {/* Auto-save indicator */}
+                            <div className={`flex items-center gap-1.5 text-xs transition-all duration-300 ${showSaveStatus ? 'opacity-100' : 'opacity-0'
+                                }`}>
+                                <Cloud size={14} className="text-green-500" />
+                                <span className="text-gray-500">Saved</span>
+                            </div>
+                        </div>
+
+                        {/* Center: Progress Bar */}
+                        <div className="flex-1 max-w-md mx-8">
+                            <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                                <div
+                                    className="h-full bg-gradient-to-r from-brand-500 to-brand-600 transition-all duration-500 ease-out rounded-full"
+                                    style={{ width: `${(step / TOTAL_STEPS) * 100}%` }}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Right: Next/Publish Button */}
+                        {step === TOTAL_STEPS ? (
                             <button
-                                onClick={goBack}
-                                className="flex items-center gap-1 sm:gap-2 text-gray-600 hover:text-gray-900 text-xs sm:text-sm font-medium transition-colors"
+                                onClick={handleCreateListing}
+                                disabled={isSubmitting}
+                                className="px-6 py-2.5 bg-brand-600 rounded-lg text-sm font-medium text-white hover:bg-brand-700 transition-colors shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                             >
-                                <ArrowLeft size={14} className="sm:hidden" />
-                                <ArrowLeft size={16} className="hidden sm:block" />
-                                <span className="hidden sm:inline">Go Back</span>
-                                <span className="sm:hidden">Back</span>
+                                {isSubmitting ? (
+                                    <>
+                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        Publishing...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Check size={16} />
+                                        Publish
+                                    </>
+                                )}
+                            </button>
+                        ) : (
+                            <button
+                                onClick={goNext}
+                                className="px-6 py-2.5 bg-brand-600 rounded-lg text-sm font-medium text-white hover:bg-brand-700 transition-colors shadow-sm hover:shadow"
+                            >
+                                Next
                             </button>
                         )}
-                        
-                        {/* Auto-save indicator - subtle and non-intrusive */}
-                        <div className={`hidden sm:flex items-center gap-1.5 text-xs transition-all duration-300 ${
-                            showSaveStatus ? 'opacity-100' : 'opacity-0'
-                        }`}>
-                            <Cloud size={14} className="text-green-500" />
-                            <span className="text-gray-500">Saved</span>
-                        </div>
                     </div>
-
-                    {/* Center: Progress Bar - Hidden on smallest screens */}
-                    <div className="hidden xs:block sm:block flex-1 max-w-[120px] sm:max-w-md mx-4 sm:mx-8">
-                        <div className="h-1 sm:h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                            <div
-                                className="h-full bg-gradient-to-r from-brand-500 to-brand-600 transition-all duration-500 ease-out rounded-full"
-                                style={{ width: `${(step / TOTAL_STEPS) * 100}%` }}
-                            />
-                        </div>
-                    </div>
-
-                    {/* Right: Next/Publish Button */}
-                    {step === TOTAL_STEPS ? (
-                        <button
-                            onClick={handleCreateListing}
-                            disabled={isSubmitting}
-                            className="px-4 sm:px-6 py-2 sm:py-2.5 bg-brand-600 rounded-lg text-xs sm:text-sm font-medium text-white hover:bg-brand-700 transition-colors shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 sm:gap-2"
-                        >
-                            {isSubmitting ? (
-                                <>
-                                    <div className="w-3.5 h-3.5 sm:w-4 sm:h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                    <span className="hidden sm:inline">Publishing...</span>
-                                    <span className="sm:hidden">Publish</span>
-                                </>
-                            ) : (
-                                <>
-                                    <Check size={14} className="sm:hidden" />
-                                    <Check size={16} className="hidden sm:block" />
-                                    <span>Publish</span>
-                                </>
-                            )}
-                        </button>
-                    ) : (
-                        <button
-                            onClick={goNext}
-                            className="px-5 sm:px-6 py-2 sm:py-2.5 bg-brand-600 rounded-lg text-xs sm:text-sm font-medium text-white hover:bg-brand-700 transition-colors shadow-sm hover:shadow"
-                        >
-                            Next
-                        </button>
-                    )}
                 </div>
             </footer>
 

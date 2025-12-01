@@ -51,11 +51,10 @@ const StepPhotos: React.FC<StepPhotosProps> = ({
             <div className="space-y-6">
                 {/* Photo Count Badge */}
                 <div className="flex items-center justify-between">
-                    <div className={`px-3 py-1.5 rounded-full text-sm font-medium ${
-                        hasEnoughPhotos 
-                            ? 'bg-green-100 text-green-700' 
+                    <div className={`px-3 py-1.5 rounded-full text-sm font-medium ${hasEnoughPhotos
+                            ? 'bg-green-100 text-green-700'
                             : 'bg-amber-100 text-amber-700'
-                    }`}>
+                        }`}>
                         {photoCount} / {MIN_PHOTOS} photos {hasEnoughPhotos ? '✓' : 'required'}
                     </div>
                     {!hasEnoughPhotos && (
@@ -68,23 +67,24 @@ const StepPhotos: React.FC<StepPhotosProps> = ({
                 {/* Upload Area */}
                 {photoCount === 0 ? (
                     // Empty State
-                    <label className="block w-full min-h-[300px] border-2 border-dashed border-gray-300 rounded-2xl hover:border-gray-400 hover:bg-gray-50 transition-all cursor-pointer">
-                        <input 
-                            type="file" 
-                            multiple 
-                            accept="image/*" 
-                            className="hidden" 
-                            onChange={handleImageUpload} 
+                    <label className="block w-full min-h-[200px] sm:min-h-[300px] border-2 border-dashed border-gray-300 rounded-2xl hover:border-gray-400 hover:bg-gray-50 transition-all cursor-pointer">
+                        <input
+                            type="file"
+                            multiple
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handleImageUpload}
                         />
-                        <div className="h-full flex flex-col items-center justify-center p-8 text-center">
-                            <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mb-4">
-                                <Upload size={28} className="text-gray-400" />
+                        <div className="h-full flex flex-col items-center justify-center p-6 sm:p-8 text-center">
+                            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-2xl flex items-center justify-center mb-3 sm:mb-4">
+                                <Upload size={24} className="text-gray-400 sm:hidden" />
+                                <Upload size={28} className="text-gray-400 hidden sm:block" />
                             </div>
-                            <h4 className="text-lg font-semibold text-gray-900 mb-2">
+                            <h4 className="text-base sm:text-lg font-semibold text-gray-900 mb-1 sm:mb-2">
                                 Drag photos here
                             </h4>
-                            <p className="text-gray-500 mb-4">or click to browse</p>
-                            <span className="text-sm text-gray-400">
+                            <p className="text-sm sm:text-base text-gray-500 mb-3 sm:mb-4">or click to browse</p>
+                            <span className="text-xs sm:text-sm text-gray-400">
                                 Upload at least {MIN_PHOTOS} photos
                             </span>
                         </div>
@@ -106,14 +106,14 @@ const StepPhotos: React.FC<StepPhotosProps> = ({
                                 className="w-full h-full object-cover"
                             />
                             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
-                            
+
                             {/* Cover Badge */}
                             <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full text-xs font-semibold text-gray-900">
                                 Cover photo
                             </div>
-                            
+
                             {/* Actions */}
-                            <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="absolute top-3 right-3 flex gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                                 <button
                                     onClick={() => setPreviewImage(images[0])}
                                     className="p-2 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition-colors"
@@ -131,9 +131,9 @@ const StepPhotos: React.FC<StepPhotosProps> = ({
                                     <Trash2 size={16} className="text-red-600" />
                                 </button>
                             </div>
-                            
+
                             {/* Drag Handle */}
-                            <div className="absolute bottom-3 left-3 p-2 bg-white/80 backdrop-blur-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity cursor-grab">
+                            <div className="absolute bottom-3 left-3 p-2 bg-white/80 backdrop-blur-sm rounded-lg opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity cursor-grab">
                                 <GripVertical size={16} className="text-gray-500" />
                             </div>
                         </div>
@@ -145,9 +145,8 @@ const StepPhotos: React.FC<StepPhotosProps> = ({
                                 return (
                                     <div
                                         key={actualIndex}
-                                        className={`relative aspect-square rounded-xl overflow-hidden bg-gray-100 group cursor-grab ${
-                                            draggedImageIndex === actualIndex ? 'opacity-50 scale-95' : ''
-                                        }`}
+                                        className={`relative aspect-square rounded-xl overflow-hidden bg-gray-100 group cursor-grab ${draggedImageIndex === actualIndex ? 'opacity-50 scale-95' : ''
+                                            }`}
                                         draggable
                                         onDragStart={() => handleImageDragStart(actualIndex)}
                                         onDragOver={(e) => handleImageDragOver(e, actualIndex)}
@@ -159,24 +158,26 @@ const StepPhotos: React.FC<StepPhotosProps> = ({
                                             className="w-full h-full object-cover"
                                         />
                                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
-                                        
+
                                         {/* Actions */}
-                                        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <div className="absolute top-1 right-1 sm:top-2 sm:right-2 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                                             <button
                                                 onClick={() => setPreviewImage(image)}
-                                                className="p-1.5 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white"
+                                                className="p-1 sm:p-1.5 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white"
                                                 title="Preview image"
                                                 aria-label="Preview image"
                                             >
-                                                <ZoomIn size={14} className="text-gray-700" />
+                                                <ZoomIn size={12} className="text-gray-700 sm:hidden" />
+                                                <ZoomIn size={14} className="text-gray-700 hidden sm:block" />
                                             </button>
                                             <button
                                                 onClick={() => removeImage(actualIndex)}
-                                                className="p-1.5 bg-white/90 backdrop-blur-sm rounded-full hover:bg-red-50"
+                                                className="p-1 sm:p-1.5 bg-white/90 backdrop-blur-sm rounded-full hover:bg-red-50"
                                                 title="Remove image"
                                                 aria-label="Remove image"
                                             >
-                                                <Trash2 size={14} className="text-red-600" />
+                                                <Trash2 size={12} className="text-red-600 sm:hidden" />
+                                                <Trash2 size={14} className="text-red-600 hidden sm:block" />
                                             </button>
                                         </div>
                                     </div>
@@ -192,17 +193,18 @@ const StepPhotos: React.FC<StepPhotosProps> = ({
                                     className="hidden"
                                     onChange={handleImageUpload}
                                 />
-                                <Plus size={24} className="text-gray-400 mb-1" />
-                                <span className="text-xs text-gray-500">Add more</span>
+                                <Plus size={20} className="text-gray-400 mb-1 sm:hidden" />
+                                <Plus size={24} className="text-gray-400 mb-1 hidden sm:block" />
+                                <span className="text-[10px] sm:text-xs text-gray-500">Add more</span>
                             </label>
                         </div>
                     </div>
                 )}
 
                 {/* Tips */}
-                <div className="p-4 bg-gray-50 rounded-xl">
-                    <h4 className="text-sm font-medium text-gray-900 mb-2">Photo tips</h4>
-                    <ul className="text-sm text-gray-600 space-y-1.5">
+                <div className="p-3 sm:p-4 bg-gray-50 rounded-xl">
+                    <h4 className="text-xs sm:text-sm font-medium text-gray-900 mb-2">Photo tips</h4>
+                    <ul className="text-xs sm:text-sm text-gray-600 space-y-1.5">
                         <li className="flex items-start gap-2">
                             <CheckCircle size={14} className="text-green-500 mt-0.5 shrink-0" />
                             <span>Use natural light for best results</span>
@@ -236,7 +238,7 @@ const StepPhotos: React.FC<StepPhotosProps> = ({
 
             {/* Image Preview Modal */}
             {previewImage && (
-                <div 
+                <div
                     className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
                     onClick={() => setPreviewImage(null)}
                 >

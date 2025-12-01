@@ -54,12 +54,12 @@ const StepCapacity: React.FC<StepCapacityProps> = ({
             onBack={onBack}
             canContinue={canContinue}
         >
-            <div className="space-y-8">
+            <div className="space-y-6">
                 {/* Maximum Capacity */}
-                <div className="p-6 bg-white border-2 border-gray-200 rounded-2xl">
-                    <div className="flex items-center justify-between">
+                <div className="p-5 sm:p-6 bg-white border-2 border-gray-200 rounded-2xl">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center">
+                            <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center shrink-0">
                                 <Users size={24} className="text-gray-600" />
                             </div>
                             <div>
@@ -68,11 +68,11 @@ const StepCapacity: React.FC<StepCapacityProps> = ({
                             </div>
                         </div>
                         
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center justify-end gap-4">
                             <button
                                 onClick={() => updateCapacity(capacity - 1)}
                                 disabled={capacity <= 1}
-                                className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all ${
+                                className={`w-11 h-11 rounded-full border-2 flex items-center justify-center transition-all ${
                                     capacity <= 1
                                         ? 'border-gray-200 text-gray-300 cursor-not-allowed'
                                         : 'border-gray-300 text-gray-600 hover:border-gray-900 hover:text-gray-900'
@@ -86,7 +86,7 @@ const StepCapacity: React.FC<StepCapacityProps> = ({
                             <button
                                 onClick={() => updateCapacity(capacity + 1)}
                                 disabled={capacity >= 50}
-                                className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all ${
+                                className={`w-11 h-11 rounded-full border-2 flex items-center justify-center transition-all ${
                                     capacity >= 50
                                         ? 'border-gray-200 text-gray-300 cursor-not-allowed'
                                         : 'border-gray-300 text-gray-600 hover:border-gray-900 hover:text-gray-900'
@@ -101,9 +101,9 @@ const StepCapacity: React.FC<StepCapacityProps> = ({
                 </div>
 
                 {/* Included in Base Price - Optional Advanced Setting */}
-                <div className="p-6 bg-gray-50 border border-gray-200 rounded-2xl">
-                    <div className="flex items-center justify-between">
-                        <div className="flex-1 pr-4">
+                <div className="p-5 sm:p-6 bg-gray-50 border border-gray-200 rounded-2xl">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
                                 <h3 className="font-medium text-gray-700">Base price covers how many guests?</h3>
                                 <span className="text-[10px] font-medium text-gray-400 bg-gray-200 px-1.5 py-0.5 rounded">Optional</span>
@@ -116,11 +116,11 @@ const StepCapacity: React.FC<StepCapacityProps> = ({
                             </p>
                         </div>
                         
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center justify-end gap-4">
                             <button
                                 onClick={() => updateIncludedGuests(includedGuests - 1)}
                                 disabled={includedGuests <= 1}
-                                className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all ${
+                                className={`w-11 h-11 rounded-full border-2 flex items-center justify-center transition-all ${
                                     includedGuests <= 1
                                         ? 'border-gray-200 text-gray-300 cursor-not-allowed'
                                         : 'border-gray-300 text-gray-600 hover:border-gray-900 hover:text-gray-900'
@@ -134,7 +134,7 @@ const StepCapacity: React.FC<StepCapacityProps> = ({
                             <button
                                 onClick={() => updateIncludedGuests(includedGuests + 1)}
                                 disabled={includedGuests >= capacity}
-                                className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all ${
+                                className={`w-11 h-11 rounded-full border-2 flex items-center justify-center transition-all ${
                                     includedGuests >= capacity
                                         ? 'border-gray-200 text-gray-300 cursor-not-allowed'
                                         : 'border-gray-300 text-gray-600 hover:border-gray-900 hover:text-gray-900'

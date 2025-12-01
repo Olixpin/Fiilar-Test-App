@@ -24,28 +24,28 @@ const StepWrapper: React.FC<StepWrapperProps> = ({
     phaseName,
 }) => {
     return (
-        <div className="min-h-[calc(100vh-180px)] flex flex-col px-4 py-4 sm:px-6 sm:py-6 lg:px-12">
+        <div className="pb-36 sm:pb-4 flex flex-col px-6 py-8 sm:px-8 sm:py-8 lg:px-12">
             {/* Form Content - Full Width */}
-            <div className="flex-1 w-full">
+            <div className="flex-1 w-full max-w-lg mx-auto sm:max-w-none">
                 {/* Phase Badge */}
-                <div className="mb-2 sm:mb-3">
-                    <span className="text-[10px] font-semibold text-brand-600 uppercase tracking-wider">
+                <div className="mb-4">
+                    <span className="text-xs font-semibold text-brand-600 uppercase tracking-wider">
                         {phaseName}
                     </span>
                 </div>
 
                 {/* Title & Subtitle */}
-                <div className="mb-6 sm:mb-8">
-                    <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-1 sm:mb-2">
+                <div className="mb-8">
+                    <h1 className="text-2xl font-semibold text-gray-900 mb-3 leading-tight">
                         {title}
                     </h1>
-                    <p className="text-xs sm:text-sm text-gray-500">
+                    <p className="text-base text-gray-500 leading-relaxed">
                         {subtitle}
                     </p>
                 </div>
 
-                {/* Step Content - Full Width */}
-                <div className="w-full">
+                {/* Step Content - Full Width with breathing room */}
+                <div className="w-full space-y-5">
                     {children}
                 </div>
             </div>
