@@ -154,7 +154,7 @@ const HostBookings: React.FC<HostBookingsProps> = ({ bookings, listings, filter,
                                         }}
                                         length={6}
                                         variant="default"
-                                        onComplete={(val: string) => {
+                                        onComplete={() => {
                                             // Optional: auto-submit on complete
                                             // if (val.length === 6) handleVerifySubmit();
                                         }}

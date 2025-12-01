@@ -3,11 +3,17 @@ import { describe, it, expect, vi } from 'vitest';
 import HostDashboardPage from '../../../features/HostDashboard/pages/HostDashboardPage';
 import { User, Role, Listing, ListingStatus, SpaceType, BookingType, CancellationPolicy } from '@fiilar/types';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import { ToastProvider } from '@fiilar/ui/src/ToastContext';
 
 // Mock hooks - we need to mock them because they are called in the component
+const mockHandleDeleteListing = vi.fn();
+
 vi.mock('../../../features/HostDashboard/hooks/useListingActions', () => ({
   useListingActions: () => ({
-    handleDeleteListing: vi.fn()
+    handleDeleteListing: mockHandleDeleteListing,
+    deleteConfirm: { isOpen: false, listingId: null, message: '' },
+    confirmDelete: vi.fn(),
+    cancelDelete: vi.fn(),
   })
 }));
 
@@ -144,17 +150,30 @@ const mockListings: Listing[] = [
   }
 ];
 
-describe('HostDashboardPage Filtering', () => {
-  it('filters listings to only show those belonging to the current user', () => {
-    render(
+const renderWithProviders = () => {
+  return render(
+    <ToastProvider>
       <MemoryRouter initialEntries={['/host/dashboard?view=listings']}>
         <Routes>
-          <Route path="/host/dashboard" element={
-            <HostDashboardPage user={mockUser} listings={mockListings} refreshData={vi.fn()} />
-          } />
+          <Route
+            path="/host/dashboard"
+            element={
+              <HostDashboardPage
+                user={mockUser}
+                listings={mockListings}
+                refreshData={vi.fn()}
+              />
+            }
+          />
         </Routes>
       </MemoryRouter>
-    );
+    </ToastProvider>
+  );
+};
+
+describe('HostDashboardPage Filtering', () => {
+  it('filters listings to only show those belonging to the current user', () => {
+    renderWithProviders();
 
     // Check that HostListings is rendered
     expect(screen.getByTestId('host-listings')).toBeInTheDocument();

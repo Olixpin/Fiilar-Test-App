@@ -42,22 +42,17 @@ export const ChatList: React.FC<ChatListProps> = ({ currentUserId, selectedId, o
     });
 
     return (
-        <div className="flex flex-col h-full overflow-hidden border-r border-gray-200 bg-white">
-            <div className="p-4 border-b border-gray-100 space-y-4">
-                <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-bold text-gray-900 tracking-tight">Messages</h2>
-                    <button className="text-gray-400 hover:text-gray-600 transition-colors">
-                        <MoreHorizontal size={20} />
-                    </button>
-                </div>
+        <div className="flex flex-col h-full overflow-hidden bg-white">
+            {/* Search - Compact for embedded use */}
+            <div className="p-3 border-b border-gray-100">
                 <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                     <input
                         type="text"
-                        placeholder="Search messages..."
+                        placeholder="Search conversations..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
                     />
                 </div>
             </div>

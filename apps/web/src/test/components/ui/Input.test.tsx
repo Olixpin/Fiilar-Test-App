@@ -20,7 +20,7 @@ describe('Input', () => {
   it('renders with error state', () => {
     render(<Input error />);
     const input = screen.getByRole('textbox');
-    expect(input).toHaveClass('border-red-500');
+    expect(input).toHaveClass('border-red-400');
   });
 
   it('renders icons', () => {
@@ -33,8 +33,8 @@ describe('Input', () => {
     expect(screen.getByTestId('right-icon')).toBeInTheDocument();
     
     const input = screen.getByRole('textbox');
-    expect(input).toHaveClass('pl-10');
-    expect(input).toHaveClass('pr-10');
+    expect(input).toHaveClass('pl-12');
+    expect(input).toHaveClass('pr-12');
   });
 
   it('is disabled when disabled prop is passed', () => {

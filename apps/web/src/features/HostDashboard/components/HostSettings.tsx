@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { User as UserIcon, HelpCircle, Info, MessageSquare, Phone, Mail, MessageCircle, Star, Check, AlertTriangle, Trash2, FileText, Shield, Upload, Globe, ChevronRight } from 'lucide-react';
+import { User as UserIcon, HelpCircle, Info, MessageSquare, Phone, Mail, MessageCircle, Star, Check, AlertTriangle, Trash2, FileText, Shield, Upload, Globe, ChevronRight, ChevronLeft } from 'lucide-react';
 import { User } from '@fiilar/types';
 import { Button, useLocale, useToast } from '@fiilar/ui';
 import { updateUserProfile, APP_INFO } from '@fiilar/storage';
@@ -244,6 +244,23 @@ const HostSettings: React.FC<HostSettingsProps> = ({ user, onUpdateUser }) => {
         { id: 'feedback' as SettingsTab, label: 'Feedback', icon: MessageSquare },
     ];
 
+    const [mobileView, setMobileView] = useState<'menu' | 'content'>('menu');
+
+    const handleTabChange = (tab: SettingsTab) => {
+        setActiveTab(tab);
+        setMobileView('content');
+    };
+
+    const handleBackToMenu = () => {
+        setMobileView('menu');
+    };
+
+    // Get label for current tab
+    const getTabLabel = () => {
+        const tab = tabs.find(t => t.id === activeTab);
+        return tab?.label || 'Settings';
+    };
+
     return (
         <div className="max-w-6xl mx-auto relative">
             {/* Success Toast */}
@@ -256,9 +273,26 @@ const HostSettings: React.FC<HostSettingsProps> = ({ user, onUpdateUser }) => {
                 </div>
             )}
 
+            {/* Mobile Header - Menu View */}
+            <div className={`flex md:hidden items-center gap-3 mb-6 ${mobileView === 'content' ? 'hidden' : 'flex'}`}>
+                <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+            </div>
+
+            {/* Mobile Header - Content View */}
+            <div className={`flex md:hidden items-center gap-3 mb-6 ${mobileView === 'menu' ? 'hidden' : 'flex'}`}>
+                <button
+                    onClick={handleBackToMenu}
+                    className="p-2 -ml-2 hover:bg-gray-100 rounded-full transition-colors"
+                    aria-label="Back to menu"
+                >
+                    <ChevronLeft size={24} className="text-gray-600" />
+                </button>
+                <h1 className="text-xl font-bold text-gray-900">{getTabLabel()}</h1>
+            </div>
+
             <div className="flex flex-col md:flex-row gap-8">
                 {/* Sidebar Navigation */}
-                <div className="md:w-72 shrink-0 space-y-8 border-r border-gray-100 pr-6 hidden md:block">
+                <div className={`md:w-72 shrink-0 space-y-8 border-r border-gray-100 pr-6 ${mobileView === 'content' ? 'hidden md:block' : 'block'}`}>
                     <div className="space-y-2">
                         <h3 className="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Settings</h3>
                         {tabs.map((tab) => {
@@ -267,7 +301,7 @@ const HostSettings: React.FC<HostSettingsProps> = ({ user, onUpdateUser }) => {
                             return (
                                 <button
                                     key={tab.id}
-                                    onClick={() => setActiveTab(tab.id)}
+                                    onClick={() => handleTabChange(tab.id)}
                                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all group relative ${isActive
                                         ? 'bg-brand-50 text-brand-700'
                                         : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
@@ -276,6 +310,9 @@ const HostSettings: React.FC<HostSettingsProps> = ({ user, onUpdateUser }) => {
                                     <Icon size={20} className={isActive ? 'text-brand-600' : 'text-gray-400 group-hover:text-gray-600'} />
                                     <span className={`font-medium ${isActive ? 'text-brand-900' : 'text-gray-700'}`}>{tab.label}</span>
                                     {isActive && <div className="absolute right-2 w-1.5 h-1.5 rounded-full bg-brand-500" />}
+
+                                    {/* Mobile Arrow */}
+                                    <ChevronRight size={16} className="md:hidden ml-auto text-gray-400" />
                                 </button>
                             );
                         })}
@@ -283,27 +320,7 @@ const HostSettings: React.FC<HostSettingsProps> = ({ user, onUpdateUser }) => {
                 </div>
 
                 {/* Content Area */}
-                <div className="flex-1 min-w-0">
-                    {/* Mobile Tabs (visible only on small screens) */}
-                    <div className="md:hidden flex overflow-x-auto gap-2 pb-4 mb-6 no-scrollbar">
-                        {tabs.map((tab) => {
-                            const Icon = tab.icon;
-                            const isActive = activeTab === tab.id;
-                            return (
-                                <button
-                                    key={tab.id}
-                                    onClick={() => setActiveTab(tab.id)}
-                                    className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap text-sm font-medium transition-colors ${isActive
-                                        ? 'bg-brand-600 text-white'
-                                        : 'bg-gray-100 text-gray-600'
-                                        }`}
-                                >
-                                    <Icon size={16} />
-                                    {tab.label}
-                                </button>
-                            );
-                        })}
-                    </div>
+                <div className={`flex-1 min-w-0 ${mobileView === 'menu' ? 'hidden md:block' : 'block'}`}>
 
                     {/* Account Settings */}
                     {activeTab === 'account' && (
@@ -355,7 +372,7 @@ const HostSettings: React.FC<HostSettingsProps> = ({ user, onUpdateUser }) => {
                                         id="avatar-upload"
                                         aria-label="Upload profile picture"
                                     />
-                                    <div 
+                                    <div
                                         className="w-24 h-24 rounded-full bg-gray-100 overflow-hidden ring-4 ring-white shadow-lg cursor-pointer"
                                         onDoubleClick={() => fileInputRef.current?.click()}
                                         title="Double-click to change profile picture"

@@ -84,7 +84,10 @@ const Login: React.FC<LoginProps> = ({ onLogin, onBack }) => {
     };
 
     return (
-        <div className="min-h-screen flex bg-white">
+        <div className="min-h-[100dvh] flex bg-white relative">
+            {/* Mobile Background Gradient - Subtle premium feel */}
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-gray-50 via-white to-white lg:hidden pointer-events-none" />
+
             {/* Left Side - Visual (Desktop Only) */}
             <div className="hidden lg:flex lg:w-1/2 relative bg-gray-900 overflow-hidden">
                 <img
@@ -111,7 +114,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onBack }) => {
             </div>
 
             {/* Right Side - Form */}
-            <div className="flex-1 flex flex-col justify-center px-4 sm:px-12 lg:px-24 relative bg-white">
+            <div className="flex-1 flex flex-col justify-center px-6 sm:px-12 lg:px-24 relative z-10 overflow-y-auto py-8 lg:py-0">
                 <button
                     onClick={onBack}
                     className="absolute top-4 right-4 sm:top-8 sm:right-8 p-2 hover:bg-gray-50 rounded-full transition-colors text-gray-400 hover:text-gray-900"
@@ -123,7 +126,18 @@ const Login: React.FC<LoginProps> = ({ onLogin, onBack }) => {
                 <div className="max-w-[420px] w-full mx-auto">
                     {step === 0 && (
                         <LoginOptions
-                            onEmailLogin={() => handleStepChange(1)}
+                            onEmailLogin={(email) => {
+                                if (email) {
+                                    // Email provided from input - skip to OTP step
+                                    emailForm.setValue('email', email);
+                                    const code = sendVerificationEmail(email, 'mock-token', '');
+                                    showToast({ message: `Demo Code: ${code}`, type: 'info', duration: 5000 });
+                                    handleStepChange(3);
+                                } else {
+                                    // No email - go to email entry step
+                                    handleStepChange(1);
+                                }
+                            }}
                             onGoogleLogin={() => onLogin(Role.USER, 'google', 'jessica.lee@gmail.example.com', {
                                 firstName: 'Jessica',
                                 lastName: 'Lee',

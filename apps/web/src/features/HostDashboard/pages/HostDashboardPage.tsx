@@ -2,7 +2,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { User, Listing, ListingStatus, Booking, Role } from '@fiilar/types';
 import { saveListing } from '@fiilar/storage';
-import { Menu, Plus, Search, Bell, Settings as SettingsIcon, LogOut, AlertCircle, Clock, User as UserIcon } from 'lucide-react';
+import { Plus, Search, Bell, Settings as SettingsIcon, LogOut, AlertCircle, Clock, User as UserIcon, Wallet, Sparkles, ChevronRight } from 'lucide-react';
 import { getConversations } from '@fiilar/messaging';
 import { ConfirmDialog, UserAvatar } from '@fiilar/ui';
 import { cn } from '@fiilar/utils';
@@ -18,9 +18,9 @@ import HostListings from '../components/HostListings';
 import HostBookings from '../components/HostBookings';
 import HostFinancials from '../components/HostFinancials';
 import HostVerify from '../components/HostVerify';
-import CreateListingWizard from '../components/CreateListingWizard';
+import CreateListingWizard from '../components/CreateListingWizardV2';
 import HostSidebar from '../components/HostSidebar';
-import HostMobileMenu from '../components/HostMobileMenu';
+import HostBottomNav from '../components/HostBottomNav';
 
 import HostMessages from '../components/HostMessages';
 import HostPhoneCollectionModal from '../components/HostPhoneCollectionModal';
@@ -29,6 +29,7 @@ import HostPhoneCollectionModal from '../components/HostPhoneCollectionModal';
 import HostEarnings from '../components/HostEarnings';
 import HostSettings from '../components/HostSettings';
 import NotificationsPage from '../../Notifications/pages/NotificationsPage';
+import Home from '../../Listings/pages/Home';
 
 interface HostDashboardPageProps {
     user: User;
@@ -40,7 +41,7 @@ interface HostDashboardPageProps {
     onLogout?: () => void;
 }
 
-type View = 'overview' | 'listings' | 'create' | 'edit' | 'calendar' | 'settings' | 'bookings' | 'earnings' | 'payouts' | 'messages' | 'notifications' | 'verify';
+type View = 'overview' | 'listings' | 'create' | 'edit' | 'calendar' | 'settings' | 'bookings' | 'earnings' | 'payouts' | 'messages' | 'notifications' | 'verify' | 'menu' | 'explore';
 
 const HostDashboardPage: React.FC<HostDashboardPageProps> = ({ user, listings, refreshData, hideUI = false, onUpdateListing, onCreateListing, onLogout }) => {
     // View State
@@ -50,7 +51,7 @@ const HostDashboardPage: React.FC<HostDashboardPageProps> = ({ user, listings, r
     // Derived view state from URL
     const viewParam = searchParams.get('view');
     const listingIdParam = searchParams.get('listingId');
-    const view: View = (viewParam && ['overview', 'listings', 'create', 'edit', 'calendar', 'settings', 'bookings', 'earnings', 'payouts', 'messages', 'notifications', 'verify'].includes(viewParam))
+    const view: View = (viewParam && ['overview', 'listings', 'create', 'edit', 'calendar', 'settings', 'bookings', 'earnings', 'payouts', 'messages', 'notifications', 'verify', 'menu', 'explore'].includes(viewParam))
         ? (viewParam as View)
         : 'overview';
 
@@ -69,11 +70,11 @@ const HostDashboardPage: React.FC<HostDashboardPageProps> = ({ user, listings, r
     }, [listings, user]);
 
     // Mobile menu state
-    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [showPhoneModal, setShowPhoneModal] = useState(false);
     const [sidebarExpanded, setSidebarExpanded] = useState(false);
     const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const [activeCategory, setActiveCategory] = useState('All');
     const profileMenuRef = useRef<HTMLDivElement>(null);
 
     // Close profile menu on click outside or ESC
@@ -133,11 +134,17 @@ const HostDashboardPage: React.FC<HostDashboardPageProps> = ({ user, listings, r
         return () => clearInterval(interval);
     }, [user]);
 
+    // Data Migration: Backfill missing bookingConfig for existing listings
+    // This ensures "data driven" time display works for listings created before the fix.
+    // Use a ref to prevent infinite loops if save fails or data is stubborn
+    const migrationAttemptedRef = useRef(false);
+
     useEffect(() => {
-        // Data Migration: Backfill missing bookingConfig for existing listings
-        // This ensures "data driven" time display works for listings created before the fix.
+        if (migrationAttemptedRef.current) return;
+
         const migrateListings = () => {
-            const listingsToUpdate = listings.filter(l => !l.bookingConfig);
+            // Only migrate listings that belong to the current user to avoid security errors
+            const listingsToUpdate = listings.filter(l => !l.bookingConfig && l.hostId === user.id);
             if (listingsToUpdate.length > 0) {
                 console.log('Migrating listings with missing bookingConfig:', listingsToUpdate.length);
                 listingsToUpdate.forEach(l => {
@@ -155,6 +162,10 @@ const HostDashboardPage: React.FC<HostDashboardPageProps> = ({ user, listings, r
                     saveListing(updatedListing);
                     console.log(`Migrated listing ${l.id} with default bookingConfig`);
                 });
+
+                // Mark as attempted so we don't loop if refreshData() returns same data
+                migrationAttemptedRef.current = true;
+
                 // Refresh data to reflect changes
                 refreshData();
             }
@@ -365,13 +376,13 @@ const HostDashboardPage: React.FC<HostDashboardPageProps> = ({ user, listings, r
 
                                     <button
                                         onClick={() => {
-                                            navigate('/dashboard');
+                                            setView('explore');
                                             setIsProfileMenuOpen(false);
                                         }}
                                         className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
                                     >
                                         <UserIcon size={16} />
-                                        Switch to User
+                                        Switch to Guest (Explore)
                                     </button>
 
                                     <div className="h-px bg-gray-100 my-1" />
@@ -397,37 +408,31 @@ const HostDashboardPage: React.FC<HostDashboardPageProps> = ({ user, listings, r
                 </header>
 
                 {/* Mobile Header */}
-                <div className="lg:hidden bg-white border-b border-gray-200 p-4 sticky top-0 z-30">
-                    <div className="flex items-center justify-between mb-3">
-                        <h1 className="text-xl font-bold text-gray-900">Host Dashboard</h1>
-                        <div className="flex items-center gap-2">
-                            <button
-                                onClick={handleStartNewListing}
-                                className="p-2 bg-brand-600 text-white rounded-full shadow-sm"
-                                title="Create New Listing"
-                                aria-label="Create New Listing"
-                            >
-                                <Plus size={20} />
-                            </button>
-                            <button
-                                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                                className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
-                                aria-label="Toggle menu"
-                            >
-                                <Menu size={24} />
-                            </button>
+                {!hideUI && view !== 'explore' && (
+                    <div className="lg:hidden bg-white border-b border-gray-200 p-4 sticky top-0 z-30">
+                        <div className="flex items-center justify-between">
+                            <h1 className="text-xl font-bold text-gray-900">Host Dashboard</h1>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => setView('explore')}
+                                    className="p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                                    title="Explore / Switch to Guest"
+                                    aria-label="Explore"
+                                >
+                                    <Search size={20} />
+                                </button>
+                                <button
+                                    onClick={handleStartNewListing}
+                                    className="p-2 bg-brand-600 text-white rounded-full shadow-sm hover:bg-brand-700 transition-colors"
+                                    title="Create New Listing"
+                                    aria-label="Create New Listing"
+                                >
+                                    <Plus size={20} />
+                                </button>
+                            </div>
                         </div>
                     </div>
-
-                    {/* Mobile Navigation Menu */}
-                    {isMobileMenuOpen && (
-                        <HostMobileMenu
-                            view={view}
-                            setView={setView}
-                            setIsMobileMenuOpen={setIsMobileMenuOpen}
-                        />
-                    )}
-                </div>
+                )}
 
                 {/* Verification Banner */}
                 {user.role === Role.HOST && !user.kycVerified && (
@@ -466,9 +471,19 @@ const HostDashboardPage: React.FC<HostDashboardPageProps> = ({ user, listings, r
                 )}
 
                 {/* Content Area */}
-                <main className="flex-1 overflow-y-auto px-4 lg:px-8 pb-24 lg:pb-8">
+                <main className={cn(
+                    "flex-1 overflow-y-auto",
+                    view === 'create' || view === 'edit'
+                        ? "" // No extra padding for wizard
+                        : "px-4 lg:px-8 pb-24 lg:pb-8"
+                )}>
                     <div className="lg:max-w-[1600px] lg:mx-auto">
-                        <div className="bg-white rounded-t-[32px] lg:rounded-3xl min-h-full shadow-xl shadow-gray-200/50 -mx-4 lg:mx-0 px-4 sm:px-6 lg:px-8 py-8">
+                        <div className={cn(
+                            "-mx-4 lg:mx-0",
+                            view === 'create' || view === 'edit'
+                                ? "" // No box styling for wizard
+                                : "min-h-full bg-white rounded-t-[32px] lg:rounded-3xl shadow-xl shadow-gray-200/50 px-4 sm:px-6 lg:px-8 py-8"
+                        )}>
 
                             {view === 'overview' && (
                                 <HostOverview
@@ -570,9 +585,99 @@ const HostDashboardPage: React.FC<HostDashboardPageProps> = ({ user, listings, r
                                 </div>
                             )}
 
+                            {view === 'explore' && (
+                                <div className="animate-in fade-in duration-500">
+                                    <Home
+                                        listings={listings}
+                                        user={user}
+                                        activeCategory={activeCategory}
+                                        setActiveCategory={setActiveCategory}
+                                        searchTerm={searchQuery}
+                                        onBecomeHostClick={() => { }}
+                                    />
+                                </div>
+                            )}
+
                             {view === 'notifications' && (
                                 <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
                                     <NotificationsPage userId={user.id} />
+                                </div>
+                            )}
+
+                            {view === 'menu' && (
+                                <div className="animate-in fade-in slide-in-from-bottom-8 duration-700 space-y-6">
+                                    <div className="flex items-center gap-4 mb-6">
+                                        <UserAvatar
+                                            src={user.avatar}
+                                            firstName={user.firstName}
+                                            lastName={user.lastName}
+                                            size="lg"
+                                        />
+                                        <div>
+                                            <h2 className="text-xl font-bold text-gray-900">{user.name}</h2>
+                                            <p className="text-sm text-gray-500">{user.email}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Host Tools</h3>
+                                        <button onClick={() => setView('earnings')} className="w-full flex items-center gap-3 p-4 bg-white border border-gray-100 rounded-xl hover:bg-gray-50 transition-colors">
+                                            <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                                                <Wallet size={20} />
+                                            </div>
+                                            <span className="font-medium text-gray-900">Wallet & Payouts</span>
+                                            <ChevronRight size={16} className="ml-auto text-gray-400" />
+                                        </button>
+                                        <button onClick={() => setView('verify')} className="w-full flex items-center gap-3 p-4 bg-white border border-gray-100 rounded-xl hover:bg-gray-50 transition-colors">
+                                            <div className="p-2 bg-purple-50 text-purple-600 rounded-lg">
+                                                <Sparkles size={20} />
+                                            </div>
+                                            <span className="font-medium text-gray-900">Verify Guest</span>
+                                            <ChevronRight size={16} className="ml-auto text-gray-400" />
+                                        </button>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Settings & Support</h3>
+                                        <button onClick={() => setView('settings')} className="w-full flex items-center gap-3 p-4 bg-white border border-gray-100 rounded-xl hover:bg-gray-50 transition-colors">
+                                            <div className="p-2 bg-gray-50 text-gray-600 rounded-lg">
+                                                <SettingsIcon size={20} />
+                                            </div>
+                                            <span className="font-medium text-gray-900">Settings</span>
+                                            <ChevronRight size={16} className="ml-auto text-gray-400" />
+                                        </button>
+                                        <button onClick={() => setView('notifications')} className="w-full flex items-center gap-3 p-4 bg-white border border-gray-100 rounded-xl hover:bg-gray-50 transition-colors">
+                                            <div className="p-2 bg-gray-50 text-gray-600 rounded-lg">
+                                                <Bell size={20} />
+                                            </div>
+                                            <span className="font-medium text-gray-900">Notifications</span>
+                                            <ChevronRight size={16} className="ml-auto text-gray-400" />
+                                        </button>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Switch Mode</h3>
+                                        <button onClick={() => navigate('/dashboard')} className="w-full flex items-center gap-3 p-4 bg-white border border-gray-100 rounded-xl hover:bg-gray-50 transition-colors">
+                                            <div className="p-2 bg-brand-50 text-brand-600 rounded-lg">
+                                                <UserIcon size={20} />
+                                            </div>
+                                            <span className="font-medium text-gray-900">Switch to Guest Dashboard</span>
+                                            <ChevronRight size={16} className="ml-auto text-gray-400" />
+                                        </button>
+                                    </div>
+
+                                    <button
+                                        onClick={() => {
+                                            if (onLogout) onLogout();
+                                            else navigate('/login-host');
+                                        }}
+                                        className="w-full flex items-center gap-3 p-4 bg-white border border-red-100 rounded-xl hover:bg-red-50 transition-colors text-red-600 mt-4"
+                                    >
+                                        <div className="p-2 bg-red-50 text-red-600 rounded-lg">
+                                            <LogOut size={20} />
+                                        </div>
+                                        <span className="font-medium">Log Out</span>
+                                    </button>
                                 </div>
                             )}
 
@@ -592,6 +697,15 @@ const HostDashboardPage: React.FC<HostDashboardPageProps> = ({ user, listings, r
                 onConfirm={confirmDelete}
                 onCancel={cancelDelete}
             />
+
+            {/* Mobile Bottom Navigation */}
+            {!hideUI && (
+                <HostBottomNav
+                    view={view}
+                    setView={setView}
+                    unreadMessages={unreadMessages}
+                />
+            )}
         </div>
     );
 };

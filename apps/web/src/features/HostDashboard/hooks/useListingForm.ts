@@ -135,7 +135,11 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
         amenities: [],
         cancellationPolicy: CancellationPolicy.MODERATE,
         houseRules: [],
-        safetyItems: []
+        safetyItems: [],
+        // Booking Settings (Availability & Timing)
+        bookingWindow: 90,  // 3 months ahead
+        minNotice: 1,       // 1 day notice
+        prepTime: 0,        // No prep time between bookings
     });
 
     // AI Auto-Fill State
@@ -301,6 +305,14 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
         // For now, we keep the default weekly schedule state but the listing has its availability.
     };
 
+    const emitListingsUpdatedEvent = () => {
+        try {
+            window.dispatchEvent(new Event('fiilar:listings-updated'));
+        } catch (e) {
+            console.error('Failed to dispatch listings updated event', e);
+        }
+    };
+
     const handleAiAutoFill = async () => {
         if (!aiPrompt.trim()) return;
 
@@ -309,33 +321,179 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
             // Simulate AI generation with a timeout
             await new Promise(resolve => setTimeout(resolve, 2000));
 
-            // Mock AI response based on prompt
-            const mockResponse = {
-                title: `Charming Space near ${aiPrompt.includes('beach') ? 'the Beach' : 'City Center'}`,
-                description: `Experience the best of local living in this ${aiPrompt}. Perfectly located for exploring the area.`,
-                price: 15000,
-                location: 'Lagos, Nigeria',
-                capacity: 2,
-                tags: ['Cozy', 'Modern', 'Central'],
-                houseRules: ['No smoking', 'No parties'],
-                safetyItems: ['Smoke Alarm', 'Fire Extinguisher']
+            const prompt = aiPrompt.toLowerCase();
+            
+            // Detect space type from prompt
+            const isStudio = prompt.includes('studio') || prompt.includes('photo') || prompt.includes('podcast');
+            const isConference = prompt.includes('meeting') || prompt.includes('conference') || prompt.includes('office');
+            const isEvent = prompt.includes('event') || prompt.includes('party') || prompt.includes('wedding') || prompt.includes('birthday');
+            const isCoWorking = prompt.includes('coworking') || prompt.includes('co-working') || prompt.includes('workspace');
+            const isBeach = prompt.includes('beach') || prompt.includes('ocean') || prompt.includes('waterfront');
+            const isLuxury = prompt.includes('luxury') || prompt.includes('premium') || prompt.includes('executive');
+            
+            // Generate contextual content based on prompt
+            const getTitle = () => {
+                if (isStudio) return `Modern Creative Studio ${isLuxury ? '• Premium' : ''} in ${prompt.includes('lekki') ? 'Lekki' : 'Victoria Island'}`;
+                if (isConference) return `Professional ${isLuxury ? 'Executive ' : ''}Meeting Room with City Views`;
+                if (isEvent) return `Elegant ${prompt.includes('wedding') ? 'Wedding Venue' : 'Event Space'} with Modern Amenities`;
+                if (isCoWorking) return `Inspiring Co-working Space in Lagos Business District`;
+                if (isBeach) return `Stunning Beachfront Space with Ocean Views`;
+                return `Charming ${isLuxury ? 'Luxury ' : ''}Space in Prime Lagos Location`;
             };
 
-            // Merge with existing state
+            const getDescription = () => {
+                const intro = isLuxury 
+                    ? `Welcome to this premium, meticulously designed space that offers an unparalleled experience.`
+                    : `Discover the perfect space for your needs in the heart of Lagos.`;
+                
+                const features = isStudio
+                    ? `Equipped with professional lighting, soundproofing, and a versatile backdrop system. Perfect for photoshoots, podcasts, video production, and creative sessions.`
+                    : isConference
+                    ? `Features state-of-the-art AV equipment, high-speed WiFi, comfortable seating, and a professional atmosphere ideal for meetings, presentations, and workshops.`
+                    : isEvent
+                    ? `This versatile venue can accommodate intimate gatherings to grand celebrations. Includes customizable lighting, ample parking, and a dedicated event coordinator.`
+                    : isCoWorking
+                    ? `Enjoy a productive environment with ergonomic furniture, unlimited coffee, high-speed internet, and networking opportunities with like-minded professionals.`
+                    : `A thoughtfully curated space with modern amenities, natural lighting, and a welcoming atmosphere that makes every visit memorable.`;
+
+                const closing = `Located in a prime area with easy access to major roads and amenities. Book now and experience the difference!`;
+
+                return `${intro}\n\n${features}\n\n${closing}`;
+            };
+
+            const getAmenities = () => {
+                const base = [
+                    { name: 'High-Speed WiFi', icon: 'wifi' },
+                    { name: 'Air Conditioning', icon: 'wind' },
+                    { name: 'Parking', icon: 'car' },
+                ];
+                if (isStudio) return [...base, 
+                    { name: 'Professional Lighting', icon: 'lightbulb' },
+                    { name: 'Backdrop System', icon: 'image' },
+                    { name: 'Changing Room', icon: 'door-open' },
+                    { name: 'Props Available', icon: 'box' },
+                ];
+                if (isConference) return [...base,
+                    { name: 'Projector & Screen', icon: 'presentation' },
+                    { name: 'Whiteboard', icon: 'clipboard' },
+                    { name: 'Video Conferencing', icon: 'video' },
+                    { name: 'Coffee/Tea', icon: 'coffee' },
+                ];
+                if (isEvent) return [...base,
+                    { name: 'Sound System', icon: 'speaker' },
+                    { name: 'Decorative Lighting', icon: 'sparkles' },
+                    { name: 'Catering Kitchen', icon: 'utensils' },
+                    { name: 'Stage Area', icon: 'mic' },
+                ];
+                return [...base,
+                    { name: 'Kitchen Access', icon: 'utensils' },
+                    { name: 'Workspace', icon: 'laptop' },
+                ];
+            };
+
+            const getPrice = () => {
+                if (isLuxury) return isEvent ? 500000 : isConference ? 75000 : 50000;
+                if (isEvent) return 250000;
+                if (isConference) return 35000;
+                if (isStudio) return 25000;
+                if (isCoWorking) return 5000;
+                return 15000;
+            };
+
+            const getCapacity = () => {
+                if (isEvent) return prompt.includes('wedding') ? 200 : 100;
+                if (isConference) return 20;
+                if (isStudio) return 10;
+                if (isCoWorking) return 30;
+                return 8;
+            };
+
+            const getPricingModel = () => {
+                if (isEvent) return PricingModel.DAILY;
+                if (isStudio || isConference || isCoWorking) return PricingModel.HOURLY;
+                return PricingModel.DAILY;
+            };
+
+            const getSpaceType = () => {
+                if (isStudio) return SpaceType.STUDIO;
+                if (isConference) return SpaceType.CONFERENCE;
+                if (isEvent) return SpaceType.EVENT_CENTER;
+                if (isCoWorking) return SpaceType.CO_WORKING;
+                return SpaceType.APARTMENT;
+            };
+
+            // Mock AI response based on prompt analysis
+            const mockResponse = {
+                title: getTitle(),
+                description: getDescription(),
+                price: getPrice(),
+                location: prompt.includes('lekki') ? 'Lekki Phase 1, Lagos' 
+                        : prompt.includes('ikoyi') ? 'Ikoyi, Lagos'
+                        : prompt.includes('vi') || prompt.includes('victoria') ? 'Victoria Island, Lagos'
+                        : 'Lagos, Nigeria',
+                capacity: getCapacity(),
+                includedGuests: Math.min(getCapacity(), 5),
+                type: getSpaceType(),
+                pricingModel: getPricingModel(),
+                tags: [
+                    isLuxury ? 'Premium' : 'Popular',
+                    isStudio ? 'Creative' : isConference ? 'Professional' : isEvent ? 'Celebrations' : 'Versatile',
+                    'Clean',
+                    'Well-Located',
+                    isBeach ? 'Ocean View' : 'City Access',
+                ],
+                amenities: getAmenities(),
+                houseRules: [
+                    'No smoking indoors',
+                    'Respect quiet hours after 10 PM',
+                    'Clean up after use',
+                    'No pets allowed',
+                    isEvent ? 'External catering must be approved' : 'Food and drinks allowed',
+                ],
+                safetyItems: [
+                    'Smoke Alarm',
+                    'Fire Extinguisher',
+                    'First Aid Kit',
+                    'Emergency Exit',
+                    'Security Camera (common areas)',
+                ],
+                cancellationPolicy: isLuxury ? CancellationPolicy.STRICT : CancellationPolicy.MODERATE,
+                // Booking settings
+                settings: {
+                    instantBook: !isLuxury && !isEvent, // Luxury & events need approval
+                    allowRecurring: true,
+                    minDuration: isEvent ? 1 : isStudio ? 2 : 1,
+                },
+                bookingWindow: isEvent ? 180 : 90, // Events book further ahead
+                minNotice: isEvent ? 7 : isLuxury ? 2 : 1,
+                prepTime: isEvent ? 1 : 0,
+                approvalTime: isLuxury ? 'Within 2 hours' : 'Within 1 hour',
+            };
+
+            // Merge with existing state (only fill empty fields)
             setNewListing(prev => ({
                 ...prev,
-                ...mockResponse,
-                // Only override if empty
                 title: prev.title || mockResponse.title,
                 description: prev.description || mockResponse.description,
                 price: prev.price || mockResponse.price,
                 location: prev.location || mockResponse.location,
-                capacity: prev.capacity || mockResponse.capacity,
-                tags: prev.tags || mockResponse.tags,
-                houseRules: prev.houseRules || mockResponse.houseRules,
-                safetyItems: prev.safetyItems || mockResponse.safetyItems
+                capacity: prev.capacity === 1 ? mockResponse.capacity : prev.capacity,
+                includedGuests: prev.includedGuests === 1 ? mockResponse.includedGuests : prev.includedGuests,
+                type: mockResponse.type,
+                pricingModel: mockResponse.pricingModel,
+                tags: (prev.tags?.length || 0) === 0 ? mockResponse.tags : prev.tags,
+                amenities: (prev.amenities?.length || 0) === 0 ? mockResponse.amenities : prev.amenities,
+                houseRules: (prev.houseRules?.length || 0) === 0 ? mockResponse.houseRules : prev.houseRules,
+                safetyItems: (prev.safetyItems?.length || 0) === 0 ? mockResponse.safetyItems : prev.safetyItems,
+                cancellationPolicy: mockResponse.cancellationPolicy,
+                settings: mockResponse.settings,
+                bookingWindow: mockResponse.bookingWindow,
+                minNotice: mockResponse.minNotice,
+                prepTime: mockResponse.prepTime,
+                approvalTime: mockResponse.approvalTime,
             }));
             setShowAiInput(false);
+            toast.showToast({ message: "✨ AI has filled in your listing details!", type: "success" });
         } catch (e) {
             console.error(e);
             toast.showToast({ message: "Could not auto-fill listing. Please fill manually.", type: "info" });
@@ -446,12 +604,95 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
     };
 
     // Validation rules - based on industry standards (Airbnb, Peerspace)
+    // These protect guests from unreasonable pricing
     const VALIDATION_RULES = {
-        CAUTION_FEE_MAX_RATIO: 2, // Security deposit up to 2x base price
-        EXTRA_GUEST_MAX_RATIO: 1, // Extra guest cost should not exceed base price
-        MIN_PRICE: 1,
+        // Pricing limits
+        MIN_PRICE: 1000,                    // Minimum ₦1,000 to prevent spam listings
+        MAX_PRICE: 50000000,                // Maximum ₦50M (reasonable for luxury venues)
+        CAUTION_FEE_MAX_RATIO: 1.5,         // Security deposit up to 1.5x base price (was 2x)
+        CAUTION_FEE_MAX_ABSOLUTE: 5000000,  // Maximum ₦5M caution fee regardless of price
+        EXTRA_GUEST_MAX_RATIO: 0.5,         // Extra guest cost max 50% of base price (was 100%)
+        EXTRA_GUEST_MAX_ABSOLUTE: 50000,    // Maximum ₦50k per extra guest
+        
+        // Capacity limits
         MIN_CAPACITY: 1,
+        MAX_CAPACITY: 1000,                 // Maximum 1000 guests (large events)
+        
+        // Content limits  
         MAX_TITLE_LENGTH: 100,
+        MIN_TITLE_LENGTH: 10,
+        MIN_DESCRIPTION_LENGTH: 50,
+        MAX_DESCRIPTION_LENGTH: 5000,
+        MIN_PHOTOS: 5,
+        
+        // Add-on limits
+        MAX_ADDON_PRICE_RATIO: 2,           // Add-on can't exceed 2x base price
+        MAX_ADDONS: 20,                     // Maximum 20 add-ons per listing
+        
+        // Host limits
+        MAX_ACTIVE_LISTINGS: 50,            // Maximum 50 active listings per host
+        
+        // Price sanity limits per space type (reasonable maximums for hourly bookings)
+        PRICE_SANITY: {
+            [SpaceType.STUDIO]: { hourlyMax: 500000, dailyMax: 2000000 },           // Studio: max ₦500k/hr, ₦2M/day
+            [SpaceType.CONFERENCE]: { hourlyMax: 300000, dailyMax: 1500000 },       // Conference: max ₦300k/hr, ₦1.5M/day
+            [SpaceType.CO_WORKING]: { hourlyMax: 50000, dailyMax: 200000 },         // Co-working: max ₦50k/hr, ₦200k/day
+            [SpaceType.OPEN_SPACE]: { hourlyMax: 200000, dailyMax: 1000000 },       // Open space: max ₦200k/hr, ₦1M/day
+            [SpaceType.EVENT_CENTER]: { hourlyMax: 1000000, dailyMax: 10000000 },   // Event center: max ₦1M/hr, ₦10M/day
+            [SpaceType.APARTMENT]: { hourlyMax: 100000, nightlyMax: 5000000 },      // Apartment: max ₦100k/hr, ₦5M/night
+        } as Record<string, { hourlyMax?: number; dailyMax?: number; nightlyMax?: number }>,
+    };
+
+    // Profanity word list (basic - expand as needed)
+    const PROFANITY_LIST = [
+        'fuck', 'shit', 'bitch', 'ass', 'damn', 'bastard', 'dick', 'pussy', 'cock',
+        'nigga', 'nigger', 'fag', 'faggot', 'whore', 'slut', 'cunt'
+    ];
+
+    // Check for profanity in text
+    const containsProfanity = (text: string): string | null => {
+        const lowerText = text.toLowerCase();
+        for (const word of PROFANITY_LIST) {
+            // Match whole words only
+            const regex = new RegExp(`\\b${word}\\b`, 'i');
+            if (regex.test(lowerText)) {
+                return word;
+            }
+        }
+        return null;
+    };
+
+    // Check for contact info (phone numbers, emails) in text
+    const containsContactInfo = (text: string): { type: string; match: string } | null => {
+        // Phone number patterns (Nigerian and international)
+        const phonePatterns = [
+            /\b0[7-9][0-1]\d{8}\b/,           // Nigerian: 07x, 08x, 09x
+            /\b\+234[7-9][0-1]\d{8}\b/,       // Nigerian with +234
+            /\b234[7-9][0-1]\d{8}\b/,         // Nigerian with 234
+            /\b\d{3}[-.\s]?\d{3}[-.\s]?\d{4}\b/, // General: xxx-xxx-xxxx
+            /\b\d{4}[-.\s]?\d{3}[-.\s]?\d{4}\b/, // General: xxxx-xxx-xxxx
+        ];
+        
+        for (const pattern of phonePatterns) {
+            const match = text.match(pattern);
+            if (match) {
+                return { type: 'phone number', match: match[0] };
+            }
+        }
+
+        // Email pattern
+        const emailPattern = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/;
+        const emailMatch = text.match(emailPattern);
+        if (emailMatch) {
+            return { type: 'email address', match: emailMatch[0] };
+        }
+
+        // WhatsApp mentions
+        if (/whatsapp|whats\s*app|wa\.me/i.test(text)) {
+            return { type: 'WhatsApp reference', match: 'WhatsApp' };
+        }
+
+        return null;
     };
 
     const handleCreateListing = () => {
@@ -461,7 +702,72 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
             return;
         }
 
+        // Check for duplicate title (same host)
+        const existingListingId = (newListing as any).id;
+        const duplicateTitle = listings.find(l => 
+            l.hostId === user.id && 
+            l.title.toLowerCase().trim() === newListing.title!.toLowerCase().trim() &&
+            l.id !== existingListingId // Exclude current listing when editing
+        );
+        if (duplicateTitle) {
+            toast.showToast({ 
+                message: `You already have a listing called "${duplicateTitle.title}". Please use a different name.`, 
+                type: "error" 
+            });
+            return;
+        }
+
+        // Check maximum active listings per host
+        const activeListingsCount = listings.filter(l => 
+            l.hostId === user.id && 
+            l.status !== ListingStatus.DRAFT &&
+            l.id !== existingListingId
+        ).length;
+        if (activeListingsCount >= VALIDATION_RULES.MAX_ACTIVE_LISTINGS && !existingListingId) {
+            toast.showToast({ 
+                message: `You've reached the maximum of ${VALIDATION_RULES.MAX_ACTIVE_LISTINGS} active listings. Please archive some listings first.`, 
+                type: "error" 
+            });
+            return;
+        }
+
+        // Check for profanity in title
+        const titleProfanity = containsProfanity(newListing.title);
+        if (titleProfanity) {
+            toast.showToast({ 
+                message: "Your title contains inappropriate language. Please revise it.", 
+                type: "error" 
+            });
+            return;
+        }
+
+        // Check for profanity in description
+        if (newListing.description) {
+            const descProfanity = containsProfanity(newListing.description);
+            if (descProfanity) {
+                toast.showToast({ 
+                    message: "Your description contains inappropriate language. Please revise it.", 
+                    type: "error" 
+                });
+                return;
+            }
+
+            // Check for contact info in description
+            const contactInfo = containsContactInfo(newListing.description);
+            if (contactInfo) {
+                toast.showToast({ 
+                    message: `Please remove the ${contactInfo.type} from your description. All communication should happen through Fiilar for your safety.`, 
+                    type: "error" 
+                });
+                return;
+            }
+        }
+
         // Validate title length
+        if (newListing.title.length < VALIDATION_RULES.MIN_TITLE_LENGTH) {
+            toast.showToast({ message: `Title must be at least ${VALIDATION_RULES.MIN_TITLE_LENGTH} characters.`, type: "error" });
+            return;
+        }
         if (newListing.title.length > VALIDATION_RULES.MAX_TITLE_LENGTH) {
             toast.showToast({ message: `Title cannot exceed ${VALIDATION_RULES.MAX_TITLE_LENGTH} characters.`, type: "error" });
             return;
@@ -473,33 +779,112 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
             return;
         }
 
-        // Validate minimum price (must be greater than 0 for non-drafts)
-        if (newListing.price !== undefined && newListing.price < VALIDATION_RULES.MIN_PRICE) {
-            toast.showToast({ message: `Price must be at least ${VALIDATION_RULES.MIN_PRICE}.`, type: "error" });
-            return;
+        // Validate price range
+        if (newListing.price !== undefined && newListing.price > 0) {
+            if (newListing.price < VALIDATION_RULES.MIN_PRICE) {
+                toast.showToast({ message: `Minimum price is ₦${VALIDATION_RULES.MIN_PRICE.toLocaleString()}.`, type: "error" });
+                return;
+            }
+            if (newListing.price > VALIDATION_RULES.MAX_PRICE) {
+                toast.showToast({ message: `Maximum price is ₦${VALIDATION_RULES.MAX_PRICE.toLocaleString()}.`, type: "error" });
+                return;
+            }
         }
 
-        // Validate caution fee - max 2x base price (industry standard for high-value properties)
-        if (newListing.cautionFee && newListing.price && newListing.cautionFee > newListing.price * VALIDATION_RULES.CAUTION_FEE_MAX_RATIO) {
-            toast.showToast({ message: `Caution fee cannot exceed 2x the base price.`, type: "error" });
-            return;
+        // Validate caution fee - protect guests from excessive deposits
+        if (newListing.cautionFee && newListing.cautionFee > 0) {
+            const maxCautionByRatio = (newListing.price || 0) * VALIDATION_RULES.CAUTION_FEE_MAX_RATIO;
+            const maxCaution = Math.min(maxCautionByRatio, VALIDATION_RULES.CAUTION_FEE_MAX_ABSOLUTE);
+            
+            if (newListing.cautionFee > maxCaution) {
+                if (newListing.cautionFee > VALIDATION_RULES.CAUTION_FEE_MAX_ABSOLUTE) {
+                    toast.showToast({ message: `Caution fee cannot exceed ₦${VALIDATION_RULES.CAUTION_FEE_MAX_ABSOLUTE.toLocaleString()}.`, type: "error" });
+                } else {
+                    toast.showToast({ message: `Caution fee cannot exceed 1.5x the base price (₦${maxCautionByRatio.toLocaleString()}).`, type: "error" });
+                }
+                return;
+            }
         }
 
-        // Validate extra guest cost - cannot exceed base price
-        if (newListing.pricePerExtraGuest && newListing.price && newListing.pricePerExtraGuest > newListing.price * VALIDATION_RULES.EXTRA_GUEST_MAX_RATIO) {
-            toast.showToast({ message: "Extra guest fee cannot exceed the base price.", type: "error" });
-            return;
+        // Validate extra guest cost - prevent gouging
+        if (newListing.pricePerExtraGuest && newListing.pricePerExtraGuest > 0) {
+            const maxExtraByRatio = (newListing.price || 0) * VALIDATION_RULES.EXTRA_GUEST_MAX_RATIO;
+            const maxExtra = Math.min(maxExtraByRatio, VALIDATION_RULES.EXTRA_GUEST_MAX_ABSOLUTE);
+            
+            if (newListing.pricePerExtraGuest > maxExtra) {
+                if (newListing.pricePerExtraGuest > VALIDATION_RULES.EXTRA_GUEST_MAX_ABSOLUTE) {
+                    toast.showToast({ message: `Extra guest fee cannot exceed ₦${VALIDATION_RULES.EXTRA_GUEST_MAX_ABSOLUTE.toLocaleString()}.`, type: "error" });
+                } else {
+                    toast.showToast({ message: `Extra guest fee cannot exceed 50% of the base price.`, type: "error" });
+                }
+                return;
+            }
         }
 
         // Validate capacity
-        if (newListing.capacity !== undefined && newListing.capacity < VALIDATION_RULES.MIN_CAPACITY) {
-            toast.showToast({ message: "Capacity must be at least 1 guest.", type: "error" });
-            return;
+        if (newListing.capacity !== undefined) {
+            if (newListing.capacity < VALIDATION_RULES.MIN_CAPACITY) {
+                toast.showToast({ message: "Capacity must be at least 1 guest.", type: "error" });
+                return;
+            }
+            if (newListing.capacity > VALIDATION_RULES.MAX_CAPACITY) {
+                toast.showToast({ message: `Capacity cannot exceed ${VALIDATION_RULES.MAX_CAPACITY} guests.`, type: "error" });
+                return;
+            }
         }
 
         // Validate included guests doesn't exceed capacity
         if (newListing.includedGuests && newListing.capacity && newListing.includedGuests > newListing.capacity) {
             toast.showToast({ message: "Included guests cannot exceed maximum capacity.", type: "error" });
+            return;
+        }
+
+        // Validate add-ons pricing
+        if (newListing.addOns && newListing.addOns.length > 0) {
+            const maxAddonPrice = (newListing.price || 0) * VALIDATION_RULES.MAX_ADDON_PRICE_RATIO;
+            const expensiveAddon = newListing.addOns.find(a => a.price > maxAddonPrice);
+            if (expensiveAddon && newListing.price) {
+                toast.showToast({ message: `Add-on "${expensiveAddon.name}" price (₦${expensiveAddon.price.toLocaleString()}) cannot exceed 2x the base price.`, type: "error" });
+                return;
+            }
+        }
+
+        // Price sanity check per pricing model and space type
+        if (newListing.price && newListing.pricingModel && newListing.type) {
+            const spaceLimits = VALIDATION_RULES.PRICE_SANITY[newListing.type];
+            if (spaceLimits) {
+                let maxPrice: number | undefined;
+                let priceType: string = '';
+                
+                if (newListing.pricingModel === PricingModel.HOURLY && spaceLimits.hourlyMax) {
+                    maxPrice = spaceLimits.hourlyMax;
+                    priceType = 'hourly';
+                } else if (newListing.pricingModel === PricingModel.DAILY && spaceLimits.dailyMax) {
+                    maxPrice = spaceLimits.dailyMax;
+                    priceType = 'daily';
+                } else if (newListing.pricingModel === PricingModel.NIGHTLY && spaceLimits.nightlyMax) {
+                    maxPrice = spaceLimits.nightlyMax;
+                    priceType = 'nightly';
+                }
+                
+                if (maxPrice && newListing.price > maxPrice) {
+                    toast.showToast({ 
+                        message: `Maximum ${priceType} price for ${newListing.type.toLowerCase().replace('_', ' ')} is ₦${maxPrice.toLocaleString()}. Please contact support for premium pricing.`, 
+                        type: "error" 
+                    });
+                    return;
+                }
+            }
+        }
+
+        // Availability must be set to publish
+        const hasAvailability = newListing.availability && Object.keys(newListing.availability).length > 0;
+        const hasWeeklySchedule = weeklySchedule && Object.values(weeklySchedule).some(day => day.enabled);
+        if (!hasAvailability && !hasWeeklySchedule) {
+            toast.showToast({ 
+                message: "Please set your availability before publishing. Guests need to know when your space is available.", 
+                type: "info" 
+            });
             return;
         }
 
@@ -579,6 +964,12 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
                     houseRules: newListing.houseRules || [],
 
                     safetyItems: newListing.safetyItems || [],
+
+                    // Booking Settings (Availability & Timing + Booking Rules)
+                    bookingWindow: newListing.bookingWindow ?? 90,   // Default: 3 months
+                    minNotice: newListing.minNotice ?? 1,            // Default: 1 day
+                    prepTime: newListing.prepTime ?? 0,              // Default: no prep time
+
                     createdAt: newListing.createdAt || new Date().toISOString(),
                     updatedAt: new Date().toISOString()
                 };
@@ -640,7 +1031,10 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
                     amenities: [],
                     cancellationPolicy: CancellationPolicy.MODERATE,
                     houseRules: [],
-                    safetyItems: []
+                    safetyItems: [],
+                    bookingWindow: 90,
+                    minNotice: 1,
+                    prepTime: 0,
                 });
                 setStep(1);
                 setLastSaved(null);
@@ -730,6 +1124,13 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
                 proofOfAddress: newListing.proofOfAddress,
                 rejectionReason: newListing.rejectionReason,
                 accessInfo: newListing.accessInfo,
+                // Booking Settings
+                settings: newListing.settings || { allowRecurring: true, minDuration: 1, instantBook: false },
+                approvalTime: newListing.approvalTime,
+                cancellationPolicy: newListing.cancellationPolicy || CancellationPolicy.MODERATE,
+                bookingWindow: newListing.bookingWindow ?? 90,
+                minNotice: newListing.minNotice ?? 1,
+                prepTime: newListing.prepTime ?? 0,
             };
 
             // Save to backend

@@ -4,6 +4,9 @@ import { Button } from '@fiilar/ui';
 import {
     Sparkles, Upload, Plus, Trash2, CheckCircle, ArrowRight, AlertTriangle, ZoomIn, X
 } from 'lucide-react';
+import { useSwipeNavigation } from './useSwipeNavigation';
+import { SwipeIndicator } from './SwipeIndicator';
+import { SwipeHint } from './SwipeHint';
 
 interface ListingPhotosProps {
     newListing: Partial<Listing>;
@@ -23,8 +26,19 @@ const ListingPhotos: React.FC<ListingPhotosProps> = ({
 }) => {
     const [previewImage, setPreviewImage] = useState<string | null>(null);
 
+    // Swipe navigation - both directions
+    const { swipeOffset, isDragging, handlers } = useSwipeNavigation({
+        onSwipeLeft: () => setStep(3), // Continue to Availability
+        onSwipeRight: () => setStep(1), // Back to Basic Info
+    });
+
     return (
-        <div className="space-y-8 animate-in slide-in-from-right duration-500">
+        <div
+            className={`space-y-8 animate-in slide-in-from-right duration-500 ${isDragging ? 'cursor-grabbing select-none' : 'cursor-grab'}`}
+            {...handlers}
+        >
+            <SwipeIndicator swipeOffset={swipeOffset} direction="left" label="Continue" />
+            <SwipeIndicator swipeOffset={swipeOffset} direction="right" label="Back" />
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
@@ -39,74 +53,72 @@ const ListingPhotos: React.FC<ListingPhotosProps> = ({
             {/* Empty State / Drop Zone */}
             {(!newListing.images || newListing.images.length === 0) ? (
                 <div className="space-y-6">
-                    <label className="block w-full min-h-[400px] border-3 border-dashed border-gray-300 rounded-3xl hover:border-brand-500 hover:bg-brand-50/30 transition-all duration-300 cursor-pointer group relative overflow-hidden bg-white/50 backdrop-blur-sm">
-                        <input type="file" multiple accept="image/*" className="hidden" onChange={handleImageUpload} />
-                        <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center z-10">
-                            <div className="w-24 h-24 bg-gradient-to-br from-brand-500 to-purple-600 rounded-3xl shadow-xl shadow-brand-500/20 flex items-center justify-center mb-6 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
-                                <Upload size={40} className="text-white" />
-                            </div>
-                            <h4 className="text-3xl font-bold text-gray-900 mb-2 tracking-tight">Drag & drop photos here</h4>
-                            <p className="text-gray-500 mb-8 text-lg">or click to browse from your device</p>
-
-                            <div className="flex flex-wrap gap-3 justify-center max-w-lg">
-                                <span className="flex items-center gap-2 bg-white/80 backdrop-blur text-gray-700 text-sm px-4 py-2 rounded-full font-medium border border-gray-200 shadow-sm">
-                                    <CheckCircle size={16} className="text-green-500" /> High Resolution
-                                </span>
-                                <span className="flex items-center gap-2 bg-white/80 backdrop-blur text-gray-700 text-sm px-4 py-2 rounded-full font-medium border border-gray-200 shadow-sm">
-                                    <CheckCircle size={16} className="text-green-500" /> Landscape Preferred
-                                </span>
-                                <span className="flex items-center gap-2 bg-white/80 backdrop-blur text-gray-700 text-sm px-4 py-2 rounded-full font-medium border border-gray-200 shadow-sm">
-                                    <CheckCircle size={16} className="text-green-500" /> Max 10MB each
-                                </span>
-                            </div>
-                        </div>
-
-                        {/* Decorative background pattern */}
-                        <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
-                    </label>
-
-                    <div className="glass-card p-5 rounded-2xl border border-blue-100 bg-blue-50/30 flex gap-4 items-start">
-                        <div className="p-3 bg-white rounded-xl text-blue-600 h-fit shadow-sm shrink-0">
+                    {/* Photo Tips - Moved to top for better context */}
+                    <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex gap-4 items-start animate-in slide-in-from-bottom-2">
+                        <div className="p-3 bg-brand-50 rounded-xl text-brand-600 h-fit shadow-sm shrink-0">
                             <Sparkles size={20} />
                         </div>
                         <div>
-                            <h4 className="font-bold text-sm text-blue-900 mb-2">Photo Tips for Success</h4>
-                            <ul className="text-sm text-blue-800 space-y-2">
+                            <h4 className="font-bold text-sm text-gray-900 mb-2">Photo Tips for Success</h4>
+                            <ul className="text-sm text-gray-600 space-y-2">
                                 <li className="flex items-start gap-2">
-                                    <CheckCircle size={16} className="shrink-0 mt-0.5 text-blue-600" />
+                                    <CheckCircle size={16} className="shrink-0 mt-0.5 text-brand-500" />
                                     <span>Upload at least 5 high-quality photos - listings with fewer will be saved as <strong>Drafts</strong></span>
                                 </li>
                                 <li className="flex items-start gap-2">
-                                    <CheckCircle size={16} className="shrink-0 mt-0.5 text-blue-600" />
+                                    <CheckCircle size={16} className="shrink-0 mt-0.5 text-brand-500" />
                                     <span>Use natural light and avoid flash for best results</span>
                                 </li>
                                 <li className="flex items-start gap-2">
-                                    <CheckCircle size={16} className="shrink-0 mt-0.5 text-blue-600" />
+                                    <CheckCircle size={16} className="shrink-0 mt-0.5 text-brand-500" />
                                     <span>Show all amenities: kitchen, bathroom, workspace, etc.</span>
                                 </li>
                             </ul>
                         </div>
                     </div>
+
+                    <label className="block w-full min-h-[360px] border-2 border-dashed border-gray-200 rounded-3xl hover:border-brand-400 hover:bg-gray-50 transition-all duration-300 cursor-pointer group relative overflow-hidden bg-gray-50/50">
+                        <input type="file" multiple accept="image/*" className="hidden" onChange={handleImageUpload} />
+                        <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center z-10">
+                            <div className="w-20 h-20 bg-white rounded-3xl shadow-sm border border-gray-100 flex items-center justify-center mb-6 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
+                                <Upload size={32} className="text-brand-600" />
+                            </div>
+                            <h4 className="text-2xl font-bold text-gray-900 mb-2 tracking-tight">Drag & drop photos here</h4>
+                            <p className="text-gray-500 mb-8 text-base">or click to browse from your device</p>
+
+                            <div className="flex flex-wrap gap-3 justify-center max-w-lg">
+                                <span className="flex items-center gap-2 bg-white text-gray-600 text-xs px-3 py-1.5 rounded-full font-medium border border-gray-200 shadow-sm">
+                                    <CheckCircle size={14} className="text-gray-400" /> High Res
+                                </span>
+                                <span className="flex items-center gap-2 bg-white text-gray-600 text-xs px-3 py-1.5 rounded-full font-medium border border-gray-200 shadow-sm">
+                                    <CheckCircle size={14} className="text-gray-400" /> Landscape
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Decorative background pattern */}
+                        <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:20px_20px]"></div>
+                    </label>
                 </div>
             ) : (
                 <div className="space-y-6">
                     {/* Bento-style Photo Grid */}
-                    <div className="grid grid-cols-6 auto-rows-[120px] gap-2">
+                    <div className="grid grid-cols-2 md:grid-cols-6 auto-rows-[120px] gap-2">
                         {newListing.images.map((img, index) => {
                             // Bento layout: first image is large, rest fill remaining space
                             let gridClass = '';
                             if (index === 0) {
                                 // Cover photo - large left side
-                                gridClass = 'col-span-4 row-span-3';
+                                gridClass = 'col-span-2 row-span-2 md:col-span-4 md:row-span-3';
                             } else if (index === 1 || index === 2) {
                                 // Two stacked on right of cover
-                                gridClass = 'col-span-2 row-span-1';
+                                gridClass = 'col-span-1 row-span-1 md:col-span-2 md:row-span-1';
                             } else if (index === 3) {
                                 // Third image - spans 2 rows on right
-                                gridClass = 'col-span-2 row-span-1';
+                                gridClass = 'col-span-1 row-span-1 md:col-span-2 md:row-span-1';
                             } else {
                                 // Remaining images - standard squares
-                                gridClass = 'col-span-2 row-span-1';
+                                gridClass = 'col-span-1 row-span-1 md:col-span-2 md:row-span-1';
                             }
 
                             return (
@@ -122,60 +134,60 @@ const ListingPhotos: React.FC<ListingPhotosProps> = ({
                                     onDragOver={(e) => handleImageDragOver(e, index)}
                                     onDragEnd={handleImageDragEnd}
                                 >
-                                    <img 
-                                        src={img} 
-                                        alt={`Listing photo ${index + 1}`} 
+                                    <img
+                                        src={img}
+                                        alt={`Listing photo ${index + 1}`}
                                         className="w-full h-full object-cover"
                                     />
 
-                                {/* Overlay Actions */}
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                                    {/* Overlay Actions */}
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/10 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300" />
 
-                                <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0 z-10">
-                                    <button
-                                        onClick={(e) => { e.stopPropagation(); setPreviewImage(img); }}
-                                        className="p-2 bg-white/90 backdrop-blur-sm text-gray-700 rounded-xl hover:bg-white hover:text-brand-600 shadow-lg transition-colors"
-                                        title="View full size"
-                                    >
-                                        <ZoomIn size={18} />
-                                    </button>
-                                    <button
-                                        onClick={(e) => { e.stopPropagation(); removeImage(index); }}
-                                        className="p-2 bg-white/90 backdrop-blur-sm text-red-500 rounded-xl hover:bg-red-50 hover:text-red-600 shadow-lg transition-colors"
-                                        title="Remove photo"
-                                    >
-                                        <Trash2 size={18} />
-                                    </button>
-                                </div>
-
-                                {index === 0 && (
-                                    <div className="absolute top-3 left-3 bg-gradient-to-r from-brand-600 to-purple-600 text-white text-xs px-3 py-1.5 rounded-lg font-bold shadow-lg flex items-center gap-1.5 z-10">
-                                        <Sparkles size={14} /> Cover Photo
+                                    <div className="absolute top-2 right-2 md:top-3 md:right-3 flex gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 md:translate-y-2 md:group-hover:translate-y-0 z-10">
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); setPreviewImage(img); }}
+                                            className="p-1.5 md:p-2 bg-white/90 backdrop-blur-sm text-gray-700 rounded-xl hover:bg-white hover:text-brand-600 shadow-lg transition-colors"
+                                            title="View full size"
+                                        >
+                                            <ZoomIn size={16} className="md:w-[18px] md:h-[18px]" />
+                                        </button>
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); removeImage(index); }}
+                                            className="p-1.5 md:p-2 bg-white/90 backdrop-blur-sm text-red-500 rounded-xl hover:bg-red-50 hover:text-red-600 shadow-lg transition-colors"
+                                            title="Remove photo"
+                                        >
+                                            <Trash2 size={16} className="md:w-[18px] md:h-[18px]" />
+                                        </button>
                                     </div>
-                                )}
 
-                                {index !== 0 && (
-                                    <div className="absolute bottom-3 left-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                                        <div className="bg-black/40 backdrop-blur-md text-white text-xs px-3 py-2 rounded-lg text-center font-medium border border-white/20">
-                                            Drag to reorder
+                                    {index === 0 && (
+                                        <div className="absolute top-2 left-2 md:top-3 md:left-3 bg-gradient-to-r from-brand-600 to-purple-600 text-white text-[10px] md:text-xs px-2 md:px-3 py-1 md:py-1.5 rounded-lg font-bold shadow-lg flex items-center gap-1.5 z-10">
+                                            <Sparkles size={12} className="md:w-[14px] md:h-[14px]" /> Cover
                                         </div>
-                                    </div>
-                                )}
-                            </div>
+                                    )}
+
+                                    {index !== 0 && (
+                                        <div className="absolute bottom-2 left-2 right-2 md:bottom-3 md:left-3 md:right-3 opacity-0 group-hover:opacity-100 transition-opacity z-10 hidden md:block">
+                                            <div className="bg-black/40 backdrop-blur-md text-white text-xs px-3 py-2 rounded-lg text-center font-medium border border-white/20">
+                                                Drag to reorder
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
                             );
                         })}
 
                         {/* Add More Button - Matches grid cell */}
-                        <label 
+                        <label
                             className={`
                                 relative rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer 
                                 hover:border-brand-500 hover:bg-brand-50/30 transition-all duration-300 group bg-white/50 backdrop-blur-sm
-                                col-span-2 row-span-1
+                                col-span-1 row-span-1 md:col-span-2 md:row-span-1
                                 ${newListing.images.length === 0 ? 'hidden' : ''}
                             `}
                         >
                             <input type="file" multiple accept="image/*" className="hidden" onChange={handleImageUpload} />
-                            <div className="p-3 bg-white rounded-full shadow-md group-hover:scale-110 transition-transform mb-1">
+                            <div className="p-2 md:p-3 bg-white rounded-full shadow-md group-hover:scale-110 transition-transform mb-1">
                                 <Plus size={20} className="text-brand-600" />
                             </div>
                             <span className="text-xs text-gray-600 font-bold group-hover:text-brand-600 transition-colors">Add More</span>
@@ -197,29 +209,35 @@ const ListingPhotos: React.FC<ListingPhotosProps> = ({
                 </div>
             )}
 
-            {/* Navigation */}
-            <div className="flex justify-between items-center pt-6 border-t border-white/20">
+            {/* Navigation - Mobile: Swipe/Drag, Desktop: Buttons */}
+
+            {/* Mobile Hint */}
+            <div className="md:hidden">
+                <SwipeHint showContinue={true} showBack={true} />
+            </div>
+
+            {/* Desktop Navigation */}
+            <div className="hidden md:flex justify-between items-center pt-6 border-t border-gray-200">
                 <Button
                     onClick={() => setStep(1)}
                     variant="ghost"
                     size="lg"
-                    className="text-gray-500 hover:text-gray-900"
+                    className="text-gray-500 hover:text-gray-900 hover:bg-gray-100"
+                    leftIcon={<ArrowRight size={18} className="rotate-180" />}
                 >
-                    Back
+                    Back to Basic Info
                 </Button>
                 <Button
                     onClick={() => setStep(3)}
-                    disabled={false}
                     variant="primary"
                     size="lg"
-                    className="shadow-xl shadow-brand-500/20 hover:shadow-brand-500/40 transition-all hover:scale-[1.02] relative overflow-hidden group"
+                    className="shadow-lg shadow-brand-500/20 hover:shadow-brand-500/30 transition-all px-8"
                     rightIcon={<ArrowRight size={18} />}
                 >
-                    <span className="relative z-10">Continue to Availability</span>
-                    {/* Shine effect */}
-                    <div className="absolute inset-0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent z-0"></div>
+                    Continue to Availability
                 </Button>
             </div>
+
 
             {/* Image Preview Modal */}
             {previewImage && (
@@ -227,6 +245,7 @@ const ListingPhotos: React.FC<ListingPhotosProps> = ({
                     <button
                         className="absolute top-6 right-6 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors"
                         onClick={() => setPreviewImage(null)}
+                        aria-label="Close preview"
                     >
                         <X size={24} />
                     </button>

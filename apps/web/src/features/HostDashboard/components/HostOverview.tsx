@@ -129,8 +129,8 @@ const HostOverview: React.FC<HostOverviewProps> = ({ user, listings, hostBooking
                         </div>
                         <p className="text-gray-500 mt-2 font-medium">Total revenue generated from all listings</p>
 
-                        <div className="mt-8 h-[200px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
+                        <div className="mt-8 h-[200px] w-full min-w-0 relative">
+                            <ResponsiveContainer width="100%" height={200} minWidth={0}>
                                 <AreaChart data={revenueData}>
                                     <defs>
                                         <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
@@ -203,26 +203,28 @@ const HostOverview: React.FC<HostOverviewProps> = ({ user, listings, hostBooking
                                 <PieChartIcon size={24} />
                             </div>
                         </div>
-                        <div className="h-16 w-full flex items-center">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <PieChart>
-                                    <Pie
-                                        data={occupancyData}
-                                        cx="50%"
-                                        cy="50%"
-                                        innerRadius={25}
-                                        outerRadius={35}
-                                        startAngle={90}
-                                        endAngle={-270}
-                                        dataKey="value"
-                                        stroke="none"
-                                    >
-                                        {occupancyData.map((_entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                        ))}
-                                    </Pie>
-                                </PieChart>
-                            </ResponsiveContainer>
+                        <div className="h-16 w-full flex items-center min-w-0">
+                            <div className="h-16 w-20 shrink-0 min-w-0">
+                                <ResponsiveContainer width={80} height={64}>
+                                    <PieChart>
+                                        <Pie
+                                            data={occupancyData}
+                                            cx="50%"
+                                            cy="50%"
+                                            innerRadius={25}
+                                            outerRadius={35}
+                                            startAngle={90}
+                                            endAngle={-270}
+                                            dataKey="value"
+                                            stroke="none"
+                                        >
+                                            {occupancyData.map((_entry, index) => (
+                                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                            ))}
+                                        </Pie>
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            </div>
                             <div className="ml-4 flex-1">
                                 <div className="flex justify-between text-xs mb-1">
                                     <span className="text-gray-500">Target</span>

@@ -72,15 +72,15 @@ const HostOnboarding: React.FC<HostOnboardingProps> = ({ onLogin, onBack }) => {
     };
 
     return (
-        <div className="min-h-screen flex relative bg-gray-900">
+        <div className="min-h-[100dvh] w-full flex flex-col lg:flex-row relative bg-gray-900 lg:h-[100dvh] lg:overflow-hidden">
             <style>{`
                 @keyframes slideDown {
                     0% { transform: translateY(-100%); }
                     100% { transform: translateY(100%); }
                 }
             `}</style>
-            {/* Global Background Image */}
-            <div className="absolute inset-0 z-0">
+            {/* Global Background Image - Fixed for Parallax feel */}
+            <div className="fixed inset-0 z-0">
                 <img
                     src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=2000&auto=format&fit=crop"
                     alt="Modern Living Space"
@@ -89,65 +89,80 @@ const HostOnboarding: React.FC<HostOnboardingProps> = ({ onLogin, onBack }) => {
                 <div className="absolute inset-0 bg-black/70" />
             </div>
 
-            {/* Left Side - Text (Transparent) */}
-            <div className="hidden lg:flex lg:w-1/2 relative z-10 flex-col justify-end p-16 text-white">
+            {/* Close Button - Fixed Position for Perfect UX */}
+            <button
+                onClick={onBack}
+                className="fixed top-6 right-6 z-50 p-2.5 bg-black/20 backdrop-blur-md rounded-full text-white/90 hover:bg-black/40 hover:text-white transition-all border border-white/10 shadow-lg active:scale-95"
+                title="Close"
+            >
+                <X size={24} />
+            </button>
+
+            {/* Left Side - Text (Visible on Mobile now) */}
+            <div className="flex-none lg:flex-1 flex w-full lg:w-1/2 relative z-10 flex-col justify-end px-6 pt-24 pb-8 lg:p-16 text-white">
                 {/* Animated Background Elements for Left Side */}
                 <div className="absolute inset-0 overflow-hidden pointer-events-none">
                     <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-brand-500/10 rounded-full blur-3xl animate-pulse duration-[3000ms]" />
                     <div className="absolute bottom-1/3 right-1/3 w-96 h-96 bg-indigo-500/5 rounded-full blur-3xl animate-pulse duration-[5000ms] delay-1000" />
                 </div>
 
-                <div className="mb-8 relative">
-                    <div className="w-16 h-16 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center mb-6 border border-white/20 shadow-lg shadow-brand-900/20">
-                        <img src="https://drive.google.com/thumbnail?id=11AM3I7DLtyDpwgduNdtbUaZXJUYpvruC&sz=w400" className="w-10 h-10 object-contain" alt="Logo" />
+                <div className="relative">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 lg:w-16 lg:h-16 bg-white/10 backdrop-blur-md rounded-xl sm:rounded-2xl flex items-center justify-center mb-3 sm:mb-4 lg:mb-6 border border-white/20 shadow-lg shadow-brand-900/20">
+                        <img src="https://drive.google.com/thumbnail?id=11AM3I7DLtyDpwgduNdtbUaZXJUYpvruC&sz=w400" className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 object-contain" alt="Logo" />
                     </div>
-                    <h1 className="text-5xl font-bold mb-6 leading-tight tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-white/70">
-                        Share your space,<br />earn extra income.
+                    <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-3 lg:mb-6 leading-tight tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-white/70">
+                        Share your space,<br className="hidden sm:block" /><span className="sm:hidden"> </span>earn extra income.
                     </h1>
-                    <p className="text-lg text-gray-400 leading-relaxed max-w-md">
+                    <p className="text-base lg:text-lg text-gray-300 lg:text-gray-400 leading-relaxed max-w-md">
                         Join thousands of hosts who are turning their extra space into a new income stream.
                     </p>
                 </div>
-                <div className="flex gap-2">
+                <div className="hidden sm:flex gap-2 mt-4">
                     <div className="h-1 w-12 bg-white rounded-full shadow-[0_0_10px_rgba(255,255,255,0.5)]"></div>
                     <div className="h-1 w-2 bg-white/20 rounded-full"></div>
                     <div className="h-1 w-2 bg-white/20 rounded-full"></div>
                 </div>
             </div>
 
-            {/* Right Side - Form (Full Glass Pane) */}
-            <div className="flex-1 flex flex-col justify-center px-4 sm:px-12 lg:px-24 relative z-10 bg-white/20 backdrop-blur-xl shadow-[0_4px_30px_rgba(0,0,0,0.1)] overflow-hidden">
-                {/* Moving Gradient Left Border */}
-                <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-gradient-to-b from-transparent via-brand-500 to-transparent opacity-80 animate-pulse"></div>
+            {/* Right Side - Form Container */}
+            <div className="shrink-0 w-full lg:flex-1 lg:h-full flex flex-col justify-center relative z-10 lg:bg-white/20 lg:backdrop-blur-xl lg:shadow-[0_4px_30px_rgba(0,0,0,0.1)] lg:overflow-hidden px-6 pb-12 lg:p-0">
 
-                {/* Animated Gradient Line */}
-                <div className="absolute left-0 top-0 w-[2px] h-full overflow-hidden">
-                    <div className="absolute top-0 left-0 w-full h-[50%] bg-gradient-to-b from-transparent via-white to-transparent animate-[slideDown_3s_linear_infinite]"></div>
+                {/* Desktop-only Decorations */}
+                <div className="hidden lg:block">
+                    {/* Moving Gradient Left Border */}
+                    <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-gradient-to-b from-transparent via-brand-500 to-transparent opacity-80 animate-pulse"></div>
+                    {/* Animated Gradient Line */}
+                    <div className="absolute left-0 top-0 w-[2px] h-full overflow-hidden">
+                        <div className="absolute top-0 left-0 w-full h-[50%] bg-gradient-to-b from-transparent via-white to-transparent animate-[slideDown_3s_linear_infinite]"></div>
+                    </div>
+                    {/* Subtle Red Glow at the edge */}
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-[60%] bg-brand-500/20 blur-md"></div>
                 </div>
 
-                {/* Subtle Red Glow at the edge */}
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-[60%] bg-brand-500/20 blur-md"></div>
-
-                <button
-                    onClick={onBack}
-                    className="absolute top-4 right-4 sm:top-8 sm:right-8 p-2 hover:bg-white/10 rounded-full transition-colors text-white/70 hover:text-white"
-                    title="Close"
-                >
-                    <X size={24} />
-                </button>
-
-                <div className="max-w-[420px] w-full mx-auto relative">
-                    <div className="mt-2">
+                {/* Form Wrapper - Glass Card on Mobile, Transparent on Desktop */}
+                <div className="w-full max-w-[420px] lg:mx-auto relative bg-white/10 backdrop-blur-xl border border-white/10 shadow-2xl rounded-2xl p-4 sm:p-6 lg:bg-transparent lg:backdrop-blur-none lg:border-0 lg:shadow-none lg:p-0 lg:rounded-none">
+                    <div>
                         {step === 0 && (
                             <LoginOptions
-                                onEmailLogin={() => handleStepChange(1)}
+                                onEmailLogin={(email) => {
+                                    if (email) {
+                                        // Email provided from input - skip to OTP step
+                                        emailForm.setValue('email', email);
+                                        const code = sendVerificationEmail(email, 'mock-token', '');
+                                        showToast({ message: `Demo Code: ${code}`, type: 'info', duration: 5000 });
+                                        handleStepChange(2);
+                                    } else {
+                                        // No email - go to email entry step
+                                        handleStepChange(1);
+                                    }
+                                }}
                                 onGoogleLogin={() => onLogin(Role.HOST, 'google', 'alex.taylor@gmail.example.com', {
                                     firstName: 'Alex',
                                     lastName: 'Taylor',
                                     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=AlexTaylor'
                                 })}
                                 title="Become a Host"
-                                subtitle="Enter your details to start hosting."
+                                subtitle="Enter your email to start hosting."
                                 variant="glass-dark"
                             />
                         )}
@@ -184,8 +199,8 @@ const HostOnboarding: React.FC<HostOnboardingProps> = ({ onLogin, onBack }) => {
 
                         {/* Switch to Guest Login */}
                         {step === 0 && (
-                            <div className="mt-8 pt-6 border-t border-white/10 text-center">
-                                <p className="text-sm text-white/60">
+                            <div className="mt-6 pt-4 border-t border-white/10 text-center">
+                                <p className="text-xs sm:text-sm text-white/60">
                                     Looking to book a space?{' '}
                                     <Link to="/login" className="text-white font-semibold hover:text-brand-300 hover:underline transition-colors">
                                         Sign in as Guest

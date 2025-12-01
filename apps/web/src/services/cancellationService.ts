@@ -2,8 +2,8 @@
 // Handles cancellation logic, refund calculations, and policy enforcement
 
 import { Booking, CancellationPolicy } from '@fiilar/types';
-import { escrowService } from '@fiilar/escrow';
-import { updateBooking } from '@fiilar/storage';
+import { escrowService, paymentService } from '@fiilar/escrow';
+import { updateBooking, updateUserWalletBalance } from '@fiilar/storage';
 import { addNotification } from '@fiilar/notifications';
 
 export interface CancellationResult {
@@ -114,6 +114,43 @@ export const calculateRefund = (
 };
 
 /**
+ * Calculate aggregate refund for a group of bookings (e.g. recurring series)
+ * using the earliest booking in the group as the policy reference.
+ */
+export const calculateGroupRefund = (
+    bookings: Booking[],
+    policy: CancellationPolicy
+): CancellationResult & { totalOriginalAmount: number } => {
+    if (!bookings.length) {
+        return {
+            refundPercentage: 0,
+            refundAmount: 0,
+            cancellationFee: 0,
+            canCancel: false,
+            hoursUntilBooking: 0,
+            reason: 'No bookings to cancel',
+            totalOriginalAmount: 0
+        };
+    }
+
+    // Use the earliest booking as the reference for policy timing
+    const sorted = [...bookings].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    const reference = sorted[0];
+    const singleResult = calculateRefund(reference, policy);
+
+    const totalOriginalAmount = bookings.reduce((sum, b) => sum + b.totalPrice, 0);
+    const refundAmount = totalOriginalAmount * (singleResult.refundPercentage / 100);
+    const cancellationFee = totalOriginalAmount - refundAmount;
+
+    return {
+        ...singleResult,
+        refundAmount,
+        cancellationFee,
+        totalOriginalAmount
+    };
+};
+
+/**
  * Process booking cancellation
  */
 export const processCancellation = async (
@@ -139,7 +176,14 @@ export const processCancellation = async (
 
         // Process refund if applicable
         if (refundAmount > 0) {
+            // External refund via escrow/payment provider
             await escrowService.processRefund(booking, userId, refundAmount);
+
+            // Credit in-app wallet and record REFUND transaction
+            await paymentService.refundToWallet(refundAmount, 'Refund for guest cancellation');
+
+            // Keep user storage wallet in sync for admin views
+            updateUserWalletBalance(booking.userId, refundAmount, true);
         }
 
         // Get listing details for notifications
@@ -195,6 +239,111 @@ export const processCancellation = async (
         return {
             success: false,
             message: error.message || 'Failed to process cancellation. Please try again.'
+        };
+    }
+};
+
+/**
+ * Process group (series) cancellation.
+ * - Cancels all active bookings in the same group for this user.
+ * - Applies a single refund/escrow operation for the provided groupRefundAmount.
+ */
+export const processGroupCancellation = async (
+    primaryBooking: Booking,
+    group: Booking[],
+    userId: string,
+    reason: string,
+    groupRefundAmount: number
+): Promise<{ success: boolean; message: string }> => {
+    try {
+        const nowIso = new Date().toISOString();
+
+        // Only cancel bookings that are not already cancelled/completed and are in the future
+        const now = new Date();
+        const cancellable = group.filter(b => {
+            const bookingDate = new Date(b.date);
+            return (
+                b.userId === primaryBooking.userId &&
+                b.listingId === primaryBooking.listingId &&
+                b.status !== 'Cancelled' &&
+                b.status !== 'Completed' &&
+                bookingDate.getTime() >= now.getTime()
+            );
+        });
+
+        cancellable.forEach(b => {
+            const updated: Booking = {
+                ...b,
+                status: 'Cancelled',
+                cancellationReason: reason,
+                cancelledAt: nowIso,
+                cancelledBy: userId,
+                // We keep per-booking refundAmount optional; the total is represented by groupRefundAmount
+                refundAmount: 0,
+                refundProcessed: groupRefundAmount > 0,
+                paymentStatus: groupRefundAmount > 0 ? 'Refunded' : b.paymentStatus
+            };
+            updateBooking(updated);
+        });
+
+        // Process refund once for the whole group if applicable
+        if (groupRefundAmount > 0) {
+            await escrowService.processRefund(primaryBooking, userId, groupRefundAmount);
+            await paymentService.refundToWallet(groupRefundAmount, 'Refund for guest series cancellation');
+            updateUserWalletBalance(primaryBooking.userId, groupRefundAmount, true);
+        }
+
+        // Notifications: use primary booking id as reference
+        const listings = JSON.parse(localStorage.getItem('fiilar_listings') || '[]');
+        const listing = listings.find((l: any) => l.id === primaryBooking.listingId);
+
+        addNotification({
+            userId: primaryBooking.userId,
+            type: 'booking',
+            title: 'Series Booking Cancelled',
+            message: groupRefundAmount > 0
+                ? `Your series booking has been cancelled. Refund of $${groupRefundAmount.toFixed(2)} processed.`
+                : 'Your series booking has been cancelled. No refund available.',
+            severity: 'info',
+            read: false,
+            actionRequired: false,
+            metadata: {
+                bookingId: primaryBooking.id,
+                amount: groupRefundAmount,
+                link: '/dashboard?tab=bookings'
+            }
+        });
+
+        if (listing) {
+            const users = JSON.parse(localStorage.getItem('fiilar_users') || '[]');
+            const guest = users.find((u: any) => u.id === primaryBooking.userId);
+
+            addNotification({
+                userId: listing.hostId,
+                type: 'booking',
+                title: 'Series Booking Cancelled',
+                message: `${guest?.name || 'A guest'} cancelled their series booking for "${listing.title}"`,
+                severity: 'warning',
+                read: false,
+                actionRequired: false,
+                metadata: {
+                    bookingId: primaryBooking.id,
+                    link: '/dashboard?view=bookings'
+                }
+            });
+        }
+
+        return {
+            success: true,
+            message: groupRefundAmount > 0
+                ? `Series cancelled successfully. Refund of $${groupRefundAmount.toFixed(2)} has been processed.`
+                : 'Series cancelled successfully.'
+        };
+    } catch (error: any) {
+        console.error('Group cancellation error:', error);
+        return {
+            success: false,
+            message: error.message || 'Failed to process series cancellation. Please try again.'
         };
     }
 };

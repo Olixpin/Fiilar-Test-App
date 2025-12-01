@@ -59,20 +59,20 @@ export const SupportModal: React.FC<SupportModalProps> = ({ isOpen, onClose }) =
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         if (!formData.email || !formData.category || !formData.message) {
             showToast({ message: 'Please fill in all required fields', type: 'error' });
             return;
         }
 
         setIsSubmitting(true);
-        
+
         // Simulate API call
         await new Promise(resolve => setTimeout(resolve, 1500));
-        
+
         setIsSubmitting(false);
         setIsSubmitted(true);
-        
+
         // Reset after showing success
         setTimeout(() => {
             setIsSubmitted(false);
@@ -93,7 +93,7 @@ export const SupportModal: React.FC<SupportModalProps> = ({ isOpen, onClose }) =
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             {/* Backdrop */}
-            <div 
+            <div
                 className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
                 onClick={handleClose}
             />
@@ -114,6 +114,7 @@ export const SupportModal: React.FC<SupportModalProps> = ({ isOpen, onClose }) =
                     <button
                         onClick={handleClose}
                         className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
+                        aria-label="Close modal"
                     >
                         <X size={20} />
                     </button>
@@ -123,11 +124,10 @@ export const SupportModal: React.FC<SupportModalProps> = ({ isOpen, onClose }) =
                 <div className="flex border-b border-gray-100">
                     <button
                         onClick={() => setActiveTab('faq')}
-                        className={`flex-1 px-4 py-3 text-sm font-medium transition-colors relative ${
-                            activeTab === 'faq' 
-                                ? 'text-brand-600' 
+                        className={`flex-1 px-4 py-3 text-sm font-medium transition-colors relative ${activeTab === 'faq'
+                                ? 'text-brand-600'
                                 : 'text-gray-500 hover:text-gray-700'
-                        }`}
+                            }`}
                     >
                         <span className="flex items-center justify-center gap-2">
                             <MessageCircle size={16} />
@@ -139,11 +139,10 @@ export const SupportModal: React.FC<SupportModalProps> = ({ isOpen, onClose }) =
                     </button>
                     <button
                         onClick={() => setActiveTab('contact')}
-                        className={`flex-1 px-4 py-3 text-sm font-medium transition-colors relative ${
-                            activeTab === 'contact' 
-                                ? 'text-brand-600' 
+                        className={`flex-1 px-4 py-3 text-sm font-medium transition-colors relative ${activeTab === 'contact'
+                                ? 'text-brand-600'
                                 : 'text-gray-500 hover:text-gray-700'
-                        }`}
+                            }`}
                     >
                         <span className="flex items-center justify-center gap-2">
                             <Mail size={16} />
@@ -160,7 +159,7 @@ export const SupportModal: React.FC<SupportModalProps> = ({ isOpen, onClose }) =
                     {activeTab === 'faq' ? (
                         <div className="space-y-3">
                             {FAQS.map((faq, index) => (
-                                <div 
+                                <div
                                     key={index}
                                     className="border border-gray-200 rounded-xl overflow-hidden"
                                 >
@@ -234,6 +233,7 @@ export const SupportModal: React.FC<SupportModalProps> = ({ isOpen, onClose }) =
                                             onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                                             className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none transition-all appearance-none bg-white"
                                             required
+                                            aria-label="Support category"
                                         >
                                             <option value="">Select a category</option>
                                             {CATEGORIES.map(cat => (
@@ -289,8 +289,8 @@ export const SupportModal: React.FC<SupportModalProps> = ({ isOpen, onClose }) =
 
                                     <p className="text-center text-xs text-gray-400 pt-2">
                                         Or email us directly at{' '}
-                                        <a 
-                                            href="mailto:support@fiilar.com" 
+                                        <a
+                                            href="mailto:support@fiilar.com"
                                             className="text-brand-600 hover:underline"
                                         >
                                             support@fiilar.com

@@ -62,10 +62,48 @@ export const trackEvent = (
 };
 
 /**
- * Track a listing view
+ * Track a listing view (with debounce to prevent view inflation)
  */
 export const trackListingView = (listingId: string, userId?: string): void => {
+  // Debounce: Don't count the same user viewing same listing within 30 minutes
+  const viewKey = `last_view_${listingId}_${userId || 'anonymous'}`;
+  const lastView = sessionStorage.getItem(viewKey);
+  const now = Date.now();
+  const thirtyMinutes = 30 * 60 * 1000;
+  
+  if (lastView && (now - parseInt(lastView)) < thirtyMinutes) {
+    // Already viewed recently, don't count again
+    return;
+  }
+  
+  // Record this view time
+  sessionStorage.setItem(viewKey, now.toString());
+  
+  // Track the event
   trackEvent('VIEW', listingId, userId);
+  
+  // Update the listing's viewCount directly for real-time display
+  updateListingViewCount(listingId);
+};
+
+/**
+ * Update a listing's viewCount in localStorage
+ */
+const updateListingViewCount = (listingId: string): void => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEYS.LISTINGS);
+    if (!stored) return;
+    
+    const listings = JSON.parse(stored);
+    const listingIndex = listings.findIndex((l: any) => l.id === listingId);
+    
+    if (listingIndex !== -1) {
+      listings[listingIndex].viewCount = (listings[listingIndex].viewCount || 0) + 1;
+      localStorage.setItem(STORAGE_KEYS.LISTINGS, JSON.stringify(listings));
+    }
+  } catch (error) {
+    console.error('Failed to update listing view count:', error);
+  }
 };
 
 /**

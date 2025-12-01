@@ -2,6 +2,9 @@ import React from 'react';
 import { Listing, User } from '@fiilar/types';
 import { Button } from '@fiilar/ui';
 import { ShieldCheck, Upload, FileText, CheckCircle, AlertCircle, ArrowRight, Lock } from 'lucide-react';
+import { useSwipeNavigation } from './useSwipeNavigation';
+import { SwipeIndicator } from './SwipeIndicator';
+import { SwipeHint } from './SwipeHint';
 
 interface ListingVerificationProps {
     newListing: Partial<Listing>;
@@ -18,8 +21,19 @@ const ListingVerification: React.FC<ListingVerificationProps> = ({
     const identityVerified = !!user.kycVerified;
     const canContinue = !!(addressUploaded && identityVerified);
 
+    // Swipe navigation - only allow continue if verified
+    const { swipeOffset, isDragging, handlers } = useSwipeNavigation({
+        onSwipeLeft: canContinue ? () => setStep(5) : undefined, // Continue to Review (only if verified)
+        onSwipeRight: () => setStep(3), // Back to Availability
+    });
+
     return (
-        <div className="space-y-8 animate-in slide-in-from-right duration-500">
+        <div
+            className={`space-y-8 animate-in slide-in-from-right duration-500 ${isDragging ? 'cursor-grabbing select-none' : 'cursor-grab'}`}
+            {...handlers}
+        >
+            <SwipeIndicator swipeOffset={swipeOffset} direction="left" label="Continue" />
+            <SwipeIndicator swipeOffset={swipeOffset} direction="right" label="Back" />
             {/* Header with Trust Badge */}
             <div className="flex items-center justify-between">
                 <div>
@@ -142,27 +156,33 @@ const ListingVerification: React.FC<ListingVerificationProps> = ({
                 </div>
             </div>
 
-            {/* Navigation */}
-            <div className="flex justify-between items-center pt-6 border-t border-white/20">
+            {/* Navigation - Mobile: Swipe/Drag, Desktop: Buttons */}
+
+            {/* Mobile Hint */}
+            <div className="md:hidden">
+                <SwipeHint showContinue={true} showBack={true} />
+            </div>
+
+            {/* Desktop Navigation */}
+            <div className="hidden md:flex justify-between items-center pt-6 border-t border-gray-200">
                 <Button
                     onClick={() => setStep(3)}
                     variant="ghost"
                     size="lg"
-                    className="text-gray-500 hover:text-gray-900"
+                    className="text-gray-500 hover:text-gray-900 hover:bg-gray-100"
+                    leftIcon={<ArrowRight size={18} className="rotate-180" />}
                 >
-                    Back
+                    Back to Availability
                 </Button>
                 <Button
                     onClick={() => setStep(5)}
                     disabled={!canContinue}
                     variant="primary"
                     size="lg"
-                    className="shadow-xl shadow-brand-500/20 hover:shadow-brand-500/40 transition-all hover:scale-[1.02] relative overflow-hidden group"
+                    className="shadow-lg shadow-brand-500/20 hover:shadow-brand-500/30 transition-all px-8"
                     rightIcon={<ArrowRight size={18} />}
                 >
-                    <span className="relative z-10">Continue to Review</span>
-                    {/* Shine effect */}
-                    <div className="absolute inset-0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent z-0"></div>
+                    Continue to Review
                 </Button>
             </div>
         </div>

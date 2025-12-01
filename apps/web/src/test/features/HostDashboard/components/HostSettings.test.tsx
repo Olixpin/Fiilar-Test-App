@@ -2,14 +2,19 @@ import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import HostSettings from '../../../../features/HostDashboard/components/HostSettings';
 import { User, Role } from '@fiilar/types';
-import { LocaleProvider } from '@fiilar/ui';
+import { LocaleProvider, ToastProvider } from '@fiilar/ui';
+import { MemoryRouter } from 'react-router-dom';
 
 // Helper to wrap component with necessary providers
 const renderWithProviders = (ui: React.ReactElement) => {
     return render(
-        <LocaleProvider>
-            {ui}
-        </LocaleProvider>
+        <MemoryRouter>
+            <ToastProvider>
+                <LocaleProvider>
+                    {ui}
+                </LocaleProvider>
+            </ToastProvider>
+        </MemoryRouter>
     );
 };
 

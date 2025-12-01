@@ -41,8 +41,9 @@ interface ListingDetailsProps {
 const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, onBook, onVerify, onLogin, onRefreshUser }) => {
   const {
     host,
+    hasActiveBooking,
     paymentMethod, setPaymentMethod,
-    walletBalance,
+    walletBalance, setWalletBalance,
     currentMonth, setCurrentMonth,
     selectedDate, setSelectedDate,
     isCalendarOpen, setIsCalendarOpen,
@@ -91,6 +92,10 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
     formatDraftAge
   } = useListingDetails({ listing, user, onBook, onVerify, onLogin, onRefreshUser });
 
+  // Host should always see the address
+  const isHost = user?.id === listing.hostId;
+  const showFullAddress = isHost || hasActiveBooking;
+
   const [showPriceBreakdownModal, setShowPriceBreakdownModal] = useState(false);
 
   const [showTopNav, setShowTopNav] = useState(true);
@@ -105,8 +110,6 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
-  const isHost = user?.id === listing.hostId;
 
   return (
     <div className="min-h-screen bg-white">
@@ -222,7 +225,7 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
       </div>
 
       {/* Hero Images (Parallax Fixed Background) */}
-      <div className="fixed top-0 left-0 w-full h-[85vh] z-0">
+      <div className="fixed top-0 left-0 w-full h-[60vh] sm:h-[85vh] z-0">
         <ListingImages
           listing={listing}
           openGallery={openGallery}
@@ -235,9 +238,9 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
       </div>
 
       {/* Main Content Grid (Sliding Sheet) */}
-      <div className="relative z-10 bg-white mt-[75vh] rounded-t-[40px] shadow-[0_-10px_40px_rgba(0,0,0,0.1)] min-h-screen pb-32">
+      <div className="relative z-10 bg-white mt-[50vh] sm:mt-[75vh] rounded-t-[32px] sm:rounded-t-[40px] shadow-[0_-10px_40px_rgba(0,0,0,0.1)] min-h-screen pb-32">
         <SectionNav />
-        <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-8 py-12">
+        <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-8 py-8 sm:py-12">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start">
 
             {/* Left Column: The Story (66%) */}
@@ -245,7 +248,7 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
 
               {/* Title & Header moved here */}
               <div id="overview" className="scroll-mt-32">
-                <ListingHeader listing={listing} />
+                <ListingHeader listing={listing} hasActiveBooking={showFullAddress} />
               </div>
 
               <div className="border-b border-gray-100 pb-10">
@@ -304,7 +307,7 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
           </div>
           <button
             onClick={() => setShowMobileBookingModal(true)}
-            className="bg-brand-600 hover:bg-brand-700 text-white px-8 py-3 rounded-xl font-bold text-lg shadow-lg shadow-brand-500/30 transition-all transform hover:scale-105 active:scale-95"
+            className="bg-brand-600 hover:bg-brand-700 text-white px-6 py-3 rounded-xl font-bold text-base shadow-lg shadow-brand-500/30 transition-all transform hover:scale-105 active:scale-95"
           >
             Book Now
           </button>
@@ -386,6 +389,7 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
           paymentMethod={paymentMethod}
           setPaymentMethod={setPaymentMethod}
           walletBalance={walletBalance}
+          setWalletBalance={setWalletBalance}
           agreedToTerms={agreedToTerms}
           setAgreedToTerms={setAgreedToTerms}
           isBookingLoading={isBookingLoading}

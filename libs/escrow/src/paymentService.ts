@@ -145,5 +145,30 @@ export const paymentService = {
         localStorage.setItem(STORAGE_KEYS.TRANSACTIONS, JSON.stringify(transactions));
 
         return transaction;
+    },
+
+    // Refunds
+    refundToWallet: async (amount: number, description: string = 'Refund for booking'): Promise<Transaction> => {
+        await delay(1500);
+
+        const currentBalance = await paymentService.getWalletBalance();
+        const newBalance = currentBalance + amount;
+        localStorage.setItem(STORAGE_KEYS.WALLET_BALANCE, newBalance.toString());
+
+        const transaction: Transaction = {
+            id: `tx_${Date.now()}`,
+            userId: 'user_1',
+            amount: amount,
+            type: 'REFUND',
+            date: new Date().toISOString(),
+            description,
+            status: 'COMPLETED'
+        };
+
+        const transactions = await paymentService.getTransactions();
+        transactions.unshift(transaction);
+        localStorage.setItem(STORAGE_KEYS.TRANSACTIONS, JSON.stringify(transactions));
+
+        return transaction;
     }
 };

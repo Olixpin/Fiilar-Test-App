@@ -35,34 +35,23 @@ const HostMessages: React.FC<HostMessagesProps> = ({ user, hostBookings }) => {
 
     return (
         <div className="space-y-4 animate-in fade-in">
-            {/* Messages Header */}
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                    <div>
+            {/* Messages Container - WhatsApp-like layout */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                {/* Mobile: Show header when no conversation selected */}
+                {!selectedConversationId && (
+                    <div className="p-4 border-b border-gray-200 md:hidden">
                         <h2 className="text-xl font-bold text-gray-900">Messages</h2>
                         <p className="text-sm text-gray-500 mt-1">Chat with your guests</p>
                     </div>
-                    <div className="flex items-center gap-2 w-full sm:w-auto">
-                        <div className="relative flex-1 sm:flex-none sm:w-64">
-                            <input
-                                type="text"
-                                placeholder="Search conversations..."
-                                className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none"
-                            />
-                            <MessageSquare size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Messages Container */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div className="flex h-[600px]">
-                    {/* Conversation List */}
-                    <div className={`w-full md:w-2/5 lg:w-1/3 border-r border-gray-200 flex flex-col ${selectedConversationId ? 'hidden md:flex' : 'flex'}`}>
-                        <div className="p-4 border-b border-gray-200 bg-gray-50">
-                            <h3 className="font-bold text-gray-900 text-sm">Conversations</h3>
-                            <p className="text-xs text-gray-500 mt-1">{activeConversations.length} active</p>
+                )}
+                
+                <div className="flex h-[calc(100vh-180px)] md:h-[600px]">
+                    {/* Conversation List - Full width on mobile until a chat is selected */}
+                    <div className={`${selectedConversationId ? 'hidden md:flex' : 'flex'} w-full md:w-2/5 lg:w-1/3 border-r border-gray-200 flex-col`}>
+                        {/* Desktop header */}
+                        <div className="hidden md:block p-4 border-b border-gray-200 bg-gray-50">
+                            <h3 className="font-bold text-gray-900">Conversations</h3>
+                            <p className="text-xs text-gray-500 mt-0.5">{activeConversations.length} active</p>
                         </div>
                         <div className="flex-1 overflow-y-auto">
                             <ChatList
@@ -73,8 +62,8 @@ const HostMessages: React.FC<HostMessagesProps> = ({ user, hostBookings }) => {
                         </div>
                     </div>
 
-                    {/* Chat Window */}
-                    <div className={`w-full md:w-3/5 lg:w-2/3 flex-col ${selectedConversationId ? 'flex' : 'hidden md:flex'}`}>
+                    {/* Chat Window - Hidden on mobile when no conversation selected */}
+                    <div className={`${selectedConversationId ? 'flex' : 'hidden md:flex'} w-full md:w-3/5 lg:w-2/3 flex-col`}>
                         {selectedConversationId ? (
                             <ChatWindow
                                 conversationId={selectedConversationId}

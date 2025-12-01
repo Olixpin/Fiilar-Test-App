@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { X, AlertTriangle, Clock, Info } from 'lucide-react';
 import { Booking, CancellationPolicy } from '@fiilar/types';
-import { calculateRefund, processCancellation, getCancellationPolicyDescription } from '../../../services/cancellationService';
+import { calculateRefund, calculateGroupRefund, processCancellation, processGroupCancellation, getCancellationPolicyDescription } from '../../../services/cancellationService';
 import { useLocale, Button, useToast } from '@fiilar/ui';
 
 interface CancellationModalProps {
     booking: Booking;
     policy: CancellationPolicy;
+    group?: Booking[];
     onClose: () => void;
     onSuccess: () => void;
 }
@@ -20,22 +21,30 @@ const CANCELLATION_REASONS = [
     'Other'
 ];
 
-const CancellationModal: React.FC<CancellationModalProps> = ({ booking, policy, onClose, onSuccess }) => {
+const CancellationModal: React.FC<CancellationModalProps> = ({ booking, policy, group, onClose, onSuccess }) => {
     const { locale } = useLocale();
     const toast = useToast();
+    const isGroup = !!group && group.length > 1;
+    const primaryBooking = isGroup ? group![0] : booking;
     const [reason, setReason] = useState('');
     const [customReason, setCustomReason] = useState('');
     const [confirmed, setConfirmed] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
-    const [refundCalc, setRefundCalc] = useState(calculateRefund(booking, policy));
+    const [refundCalc, setRefundCalc] = useState(
+        isGroup ? calculateGroupRefund(group!, policy) : calculateRefund(primaryBooking, policy)
+    );
 
     // Recalculate refund every minute
     useEffect(() => {
         const interval = setInterval(() => {
-            setRefundCalc(calculateRefund(booking, policy));
+            setRefundCalc(
+                isGroup && group && group.length > 0
+                    ? calculateGroupRefund(group, policy)
+                    : calculateRefund(primaryBooking, policy)
+            );
         }, 60000);
         return () => clearInterval(interval);
-    }, [booking, policy]);
+    }, [primaryBooking, policy, isGroup, group]);
 
     const handleCancel = async () => {
         if (!reason) {
@@ -53,12 +62,20 @@ const CancellationModal: React.FC<CancellationModalProps> = ({ booking, policy, 
         const finalReason = reason === 'Other' ? customReason : reason;
         const currentUser = JSON.parse(localStorage.getItem('fiilar_user') || '{}');
 
-        const result = await processCancellation(
-            booking,
-            currentUser.id,
-            finalReason,
-            refundCalc.refundAmount
-        );
+        const result = isGroup && group && group.length > 1
+            ? await processGroupCancellation(
+                primaryBooking,
+                group,
+                currentUser.id,
+                finalReason,
+                refundCalc.refundAmount
+            )
+            : await processCancellation(
+                primaryBooking,
+                currentUser.id,
+                finalReason,
+                refundCalc.refundAmount
+            );
 
         setIsProcessing(false);
 
@@ -115,8 +132,14 @@ const CancellationModal: React.FC<CancellationModalProps> = ({ booking, policy, 
 
                         <div className="border-t border-gray-200 pt-3 space-y-2">
                             <div className="flex justify-between text-sm">
-                                <span className="text-gray-600">Original amount:</span>
-                                <span className="font-semibold">{locale.currencySymbol}{booking.totalPrice.toFixed(2)}</span>
+                                <span className="text-gray-600">Original amount{isGroup ? ' (series total)' : ''}:</span>
+                                <span className="font-semibold">
+                                    {locale.currencySymbol}
+                                    {(isGroup
+                                        ? group!.reduce((sum, b) => sum + b.totalPrice, 0)
+                                        : booking.totalPrice
+                                    ).toFixed(2)}
+                                </span>
                             </div>
                             <div className="flex justify-between text-sm">
                                 <span className="text-gray-600">Refund percentage:</span>

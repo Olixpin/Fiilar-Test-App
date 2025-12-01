@@ -29,8 +29,8 @@ export const getListings = (): Listing[] => {
                 lng: 3.5000
             },
             images: listing.images && listing.images.length > 0 ? listing.images : [
-                'https://via.placeholder.com/300x200?text=Listing+Image+1',
-                'https://via.placeholder.com/300x200?text=Listing+Image+2'
+                'https://placehold.co/300x200/e2e8f0/64748b?text=Listing+Image',
+                'https://placehold.co/300x200/e2e8f0/64748b?text=Listing+Image'
             ]
         };
 

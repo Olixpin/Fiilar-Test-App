@@ -1,5 +1,5 @@
 import React from 'react';
-import { Settings as SettingsIcon } from 'lucide-react';
+import { Settings as SettingsIcon, ChevronLeft } from 'lucide-react';
 import { User } from '@fiilar/types';
 import { useSettingsData } from '../hooks/useSettingsData';
 import { SuccessToast } from './Settings/SuccessToast';
@@ -44,22 +44,61 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdateUser, onLogout }) => 
         handleDeleteAccount
     } = useSettingsData({ user, onUpdateUser });
 
+    const [mobileView, setMobileView] = React.useState<'menu' | 'content'>('menu');
+
+    const handleTabChange = (tab: any) => {
+        setActiveTab(tab);
+        setMobileView('content');
+    };
+
+    const handleBackToMenu = () => {
+        setMobileView('menu');
+    };
+
+    // Get label for current tab
+    const getTabLabel = () => {
+        switch (activeTab) {
+            case 'account': return 'Account Settings';
+            case 'support': return 'Support';
+            case 'feedback': return 'Feedback';
+            case 'about': return 'About';
+            default: return 'Settings';
+        }
+    };
+
     return (
         <div className="relative h-full">
             <SuccessToast show={showSavedToast} />
 
-            {/* Header - Only show on mobile since sidebar handles nav on desktop */}
-            <div className="flex md:hidden items-center gap-3 mb-6">
+            {/* Mobile Header - Menu View */}
+            <div className={`flex md:hidden items-center gap-3 mb-6 ${mobileView === 'content' ? 'hidden' : 'flex'}`}>
                 <div className="p-2 bg-brand-100 rounded-lg text-brand-600">
                     <SettingsIcon size={24} />
                 </div>
                 <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
             </div>
 
-            <div className="flex flex-col md:flex-row gap-12 h-full">
-                <SettingsSidebar activeTab={activeTab} setActiveTab={setActiveTab} onLogout={onLogout} />
+            {/* Mobile Header - Content View */}
+            <div className={`flex md:hidden items-center gap-3 mb-6 ${mobileView === 'menu' ? 'hidden' : 'flex'}`}>
+                <button
+                    onClick={handleBackToMenu}
+                    className="p-2 -ml-2 hover:bg-gray-100 rounded-full transition-colors"
+                >
+                    <ChevronLeft size={24} className="text-gray-600" />
+                </button>
+                <h1 className="text-xl font-bold text-gray-900">{getTabLabel()}</h1>
+            </div>
 
-                <div className="flex-1">
+            <div className="flex flex-col md:flex-row gap-12 h-full">
+                <div className={`${mobileView === 'content' ? 'hidden md:block' : 'block'} w-full md:w-auto`}>
+                    <SettingsSidebar
+                        activeTab={activeTab}
+                        setActiveTab={handleTabChange}
+                        onLogout={onLogout}
+                    />
+                </div>
+
+                <div className={`flex-1 ${mobileView === 'menu' ? 'hidden md:block' : 'block'}`}>
                     {activeTab === 'account' && (
                         <AccountSettings
                             user={user}
@@ -77,7 +116,7 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdateUser, onLogout }) => 
                             setDeleteConfirmText={setDeleteConfirmText}
                             isDeleting={isDeleting}
                             handleDeleteAccount={handleDeleteAccount}
-                            onUserUpdate={onUpdateUser}
+                            onUserUpdate={() => onUpdateUser?.({})}
                         />
                     )}
 

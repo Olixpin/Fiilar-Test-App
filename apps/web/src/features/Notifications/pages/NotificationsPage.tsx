@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Bell, Check, Trash2, AlertTriangle, Calendar, MessageSquare, Star, Info, Settings, Wallet } from 'lucide-react';
 import { Notification } from '@fiilar/types';
 import { getNotifications, markAllNotificationsAsRead, markNotificationAsRead, clearAllNotifications } from '@fiilar/notifications';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button, ConfirmDialog } from '@fiilar/ui';
 
 interface NotificationsPageProps {
@@ -15,6 +15,10 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ userId }) => {
     const [filter, setFilter] = useState<'all' | 'unread' | 'urgent'>('all');
     const [showClearConfirm, setShowClearConfirm] = useState(false);
     const navigate = useNavigate();
+    const location = useLocation();
+    
+    // Determine if we're in host dashboard based on current URL
+    const isHostDashboard = location.pathname.includes('/host/');
 
     useEffect(() => {
         loadNotifications();
@@ -170,7 +174,7 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ userId }) => {
                     <p className="text-gray-600">Stay updated with your bookings, messages, and platform updates</p>
                 </div>
                 <Button
-                    onClick={() => navigate('/dashboard?tab=settings')}
+                    onClick={() => navigate(isHostDashboard ? '/host/dashboard?view=settings' : '/dashboard?tab=settings')}
                     variant="outline"
                     size="sm"
                     leftIcon={<Settings size={16} />}

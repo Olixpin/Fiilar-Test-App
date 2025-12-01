@@ -5,6 +5,7 @@ import { getBookings, saveListing, getAllUsers, saveUser, authorizeAdminOperatio
 import { updateKYC } from '@fiilar/kyc';
 import { escrowService } from '@fiilar/escrow';
 import { useToast } from '@fiilar/ui';
+import { addNotification } from '@fiilar/notifications';
 
 interface UseAdminDataProps {
     users: User[];
@@ -17,7 +18,7 @@ interface UseAdminDataProps {
  * SECURITY: All operations verify admin role before executing
  */
 export const useAdminData = ({ users, listings, refreshData }: UseAdminDataProps) => {
-    const [activeTab, setActiveTab] = useState<'kyc' | 'hosts' | 'listings' | 'financials' | 'escrow' | 'disputes'>('hosts');
+    const [activeTab, setActiveTab] = useState<'kyc' | 'hosts' | 'listings' | 'financials' | 'escrow' | 'disputes' | 'series-debug'>('hosts');
     const [rejectionModal, setRejectionModal] = useState<{ isOpen: boolean, listingId: string | null, reason: string }>({
         isOpen: false,
         listingId: null,
@@ -29,6 +30,7 @@ export const useAdminData = ({ users, listings, refreshData }: UseAdminDataProps
     const [transactions, setTransactions] = useState<EscrowTransaction[]>([]);
     const [loading, setLoading] = useState(false);
     const [authError, setAuthError] = useState<string | null>(null);
+    const [seriesCount, setSeriesCount] = useState(0);
 
     // SECURITY: Verify admin access on mount
     useEffect(() => {
@@ -50,7 +52,7 @@ export const useAdminData = ({ users, listings, refreshData }: UseAdminDataProps
 
     // Load financial data when financials or escrow tab is active
     useEffect(() => {
-        if (activeTab === 'financials' || activeTab === 'escrow' || activeTab === 'disputes') {
+        if (activeTab === 'financials' || activeTab === 'escrow' || activeTab === 'disputes' || activeTab === 'series-debug') {
             loadFinancialData();
         }
     }, [activeTab]);
@@ -70,6 +72,9 @@ export const useAdminData = ({ users, listings, refreshData }: UseAdminDataProps
             const allTransactions = await escrowService.getEscrowTransactions();
 
             setBookings(allBookings);
+            // Count distinct groupIds for debug badge
+            const groupIds = new Set(allBookings.filter(b => b.groupId).map(b => b.groupId as string));
+            setSeriesCount(groupIds.size);
             setFinancials(platformFinancials);
             setTransactions(allTransactions.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
         } catch (error) {
@@ -128,8 +133,35 @@ export const useAdminData = ({ users, listings, refreshData }: UseAdminDataProps
             rejectionReason: reason
         };
         saveListing(updatedListing);
+        
+        // Send notification to host
         if (approve) {
-            showToast({ message: `Listing "${listing.title}" Approved. Email notification sent.`, type: 'success' });
+            addNotification({
+                userId: listing.hostId,
+                type: 'platform_update',
+                title: '🎉 Listing Approved!',
+                message: `Great news! Your listing "${listing.title}" has been approved and is now live. Guests can start booking your space.`,
+                severity: 'info',
+                read: false,
+                actionRequired: false,
+                metadata: {
+                    link: `/listings/${listing.id}`
+                }
+            });
+            showToast({ message: `Listing "${listing.title}" Approved. Host has been notified.`, type: 'success' });
+        } else {
+            addNotification({
+                userId: listing.hostId,
+                type: 'platform_update',
+                title: 'Listing Update Required',
+                message: `Your listing "${listing.title}" requires some changes before it can be approved. Reason: ${reason || 'Please review and update your listing.'}`,
+                severity: 'warning',
+                read: false,
+                actionRequired: true,
+                metadata: {
+                    link: `/host/listings/${listing.id}/edit`
+                }
+            });
         }
         refreshData();
     };
@@ -185,6 +217,7 @@ export const useAdminData = ({ users, listings, refreshData }: UseAdminDataProps
         handleDeleteListing,
         openRejectionModal,
         handleRejectionSubmit,
-        presetPhotographyOffer
+        presetPhotographyOffer,
+        seriesCount
     };
 };

@@ -9,10 +9,18 @@ interface UserBookingsTabProps {
   user: User;
   listings: Listing[];
   onMessageHost: (hostId: string, listingId: string) => void;
-  onCancelBooking: (booking: Booking, policy: CancellationPolicy) => void;
+  onCancelBooking: (booking: Booking, policy: CancellationPolicy, group?: Booking[]) => void;
   onReviewBooking: (bookingId: string, listingId: string, listingTitle: string) => void;
   onModifyBooking?: (booking: Booking) => void;
 }
+
+const formatTime = (timeStr: string) => {
+  if (!timeStr) return '';
+  const [hours, minutes] = timeStr.split(':').map(Number);
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  const hour12 = hours % 12 || 12;
+  return `${hour12}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+};
 
 const formatTimeRange = (hours?: number[]) => {
   if (!hours || hours.length === 0) return null;
@@ -27,6 +35,36 @@ const formatTimeRange = (hours?: number[]) => {
   };
 
   return `${formatHour(start)} - ${formatHour(end)}`;
+};
+
+const getBookingTimeDisplay = (booking: Booking, listing?: Listing) => {
+  // 1. Try to use specific hours if available
+  if (booking.hours && booking.hours.length > 0) {
+    return formatTimeRange(booking.hours);
+  }
+
+  // 2. Fallback to listing configuration
+  if (listing?.bookingConfig) {
+    // Check for Nightly Config (checkInTime)
+    if ('checkInTime' in listing.bookingConfig) {
+      const config = listing.bookingConfig as any;
+      return `Check-in: ${formatTime(config.checkInTime)} - Check-out: ${formatTime(config.checkOutTime)}`;
+    }
+
+    // Check for Daily Config (accessStartTime)
+    if ('accessStartTime' in listing.bookingConfig) {
+      const config = listing.bookingConfig as any;
+      return `${formatTime(config.accessStartTime)} - ${formatTime(config.accessEndTime)}`;
+    }
+
+    // Check for Hourly Config (operatingHours) - fallback if hours missing but it's hourly
+    if ('operatingHours' in listing.bookingConfig) {
+      const config = listing.bookingConfig as any;
+      return `${formatTime(config.operatingHours.start)} - ${formatTime(config.operatingHours.end)}`;
+    }
+  }
+
+  return null;
 };
 
 const getGoogleMapsUrl = (location: string) => {
@@ -297,7 +335,7 @@ export const UserBookingsTab: React.FC<UserBookingsTabProps> = ({
           <div className="space-y-4">
             {filteredItems.map(({ booking: b, group }) => {
               const listing = listings.find(l => l.id === b.listingId);
-              const timeRange = formatTimeRange(b.hours);
+              const timeDisplay = getBookingTimeDisplay(b, listing);
               const isGroup = group && group.length > 1;
               const totalPrice = isGroup ? group.reduce((sum, item) => sum + item.totalPrice, 0) : b.totalPrice;
 
@@ -369,14 +407,14 @@ export const UserBookingsTab: React.FC<UserBookingsTabProps> = ({
                         </div>
                       </div>
 
-                      {!isGroup && timeRange && (
+                      {timeDisplay && (
                         <div className="flex items-start gap-3">
                           <div className="p-2 bg-gray-50 rounded-lg text-gray-500">
                             <Clock size={18} />
                           </div>
                           <div>
                             <p className="text-xs font-medium text-gray-500 uppercase">Time</p>
-                            <p className="text-sm font-medium text-gray-900 mt-0.5">{timeRange}</p>
+                            <p className="text-sm font-medium text-gray-900 mt-0.5">{timeDisplay}</p>
                           </div>
                         </div>
                       )}
@@ -448,7 +486,7 @@ export const UserBookingsTab: React.FC<UserBookingsTabProps> = ({
                             </button>
                           )}
                           <button
-                            onClick={() => onCancelBooking(b, CancellationPolicy.FLEXIBLE)}
+                            onClick={() => onCancelBooking(b, CancellationPolicy.FLEXIBLE, group)}
                             className="px-4 py-2 bg-white border border-gray-200 text-gray-600 text-sm font-medium rounded-lg hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors flex items-center gap-2"
                           >
                             <XCircle size={16} /> Cancel
@@ -460,7 +498,7 @@ export const UserBookingsTab: React.FC<UserBookingsTabProps> = ({
                         <button
                           onClick={() => {
                             const policy = listing?.cancellationPolicy || CancellationPolicy.FLEXIBLE;
-                            onCancelBooking(b, policy);
+                            onCancelBooking(b, policy, group);
                           }}
                           className="px-4 py-2 bg-white border border-gray-200 text-gray-600 text-sm font-medium rounded-lg hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors flex items-center gap-2"
                         >

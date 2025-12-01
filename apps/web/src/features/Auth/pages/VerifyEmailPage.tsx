@@ -61,9 +61,9 @@ const VerifyEmailPage: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-linear-to-br from-brand-50 to-white flex items-center justify-center p-4">
-            <div className="max-w-md w-full">
-                <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
+        <div className="min-h-[100dvh] bg-linear-to-br from-brand-50 to-white flex items-center justify-center p-4 overflow-y-auto">
+            <div className="max-w-md w-full my-auto">
+                <div className="bg-white rounded-2xl shadow-xl p-6 sm:p-8 text-center">
                     {isVerifying ? (
                         <>
                             <div className="w-16 h-16 bg-brand-100 rounded-full flex items-center justify-center mx-auto mb-4">

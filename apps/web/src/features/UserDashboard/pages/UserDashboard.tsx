@@ -8,7 +8,7 @@ import { User, Listing, Booking, CancellationPolicy } from '@fiilar/types';
 import { WalletCard } from '../components/WalletCard';
 import { TransactionHistory } from '../components/TransactionHistory';
 import { PaymentMethods } from '../components/PaymentMethods';
-import { Heart, Calendar, Wallet, LayoutGrid, Sparkles, MessageSquare, Bell, CreditCard, Settings as SettingsIcon, CheckCircle, Clock, Search, Home, ChevronLeft, ChevronRight, LogOut } from 'lucide-react';
+import { Heart, Calendar, Wallet, LayoutGrid, Sparkles, MessageSquare, Bell, CreditCard, Settings as SettingsIcon, CheckCircle, Clock, Search, Home, ChevronLeft, ChevronRight, LogOut, Briefcase } from 'lucide-react';
 import CancellationModal from '../../Bookings/components/CancellationModal';
 import ModifyBookingModal from '../../Bookings/components/ModifyBookingModal';
 import { ChatList } from '../../Messaging/components/ChatList';
@@ -38,11 +38,11 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings, onRefresh
   // Hooks must be declared unconditionally and in the same order on every render.
   // Move state and router hooks to the top so an early return (when user is null)
   // doesn't change the Hooks call order.
-  const [activeTab, setActiveTab] = useState<'home' | 'explore' | 'wallet' | 'favorites' | 'bookings' | 'reserve-list' | 'messages' | 'settings' | 'notifications'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'explore' | 'wallet' | 'favorites' | 'bookings' | 'reserve-list' | 'messages' | 'settings' | 'notifications' | 'menu'>('home');
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const [selectedConversationId, setSelectedConversationId] = useState<string | undefined>(undefined);
   const [reviewModalBooking, setReviewModalBooking] = useState<{ bookingId: string, listingId: string, listingTitle: string } | null>(null);
-  const [cancellationModalBooking, setCancellationModalBooking] = useState<{ booking: Booking, policy: CancellationPolicy } | null>(null);
+  const [cancellationModalBooking, setCancellationModalBooking] = useState<{ booking: Booking, policy: CancellationPolicy, group?: Booking[] } | null>(null);
   const [modifyModalBooking, setModifyModalBooking] = useState<{ booking: Booking, listing: Listing } | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const [refreshKey, setRefreshKey] = useState(0);
@@ -104,7 +104,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings, onRefresh
   // IMPORTANT: This must be before the early return to maintain consistent hook order
   useEffect(() => {
     const tab = searchParams.get('tab');
-    if (tab === 'home' || tab === 'wallet' || tab === 'favorites' || tab === 'bookings' || tab === 'explore' || tab === 'reserve-list' || tab === 'messages' || tab === 'settings' || tab === 'notifications') {
+    if (tab === 'home' || tab === 'wallet' || tab === 'favorites' || tab === 'bookings' || tab === 'explore' || tab === 'reserve-list' || tab === 'messages' || tab === 'settings' || tab === 'notifications' || tab === 'menu') {
       setActiveTab(tab as any);
     }
 
@@ -143,7 +143,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings, onRefresh
   }
 
   // Helper to change tab and update URL so history reflects tab changes
-  const setTab = (tab: 'home' | 'explore' | 'wallet' | 'favorites' | 'bookings' | 'reserve-list' | 'messages' | 'settings' | 'notifications') => {
+  const setTab = (tab: 'home' | 'explore' | 'wallet' | 'favorites' | 'bookings' | 'reserve-list' | 'messages' | 'settings' | 'notifications' | 'menu') => {
     setActiveTab(tab);
     // Update query param without losing other params
     const params = new URLSearchParams(searchParams);
@@ -553,7 +553,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings, onRefresh
                   user={user}
                   listings={listings}
                   onMessageHost={handleMessageHost}
-                  onCancelBooking={(booking, policy) => setCancellationModalBooking({ booking, policy })}
+                  onCancelBooking={(booking, policy, group) => setCancellationModalBooking({ booking, policy, group })}
                   onReviewBooking={(bookingId, listingId, listingTitle) => setReviewModalBooking({ bookingId, listingId, listingTitle })}
                   onModifyBooking={(booking) => {
                     console.log('onModifyBooking called in UserDashboard', booking);
@@ -579,36 +579,23 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings, onRefresh
 
               {activeTab === 'messages' && (
                 <div className="space-y-4 animate-in fade-in">
-                  {/* Messages Header */}
-                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                      <div>
+                  {/* Messages Container - WhatsApp-like layout */}
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    {/* Mobile: Show header when no conversation selected */}
+                    {!selectedConversationId && (
+                      <div className="p-4 border-b border-gray-200 md:hidden">
                         <h2 className="text-xl font-bold text-gray-900">Messages</h2>
                         <p className="text-sm text-gray-500 mt-1">Chat with hosts</p>
                       </div>
-                      <div className="flex items-center gap-2 w-full sm:w-auto">
-                        <div className="relative flex-1 sm:flex-none sm:w-64">
-                          <input
-                            type="text"
-                            placeholder="Search conversations..."
-                            title="Search conversations"
-                            aria-label="Search conversations"
-                            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none"
-                          />
-                          <MessageSquare size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Messages Container */}
-                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                    <div className="flex h-[600px]">
-                      {/* Conversation List */}
-                      <div className={`w-full md:w-2/5 lg:w-1/3 border-r border-gray-200 flex flex-col ${selectedConversationId ? 'hidden md:flex' : 'flex'}`}>
-                        <div className="p-4 border-b border-gray-200 bg-gray-50">
-                          <h3 className="font-bold text-gray-900 text-sm">Conversations</h3>
-                          <p className="text-xs text-gray-500 mt-1">{getConversations(user.id).filter(c => c.participants.includes(user.id)).length} active</p>
+                    )}
+                    
+                    <div className="flex h-[calc(100vh-220px)] md:h-[600px]">
+                      {/* Conversation List - Full width on mobile until a chat is selected */}
+                      <div className={`${selectedConversationId ? 'hidden md:flex' : 'flex'} w-full md:w-2/5 lg:w-1/3 border-r border-gray-200 flex-col`}>
+                        {/* Desktop header */}
+                        <div className="hidden md:block p-4 border-b border-gray-200 bg-gray-50">
+                          <h3 className="font-bold text-gray-900">Conversations</h3>
+                          <p className="text-xs text-gray-500 mt-0.5">{getConversations(user.id).filter(c => c.participants.includes(user.id)).length} active</p>
                         </div>
                         <div className="flex-1 overflow-y-auto">
                           <ChatList
@@ -619,8 +606,8 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings, onRefresh
                         </div>
                       </div>
 
-                      {/* Chat Window */}
-                      <div className={`w-full md:w-3/5 lg:w-2/3 flex-col ${selectedConversationId ? 'flex' : 'hidden md:flex'}`}>
+                      {/* Chat Window - Hidden on mobile when no conversation selected */}
+                      <div className={`${selectedConversationId ? 'flex' : 'hidden md:flex'} w-full md:w-3/5 lg:w-2/3 flex-col`}>
                         {selectedConversationId ? (
                           <ChatWindow
                             conversationId={selectedConversationId}
@@ -640,8 +627,8 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings, onRefresh
                     </div>
                   </div>
 
-                  {/* Quick Stats */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {/* Quick Stats - Only show on desktop or when no conversation selected on mobile */}
+                  <div className={`${selectedConversationId ? 'hidden md:grid' : 'grid'} grid-cols-1 sm:grid-cols-3 gap-4`}>
                     <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -693,13 +680,96 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings, onRefresh
                 </div>
               )}
 
+              {/* Mobile Menu Tab */}
+              {activeTab === 'menu' && (
+                <div className="animate-in fade-in slide-in-from-bottom-8 duration-700 space-y-6">
+                  <div className="flex items-center gap-4 mb-6">
+                    <UserAvatar
+                      src={user.avatar}
+                      firstName={user.firstName}
+                      lastName={user.lastName}
+                      size="lg"
+                    />
+                    <div>
+                      <h2 className="text-xl font-bold text-gray-900">{user.name}</h2>
+                      <p className="text-sm text-gray-500">{user.email}</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">My Account</h3>
+                    <button onClick={() => setTab('wallet')} className="w-full flex items-center gap-3 p-4 bg-white border border-gray-100 rounded-xl hover:bg-gray-50 transition-colors">
+                      <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                        <Wallet size={20} />
+                      </div>
+                      <span className="font-medium text-gray-900">Wallet</span>
+                      <ChevronRight size={16} className="ml-auto text-gray-400" />
+                    </button>
+                    <button onClick={() => setTab('reserve-list')} className="w-full flex items-center gap-3 p-4 bg-white border border-gray-100 rounded-xl hover:bg-gray-50 transition-colors">
+                      <div className="p-2 bg-purple-50 text-purple-600 rounded-lg">
+                        <Sparkles size={20} />
+                      </div>
+                      <span className="font-medium text-gray-900">Reserve List</span>
+                      <ChevronRight size={16} className="ml-auto text-gray-400" />
+                    </button>
+                    <button onClick={() => setTab('favorites')} className="w-full flex items-center gap-3 p-4 bg-white border border-gray-100 rounded-xl hover:bg-gray-50 transition-colors">
+                      <div className="p-2 bg-rose-50 text-rose-600 rounded-lg">
+                        <Heart size={20} />
+                      </div>
+                      <span className="font-medium text-gray-900">Favorites</span>
+                      <ChevronRight size={16} className="ml-auto text-gray-400" />
+                    </button>
+                  </div>
+
+                  <div className="space-y-2">
+                    <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Switch Mode</h3>
+                    <button
+                      onClick={() => navigate(user.role === 'HOST' ? '/host/dashboard' : '/login-host')}
+                      className="w-full flex items-center gap-3 p-4 bg-white border border-gray-100 rounded-xl hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="p-2 bg-brand-50 text-brand-600 rounded-lg">
+                        <Briefcase size={20} />
+                      </div>
+                      <span className="font-medium text-gray-900">
+                        {user.role === 'HOST' ? 'Switch to Host Dashboard' : 'Become a Host'}
+                      </span>
+                      <ChevronRight size={16} className="ml-auto text-gray-400" />
+                    </button>
+                  </div>
+
+                  <div className="space-y-2">
+                    <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Settings & Support</h3>
+                    <button onClick={() => setTab('settings')} className="w-full flex items-center gap-3 p-4 bg-white border border-gray-100 rounded-xl hover:bg-gray-50 transition-colors">
+                      <div className="p-2 bg-gray-50 text-gray-600 rounded-lg">
+                        <SettingsIcon size={20} />
+                      </div>
+                      <span className="font-medium text-gray-900">Settings</span>
+                      <ChevronRight size={16} className="ml-auto text-gray-400" />
+                    </button>
+                    <button onClick={() => setTab('notifications')} className="w-full flex items-center gap-3 p-4 bg-white border border-gray-100 rounded-xl hover:bg-gray-50 transition-colors">
+                      <div className="p-2 bg-gray-50 text-gray-600 rounded-lg">
+                        <Bell size={20} />
+                      </div>
+                      <span className="font-medium text-gray-900">Notifications</span>
+                      <ChevronRight size={16} className="ml-auto text-gray-400" />
+                    </button>
+                    <button onClick={onLogout} className="w-full flex items-center gap-3 p-4 bg-white border border-red-100 rounded-xl hover:bg-red-50 transition-colors text-red-600">
+                      <div className="p-2 bg-red-50 text-red-600 rounded-lg">
+                        <LogOut size={20} />
+                      </div>
+                      <span className="font-medium">Log Out</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
             </div>
           </div>
         </main>
       </div>
 
-      {/* Mobile Bottom Navigation */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-xl border-t border-gray-200 pb-safe">
+      {/* Mobile Bottom Navigation - HIDDEN: Replaced by global GuestBottomNav in App.tsx */}
+      {/* <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-xl border-t border-gray-200 pb-safe">
         <div className="flex items-center justify-around h-[68px] px-2">
           {tabConfig.map((tab) => (
             <button
@@ -729,7 +799,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings, onRefresh
             </button>
           ))}
         </div>
-      </div>
+      </div> */}
 
       {/* Review Modal */}
       {reviewModalBooking && (
@@ -746,6 +816,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings, onRefresh
         <CancellationModal
           booking={cancellationModalBooking.booking}
           policy={cancellationModalBooking.policy}
+          group={cancellationModalBooking.group}
           onClose={() => setCancellationModalBooking(null)}
           onSuccess={() => {
             setRefreshKey(prev => prev + 1);

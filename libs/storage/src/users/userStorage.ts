@@ -159,12 +159,13 @@ export const toggleFavorite = (userId: string, listingId: string): string[] => {
  * SECURITY: Only admins or system operations can modify wallet balances
  * For regular user operations, use the payment service which validates transactions
  */
-export const updateUserWalletBalance = (userId: string, amount: number): { success: boolean; error?: string } => {
+export const updateUserWalletBalance = (userId: string, amount: number, skipAuth: boolean = false): { success: boolean; error?: string } => {
     const currentUser = getCurrentUser();
 
     // Only admins can directly modify wallet balances
     // Regular users must go through payment service
-    if (!currentUser || currentUser.role !== Role.ADMIN) {
+    // skipAuth allows system operations (like refunds) to bypass this check
+    if (!skipAuth && (!currentUser || currentUser.role !== Role.ADMIN)) {
         console.error('🚨 SECURITY: Unauthorized wallet balance modification attempt', {
             targetUserId: userId,
             amount,

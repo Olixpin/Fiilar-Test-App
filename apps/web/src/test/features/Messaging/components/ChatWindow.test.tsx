@@ -123,17 +123,17 @@ describe('ChatWindow', () => {
         expect(input).toHaveValue('');
     });
 
-    it('blocks messages with forbidden keywords (safety check)', () => {
+    it('blocks messages with forbidden keywords (safety check)', async () => {
         render(<ChatWindow {...defaultProps} />);
         
         const input = screen.getByPlaceholderText('Type a message...');
-        fireEvent.change(input, { target: { value: 'Call me at 555-1234' } });
+        fireEvent.change(input, { target: { value: 'email me at test@example.com' } });
         
         const sendButton = screen.getByTitle('Send message');
         fireEvent.click(sendButton);
         
         expect(messagingService.sendMessage).not.toHaveBeenCalled();
-        expect(screen.getByText(/Safety Warning/i)).toBeInTheDocument();
+        expect(await screen.findByText(/Message Blocked/i)).toBeInTheDocument();
         expect(screen.getByText(/Sharing contact details/i)).toBeInTheDocument();
     });
 
@@ -150,19 +150,19 @@ describe('ChatWindow', () => {
         expect(screen.getByText(/Vulgar or inappropriate language/i)).toBeInTheDocument();
     });
 
-    it('dismisses safety warning', () => {
+    it('dismisses safety warning', async () => {
         render(<ChatWindow {...defaultProps} />);
         
         // Trigger warning
         const input = screen.getByPlaceholderText('Type a message...');
-        fireEvent.change(input, { target: { value: 'Call me' } });
+        fireEvent.change(input, { target: { value: 'email me at test@example.com' } });
         fireEvent.click(screen.getByTitle('Send message'));
         
-        expect(screen.getByText(/Safety Warning/i)).toBeInTheDocument();
+        expect(await screen.findByText(/Message Blocked/i)).toBeInTheDocument();
         
         // Dismiss
         fireEvent.click(screen.getByText('Dismiss'));
-        expect(screen.queryByText(/Safety Warning/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/Message Blocked/i)).not.toBeInTheDocument();
     });
 
     it('marks messages as read when polling', () => {

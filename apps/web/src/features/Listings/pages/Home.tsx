@@ -70,8 +70,6 @@ const Home: React.FC<HomeProps> = ({
     const [readyBatches, setReadyBatches] = React.useState<Set<number>>(new Set());
 
     const loadMoreRef = React.useRef<HTMLDivElement>(null);
-    const categoriesRef = React.useRef<HTMLDivElement>(null);
-    const [scrollState, setScrollState] = React.useState({ left: false, right: true });
     const [isHeaderVisible, setIsHeaderVisible] = React.useState(true);
     const lastScrollY = React.useRef(0);
 
@@ -93,21 +91,6 @@ const Home: React.FC<HomeProps> = ({
         window.addEventListener('scroll', handleScroll, { passive: true });
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
-
-    const checkScroll = () => {
-        if (!categoriesRef.current) return;
-        const { scrollLeft, scrollWidth, clientWidth } = categoriesRef.current;
-        setScrollState({
-            left: scrollLeft > 0,
-            right: scrollLeft < scrollWidth - clientWidth - 1 // -1 for rounding tolerance
-        });
-    };
-
-    React.useEffect(() => {
-        checkScroll();
-        window.addEventListener('resize', checkScroll);
-        return () => window.removeEventListener('resize', checkScroll);
-    }, [categories]);
 
     // Simulate initial data loading for skeleton demonstration
     React.useEffect(() => {
@@ -308,8 +291,52 @@ const Home: React.FC<HomeProps> = ({
     };
 
     return (
-        <div className="pt-6 pb-20">
-            <div className="max-w-[1600px] mx-auto px-4 sm:px-8">
+        <div className="pb-20 bg-gray-50/50 min-h-screen">
+            {/* Mobile Header - Sticky & Premium */}
+            <div className={`lg:hidden sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-gray-200/50 transition-transform duration-300 ${isHeaderVisible ? 'translate-y-0' : '-translate-y-full'}`}>
+                <div className="px-4 pt-3 pb-0">
+                    {/* Search Trigger Bar */}
+                    <button
+                        onClick={() => setShowMobileFilters(true)}
+                        className="w-full flex items-center gap-3 bg-white border border-gray-200 shadow-sm rounded-full px-4 py-2.5 mb-3 active:scale-[0.98] transition-transform"
+                    >
+                        <Search size={20} className="text-gray-900" strokeWidth={2.5} />
+                        <div className="flex-1 text-left">
+                            <div className="text-sm font-bold text-gray-900">Where to?</div>
+                            <div className="text-[11px] text-gray-500 font-medium">Anywhere • Any week • Add guests</div>
+                        </div>
+                        <div className="w-9 h-9 flex items-center justify-center rounded-full border border-gray-200 bg-white text-gray-900">
+                            <SlidersHorizontal size={16} strokeWidth={2} />
+                        </div>
+                    </button>
+
+                    {/* Mobile Categories */}
+                    <div className="flex items-center gap-6 overflow-x-auto no-scrollbar pb-3 -mx-4 px-4">
+                        {categories.map((cat) => (
+                            <button
+                                key={cat.id}
+                                onClick={(e) => {
+                                    setActiveCategory(cat.id);
+                                    e.currentTarget.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                                }}
+                                className={`flex flex-col items-center gap-1.5 min-w-[64px] transition-all duration-200 group ${activeCategory === cat.id ? 'opacity-100 scale-105' : 'opacity-60 hover:opacity-100'}`}
+                            >
+                                <div className={`w-7 h-7 flex items-center justify-center rounded-full transition-all ${activeCategory === cat.id ? 'text-black' : 'text-gray-500 group-hover:text-gray-800'}`}>
+                                    {cat.icon ? <cat.icon size={24} strokeWidth={activeCategory === cat.id ? 2 : 1.5} /> : <Search size={24} strokeWidth={activeCategory === cat.id ? 2 : 1.5} />}
+                                </div>
+                                <span className={`text-[10px] font-medium whitespace-nowrap relative ${activeCategory === cat.id ? 'text-black font-bold' : 'text-gray-500'}`}>
+                                    {cat.label}
+                                    {activeCategory === cat.id && (
+                                        <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-full h-[2px] bg-black rounded-full" />
+                                    )}
+                                </span>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            <div className="max-w-[1600px] mx-auto px-4 sm:px-8 pt-4 lg:pt-6">
                 <div className="flex gap-6">
                     {/* Left Sidebar - Advanced Search - Hidden on mobile */}
                     <div className="hidden lg:block">
@@ -321,55 +348,29 @@ const Home: React.FC<HomeProps> = ({
 
                     {/* Main Content Area */}
                     <div className="flex-1 min-w-0">
-                        {/* Categories */}
-                        <div className={`sticky top-[72px] sm:top-20 z-30 mb-4 sm:mb-6 flex items-center gap-3 transition-all duration-300 transform ${isHeaderVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0 pointer-events-none'}`}>
-                            {/* Mobile Filter Button - Separated & Circular */}
-                            <button
-                                onClick={() => setShowMobileFilters(true)}
-                                className="lg:hidden shrink-0 w-10 h-10 flex items-center justify-center rounded-full bg-white/80 backdrop-blur-md border border-white/20 text-gray-700 hover:bg-white hover:shadow-md transition-all shadow-sm"
-                                aria-label="Filters"
-                            >
-                                <SlidersHorizontal size={18} strokeWidth={1.5} />
-                            </button>
-
-                            {/* Categories List */}
-                            <div
-                                ref={categoriesRef}
-                                onScroll={checkScroll}
-                                className={`flex-1 flex items-center gap-2 sm:gap-3 lg:gap-0 overflow-x-auto py-2 sm:py-3 no-scrollbar rounded-full bg-white/80 backdrop-blur-md border border-white/20 px-2 sm:px-4 lg:justify-between lg:w-full lg:mx-0 lg:bg-white lg:border-gray-100 lg:shadow-faint lg:shadow-none hover:shadow-lg transition-all duration-300 ${scrollState.left && scrollState.right
-                                    ? 'shadow-[inset_12px_0_12px_-8px_rgba(0,0,0,0.08),inset_-12px_0_12px_-8px_rgba(0,0,0,0.08)]'
-                                    : scrollState.left
-                                        ? 'shadow-[inset_12px_0_12px_-8px_rgba(0,0,0,0.08)]'
-                                        : scrollState.right
-                                            ? 'shadow-[inset_-12px_0_12px_-8px_rgba(0,0,0,0.08)]'
-                                            : ''
-                                    }`}
-                            >
-                                {categories.map((cat, idx) => (
-                                    <React.Fragment key={cat.id}>
-                                        <button
-                                            data-category={cat.id}
-                                            onClick={() => {
-                                                setActiveCategory(cat.id);
-                                                setTimeout(() => {
-                                                    const btn = document.querySelector(`button[data-category="${cat.id}"]`);
-                                                    btn?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-                                                }, 0);
-                                            }}
-                                            className={`flex items-center gap-1.5 sm:gap-2 ${idx === 0 ? 'pl-4 pr-3 sm:px-4' : 'px-3 sm:px-4'} py-1.5 sm:py-2 rounded-full whitespace-nowrap transition-all duration-200 text-xs sm:text-sm hover:scale-105 active:scale-95 ${activeCategory === cat.id
-                                                ? 'bg-brand-600 text-white shadow-md shadow-brand-600/20'
-                                                : 'bg-white/50 backdrop-blur-sm text-gray-700 hover:bg-white/80 border border-gray-200/50 lg:bg-transparent lg:border-0 lg:hover:bg-gray-50'
-                                                }`}
-                                        >
-                                            {cat.icon ? <cat.icon size={16} className="sm:w-[18px] sm:h-[18px]" strokeWidth={1.5} /> : <Search size={16} className="sm:w-[18px] sm:h-[18px]" strokeWidth={1.5} />}
-                                            <span className="font-medium">{cat.label}</span>
-                                        </button>
-                                        {idx < categories.length - 1 && (
-                                            <div className="hidden lg:block h-5 w-px bg-gray-200 shrink-0 mx-2" />
-                                        )}
-                                    </React.Fragment>
-                                ))}
-                            </div>
+                        {/* Desktop Categories */}
+                        <div className={`hidden lg:flex sticky top-20 z-30 flex-1 items-center gap-2 sm:gap-3 lg:gap-0 overflow-x-auto py-2 sm:py-3 no-scrollbar rounded-full bg-white/80 backdrop-blur-md border border-white/20 px-2 sm:px-4 lg:justify-between lg:w-full lg:mx-0 lg:bg-white lg:border-gray-100 lg:shadow-faint lg:shadow-none hover:shadow-lg transition-all duration-300 mb-8 ${isHeaderVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0 pointer-events-none'}`}>
+                            {categories.map((cat, index) => (
+                                <React.Fragment key={cat.id}>
+                                    <button
+                                        data-category={cat.id}
+                                        onClick={(e) => {
+                                            setActiveCategory(cat.id);
+                                            e.currentTarget.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                                        }}
+                                        className={`flex items-center gap-1.5 sm:gap-2 ${cat.id === 'All' ? 'pl-4 pr-3 sm:px-4' : 'px-3 sm:px-4'} py-1.5 sm:py-2 rounded-full whitespace-nowrap transition-all duration-200 text-xs sm:text-sm hover:scale-105 active:scale-95 ${activeCategory === cat.id
+                                            ? 'bg-brand-600 text-white shadow-md shadow-brand-600/20'
+                                            : 'bg-white/50 backdrop-blur-sm text-gray-700 hover:bg-white/80 border border-gray-200/50 lg:bg-transparent lg:border-0 lg:hover:bg-gray-50'
+                                            }`}
+                                    >
+                                        {cat.icon ? <cat.icon size={16} className="sm:w-[18px] sm:h-[18px]" strokeWidth={1.5} /> : <Search size={16} className="sm:w-[18px] sm:h-[18px]" strokeWidth={1.5} />}
+                                        <span className="font-medium">{cat.label}</span>
+                                    </button>
+                                    {index < categories.length - 1 && (
+                                        <div className="hidden lg:block h-5 w-px bg-gray-200 shrink-0 mx-2"></div>
+                                    )}
+                                </React.Fragment>
+                            ))}
                         </div>
 
                         {/* Listings Grid */}

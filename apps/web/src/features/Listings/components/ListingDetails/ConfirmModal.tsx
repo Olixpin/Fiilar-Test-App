@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Listing, CancellationPolicy } from '@fiilar/types';
-import { X, ShieldCheck, CreditCard, Wallet, AlertCircle, Loader2, Star, Info, Check } from 'lucide-react';
+import { X, CreditCard, Wallet, Loader2, Star, Info, Check, Plus, ArrowRight } from 'lucide-react';
 import { useScrollLock } from '../../../../hooks/useScrollLock';
 import { formatCurrency } from '../../../../utils/currency';
 import { getAverageRating, getReviews } from '@fiilar/reviews';
-import { Button } from '@fiilar/ui';
+import { Button, useToast } from '@fiilar/ui';
+import { paymentService } from '@fiilar/escrow';
 
 interface ConfirmModalProps {
   isOpen: boolean;
@@ -14,6 +15,7 @@ interface ConfirmModalProps {
   paymentMethod: 'WALLET' | 'CARD';
   setPaymentMethod: (method: 'WALLET' | 'CARD') => void;
   walletBalance: number;
+  setWalletBalance?: (balance: number) => void;
   agreedToTerms: boolean;
   setAgreedToTerms: (agreed: boolean) => void;
   isBookingLoading: boolean;
@@ -28,12 +30,44 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   paymentMethod,
   setPaymentMethod,
   walletBalance,
+  setWalletBalance,
   agreedToTerms,
   setAgreedToTerms,
   isBookingLoading,
   handleConfirmBooking
 }) => {
   useScrollLock(isOpen);
+  const toast = useToast();
+  
+  // Top-up state
+  const [isTopUpMode, setIsTopUpMode] = useState(false);
+  const [topUpAmount, setTopUpAmount] = useState('');
+  const [isAddingFunds, setIsAddingFunds] = useState(false);
+  
+  // Calculate shortfall
+  const totalAmount = pendingBooking?.fees?.total || 0;
+  const shortfall = Math.max(0, totalAmount - walletBalance);
+  const hasInsufficientFunds = paymentMethod === 'WALLET' && walletBalance < totalAmount;
+
+  // Handle quick top-up
+  const handleTopUp = async (amount: number) => {
+    setIsAddingFunds(true);
+    try {
+      await paymentService.addFunds(amount, 'mock_pm_id');
+      const newBalance = walletBalance + amount;
+      if (setWalletBalance) {
+        setWalletBalance(newBalance);
+      }
+      setIsTopUpMode(false);
+      setTopUpAmount('');
+      toast.showToast({ message: `₦${amount.toLocaleString()} added to wallet!`, type: 'success' });
+    } catch (error) {
+      console.error('Failed to add funds', error);
+      toast.showToast({ message: 'Failed to add funds. Please try again.', type: 'error' });
+    } finally {
+      setIsAddingFunds(false);
+    }
+  };
 
   if (!isOpen || !pendingBooking) return null;
 
@@ -162,11 +196,107 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
                   </div>
                 </div>
 
-                {/* Insufficient Funds Warning */}
-                {paymentMethod === 'WALLET' && walletBalance < pendingBooking.fees.total && (
-                  <div className="mt-4 flex items-start gap-3 text-red-700 bg-red-50 p-4 rounded-xl border border-red-200 text-sm animate-in slide-in-from-top-2">
-                    <AlertCircle size={18} className="mt-0.5 shrink-0" />
-                    <span className="font-medium">Insufficient wallet balance. Please top up or use a card.</span>
+                {/* Insufficient Funds - Enhanced UX */}
+                {hasInsufficientFunds && (
+                  <div className="mt-4 animate-in slide-in-from-top-2">
+                    {!isTopUpMode ? (
+                      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                        <div className="flex items-start gap-3">
+                          <div className="p-2 bg-amber-100 rounded-lg shrink-0">
+                            <Wallet size={18} className="text-amber-600" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-amber-900 mb-1">
+                              You need {formatCurrency(shortfall)} more
+                            </p>
+                            <p className="text-sm text-amber-700 mb-3">
+                              Your balance: {formatCurrency(walletBalance)} • Total: {formatCurrency(totalAmount)}
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                              <button
+                                onClick={() => handleTopUp(shortfall)}
+                                disabled={isAddingFunds}
+                                className="flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50"
+                              >
+                                {isAddingFunds ? (
+                                  <Loader2 size={14} className="animate-spin" />
+                                ) : (
+                                  <Plus size={14} />
+                                )}
+                                Add {formatCurrency(shortfall)}
+                              </button>
+                              <button
+                                onClick={() => setIsTopUpMode(true)}
+                                className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-amber-100 text-amber-700 text-sm font-medium rounded-lg border border-amber-300 transition-colors"
+                              >
+                                Custom amount
+                              </button>
+                              <button
+                                onClick={() => setPaymentMethod('CARD')}
+                                className="flex items-center gap-1 px-4 py-2 text-amber-700 hover:text-amber-900 text-sm font-medium transition-colors"
+                              >
+                                Use card instead <ArrowRight size={14} />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="font-semibold text-gray-900">Add funds to wallet</span>
+                          <button
+                            onClick={() => setIsTopUpMode(false)}
+                            className="text-gray-400 hover:text-gray-600 p-1"
+                            title="Close top-up form"
+                            aria-label="Close top-up form"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+                        <div className="flex gap-2 mb-3">
+                          <div className="relative flex-1">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-medium">₦</span>
+                            <input
+                              type="number"
+                              value={topUpAmount}
+                              onChange={(e) => setTopUpAmount(e.target.value)}
+                              placeholder="Enter amount"
+                              className="w-full pl-8 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"
+                              min={shortfall}
+                            />
+                          </div>
+                          <button
+                            onClick={() => handleTopUp(Number(topUpAmount))}
+                            disabled={isAddingFunds || !topUpAmount || Number(topUpAmount) < 100}
+                            className="px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                          >
+                            {isAddingFunds ? (
+                              <Loader2 size={16} className="animate-spin" />
+                            ) : (
+                              'Add'
+                            )}
+                          </button>
+                        </div>
+                        {/* Quick amount buttons */}
+                        <div className="flex flex-wrap gap-2">
+                          <span className="text-xs text-gray-500 mr-1 self-center">Quick:</span>
+                          {[shortfall, Math.ceil(shortfall / 1000) * 1000 + 5000, 50000, 100000].filter((v, i, arr) => arr.indexOf(v) === i).slice(0, 4).map((amount) => (
+                            <button
+                              key={amount}
+                              onClick={() => setTopUpAmount(amount.toString())}
+                              className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${
+                                topUpAmount === amount.toString()
+                                  ? 'bg-brand-600 text-white border-brand-600'
+                                  : 'bg-white text-gray-600 border-gray-300 hover:border-brand-400'
+                              }`}
+                            >
+                              {formatCurrency(amount)}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </section>

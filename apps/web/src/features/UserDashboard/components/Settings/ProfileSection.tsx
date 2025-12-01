@@ -159,9 +159,17 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({ user, formData, 
                         readOnly={!isEditing}
                     />
                     {isEditing && (
-                        <p className="text-xs text-gray-400 text-right">
-                            {formData.bio?.length || 0}/500 characters
-                        </p>
+                        <div className="flex justify-between text-xs">
+                            <p className={`${(formData.bio?.length || 0) < 10 ? 'text-amber-500' : 'text-green-500'}`}>
+                                {(formData.bio?.length || 0) < 10 
+                                    ? `${10 - (formData.bio?.length || 0)} more characters needed`
+                                    : '✓ Minimum reached'
+                                }
+                            </p>
+                            <p className="text-gray-400">
+                                {formData.bio?.length || 0}/500 characters
+                            </p>
+                        </div>
                     )}
                 </div>
             </div>

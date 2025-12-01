@@ -178,6 +178,11 @@ export interface Listing {
   pricingModel?: PricingModel;  // NIGHTLY, DAILY, or HOURLY
   bookingConfig?: BookingConfig; // Model-specific configuration
 
+  // NEW: Booking Settings
+  bookingWindow?: number;  // How far ahead guests can book (days: 30, 90, 180, 365)
+  minNotice?: number;      // Minimum notice required (days: 0, 1, 2, 3, 7)
+  prepTime?: number;       // Time between bookings for prep (days: 0, 1, 2)
+
   // Ratings
   rating?: number;
   reviewCount?: number;

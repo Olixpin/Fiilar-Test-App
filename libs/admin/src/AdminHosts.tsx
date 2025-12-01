@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { User, Listing } from '@fiilar/types';
-import { Users, Sparkles, ShieldCheck, Search, Home, TrendingUp, Star, Filter, ChevronDown, MoreHorizontal } from 'lucide-react';
+import { Users, Sparkles, ShieldCheck, Search, Home, Star, ChevronDown, MoreHorizontal } from 'lucide-react';
 import { cn } from '@fiilar/utils';
 
 interface AdminHostsProps {
@@ -133,6 +133,7 @@ export const AdminHosts: React.FC<AdminHostsProps> = ({ users, listings, handleU
                         value={sortBy}
                         onChange={(e) => setSortBy(e.target.value as any)}
                         className="w-full appearance-none bg-white border border-gray-200 rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none shadow-sm cursor-pointer"
+                        aria-label="Sort hosts"
                     >
                         <option value="name">Sort by Name</option>
                         <option value="listings">Sort by Listings</option>
@@ -215,6 +216,7 @@ export const AdminHosts: React.FC<AdminHostsProps> = ({ users, listings, handleU
                                                                 host.badgeStatus === 'premium' ? "bg-purple-50 text-purple-700 border-purple-200 hover:border-purple-300" :
                                                                     "bg-gray-50 text-gray-600 border-gray-200 hover:border-gray-300"
                                                         )}
+                                                        aria-label="Change badge status"
                                                     >
                                                         <option value="standard">Standard Host</option>
                                                         <option value="super_host">Super Host</option>
@@ -224,7 +226,7 @@ export const AdminHosts: React.FC<AdminHostsProps> = ({ users, listings, handleU
                                                 </div>
                                             </td>
                                             <td className="px-6 py-3 text-right">
-                                                <button className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded transition-colors">
+                                                <button className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded transition-colors" aria-label="More actions">
                                                     <MoreHorizontal size={16} />
                                                 </button>
                                             </td>

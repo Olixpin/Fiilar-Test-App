@@ -4,9 +4,11 @@ import { UserCheck, MapPin, Users, Clock, Calendar, Zap, Repeat, Timer } from 'l
 
 interface ListingHeaderProps {
   listing: Listing;
+  /** Whether the current user has an active/confirmed booking for this listing */
+  hasActiveBooking?: boolean;
 }
 
-export const ListingHeader: React.FC<ListingHeaderProps> = ({ listing }) => {
+export const ListingHeader: React.FC<ListingHeaderProps> = ({ listing, hasActiveBooking = false }) => {
   const isHourly = listing.priceUnit === BookingType.HOURLY;
 
   return (
@@ -96,16 +98,16 @@ export const ListingHeader: React.FC<ListingHeaderProps> = ({ listing }) => {
         >
           <MapPin size={16} className="mr-1.5 shrink-0 text-gray-400 group-hover:text-brand-500" />
           <span>
-            {/* Show full address if it contains the location (redundancy check) */}
-            {(listing.address && listing.address.includes(listing.location)) ? listing.address : listing.location}
+            {/* Always show general location (neighborhood/area) publicly */}
+            {listing.location}
           </span>
         </button>
 
-        {/* Address (if different and not redundant) */}
-        {listing.address && listing.address !== listing.location && !listing.address.includes(listing.location) && (
+        {/* Full address - only show if user has an active booking */}
+        {listing.address && hasActiveBooking && (
           <>
             <div className="w-1 h-1 bg-gray-300 rounded-full"></div>
-            <span className="text-gray-400 text-sm">{listing.address}</span>
+            <span className="text-gray-500 text-sm">{listing.address}</span>
           </>
         )}
       </div>

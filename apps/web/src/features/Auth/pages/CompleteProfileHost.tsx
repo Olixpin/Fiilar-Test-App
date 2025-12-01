@@ -31,7 +31,10 @@ const CompleteProfileHost: React.FC<CompleteProfileHostProps> = ({ onComplete })
     };
 
     return (
-        <div className="min-h-screen flex bg-white">
+        <div className="min-h-[100dvh] flex bg-white relative">
+            {/* Mobile Background Gradient - Subtle premium feel */}
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-gray-50 via-white to-white lg:hidden pointer-events-none" />
+
             {/* Left Side - Visual (Desktop Only) */}
             <div className="hidden lg:flex lg:w-1/2 relative bg-gray-900 overflow-hidden">
                 <img
@@ -58,7 +61,7 @@ const CompleteProfileHost: React.FC<CompleteProfileHostProps> = ({ onComplete })
             </div>
 
             {/* Right Side - Form */}
-            <div className="flex-1 flex flex-col justify-center px-4 sm:px-12 lg:px-24 relative bg-white">
+            <div className="flex-1 flex flex-col justify-center px-6 sm:px-12 lg:px-24 relative z-10 overflow-y-auto py-8 lg:py-0">
                 <div className="max-w-[420px] w-full mx-auto">
                     {/* Welcome Message */}
                     <div className="text-center mb-8">

@@ -4,7 +4,7 @@ import { User, Listing, Booking } from '@fiilar/types';
 import { getBookings, updateBooking, verifyHandshake, setModificationAllowed, updateUserWalletBalance } from '@fiilar/storage';
 import { addNotification } from '@fiilar/notifications';
 import { useToast } from '@fiilar/ui';
-import { escrowService } from '@fiilar/escrow';
+import { escrowService, paymentService } from '@fiilar/escrow';
 
 export const useHostBookings = (user: User | null, listings: Listing[], refreshData: () => void) => {
     const toast = useToast();
@@ -76,12 +76,15 @@ export const useHostBookings = (user: User | null, listings: Listing[], refreshD
 
         // Process refund for each booking
         for (const b of bookingsToUpdate) {
-            // Process full refund through escrow service
+            // Process full refund through escrow service (external)
             await escrowService.processRefund(b, b.userId, b.totalPrice, 'Host rejected booking');
-            
-            // Update user wallet balance
-            updateUserWalletBalance(b.userId, b.totalPrice);
-            
+
+            // Credit in-app wallet and record REFUND transaction
+            await paymentService.refundToWallet(b.totalPrice, 'Refund for rejected booking');
+
+            // Keep user storage wallet in sync for admin views
+            updateUserWalletBalance(b.userId, b.totalPrice, true);
+
             // Update booking status
             const updatedBooking = { ...b, status: 'Cancelled' as const };
             updateBooking(updatedBooking);

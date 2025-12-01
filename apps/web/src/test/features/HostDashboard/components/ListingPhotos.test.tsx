@@ -36,13 +36,13 @@ describe('ListingPhotos', () => {
         render(<ListingPhotos {...props} />);
         const images = screen.getAllByRole('img');
         expect(images).toHaveLength(2);
-        expect(screen.getByText(/Cover Photo/i)).toBeInTheDocument();
+        expect(screen.getByText(/Cover/i)).toBeInTheDocument();
     });
 
     it('calls setStep(1) when Back button is clicked', () => {
         render(<ListingPhotos {...defaultProps} />);
-        const backButton = screen.getByRole('button', { name: /back/i });
-        fireEvent.click(backButton);
+        const backButtons = screen.getAllByRole('button', { name: /back/i });
+        fireEvent.click(backButtons[0]);
         expect(mockSetStep).toHaveBeenCalledWith(1);
     });
 

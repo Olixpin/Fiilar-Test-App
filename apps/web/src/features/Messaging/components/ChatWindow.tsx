@@ -21,6 +21,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, currentU
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const prevMessageCountRef = useRef<number>(0);
+    const isUserScrolledUpRef = useRef<boolean>(false);
+    const messagesContainerRef = useRef<HTMLDivElement>(null);
 
     // Poll for new messages (simulating real-time)
     useEffect(() => {
@@ -41,9 +44,25 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, currentU
         return () => clearInterval(interval);
     }, [conversationId, currentUserId]);
 
-    // Scroll to bottom on new messages
+    // Track if user has scrolled up (not at bottom)
+    const handleScroll = () => {
+        if (!messagesContainerRef.current) return;
+        const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+        // User is "at bottom" if within 100px of the end
+        isUserScrolledUpRef.current = scrollHeight - scrollTop - clientHeight > 100;
+    };
+
+    // Scroll to bottom ONLY when new messages arrive (not on every poll)
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        const currentCount = messages.length;
+        const prevCount = prevMessageCountRef.current;
+        
+        // Only scroll if there are new messages AND user hasn't scrolled up
+        if (currentCount > prevCount && !isUserScrolledUpRef.current) {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        prevMessageCountRef.current = currentCount;
     }, [messages]);
 
     // Fetch other user details
@@ -138,6 +157,11 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, currentU
         setNewMessage('');
         // Immediate refresh
         setMessages(getMessages(conversationId));
+        // Reset scroll position to bottom after sending
+        isUserScrolledUpRef.current = false;
+        setTimeout(() => {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, 50);
     };
 
     const quickReplies = [
@@ -180,14 +204,18 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, currentU
                     </div>
                 </div>
                 <div className="flex items-center gap-2 text-gray-400">
-                    <button className="p-2 hover:bg-gray-100 rounded-full transition-colors"><Phone size={20} /></button>
-                    <button className="p-2 hover:bg-gray-100 rounded-full transition-colors"><Video size={20} /></button>
-                    <button className="p-2 hover:bg-gray-100 rounded-full transition-colors"><MoreVertical size={20} /></button>
+                    <button className="p-2 hover:bg-gray-100 rounded-full transition-colors" aria-label="Call"><Phone size={20} /></button>
+                    <button className="p-2 hover:bg-gray-100 rounded-full transition-colors" aria-label="Video call"><Video size={20} /></button>
+                    <button className="p-2 hover:bg-gray-100 rounded-full transition-colors" aria-label="More options"><MoreVertical size={20} /></button>
                 </div>
             </div>
 
             {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] bg-opacity-50">
+            <div 
+                ref={messagesContainerRef}
+                onScroll={handleScroll}
+                className="flex-1 overflow-y-auto p-6 space-y-6 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] bg-opacity-50"
+            >
                 {messages.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-gray-400 animate-in fade-in zoom-in duration-500">
                         <div className="w-20 h-20 bg-brand-50 rounded-full flex items-center justify-center mb-4 shadow-inner">
@@ -273,7 +301,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, currentU
             {/* Input Area */}
             <div className="p-4 bg-white border-t border-gray-100 z-10 shadow-[0_-4px_20px_-4px_rgba(0,0,0,0.05)]">
                 <div className="flex items-end gap-2 max-w-4xl mx-auto">
-                    <button className="p-3 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors">
+                    <button className="p-3 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors" aria-label="Attach file">
                         <Paperclip size={20} />
                     </button>
                     <div className="flex-1 bg-gray-50 border border-gray-200 rounded-2xl flex items-center gap-2 px-4 py-2 focus-within:ring-2 focus-within:ring-brand-500/20 focus-within:border-brand-500 transition-all">
@@ -287,29 +315,40 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, currentU
                                 }
                             }}
                             placeholder="Type a message..."
-                            className="flex-1 bg-transparent border-none focus:ring-0 outline-none p-0 text-gray-900 placeholder-gray-400 resize-none max-h-32 py-1.5"
+                            className="flex-1 bg-transparent border-none focus:ring-0 outline-none p-0 text-gray-900 placeholder-gray-400 resize-none max-h-32 py-1.5 min-h-[24px]"
                             rows={1}
-                            style={{ minHeight: '24px' }}
                         />
                         <div className="relative">
                             <button
                                 onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                                 className={`text-gray-400 hover:text-gray-600 transition-colors p-1 ${showEmojiPicker ? 'text-brand-500' : ''}`}
+                                aria-label="Add emoji"
                             >
                                 <Smile size={20} />
                             </button>
                             {showEmojiPicker && (
-                                <div className="absolute bottom-12 right-0 z-50 shadow-2xl rounded-xl border border-gray-200 animate-in zoom-in-95 duration-200">
-                                    <EmojiPicker
-                                        onEmojiClick={(emojiData) => {
-                                            setNewMessage(prev => prev + emojiData.emoji);
-                                            setShowEmojiPicker(false);
-                                        }}
-                                        width={300}
-                                        height={400}
-                                        previewConfig={{ showPreview: false }}
+                                <>
+                                    {/* Backdrop to close picker */}
+                                    <div 
+                                        className="fixed inset-0 z-40" 
+                                        onClick={() => setShowEmojiPicker(false)}
                                     />
-                                </div>
+                                    {/* Emoji Picker - Responsive positioning */}
+                                    <div className="fixed sm:absolute bottom-16 sm:bottom-12 left-2 right-2 sm:left-auto sm:right-0 z-50 shadow-2xl rounded-xl border border-gray-200 animate-in zoom-in-95 slide-in-from-bottom-2 duration-200 bg-white">
+                                        <EmojiPicker
+                                            onEmojiClick={(emojiData) => {
+                                                setNewMessage(prev => prev + emojiData.emoji);
+                                                setShowEmojiPicker(false);
+                                            }}
+                                            width="100%"
+                                            height={350}
+                                            previewConfig={{ showPreview: false }}
+                                            searchDisabled={false}
+                                            skinTonesDisabled={true}
+                                            lazyLoadEmojis={true}
+                                        />
+                                    </div>
+                                </>
                             )}
                         </div>
                     </div>

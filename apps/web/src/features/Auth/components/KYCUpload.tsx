@@ -61,8 +61,8 @@ const KYCUpload: React.FC<KYCUploadProps> = ({ onUpload, onSkip }) => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-            <div className="max-w-md w-full bg-white p-8 rounded-2xl shadow-lg text-center">
+        <div className="min-h-[100dvh] bg-gray-50 flex items-center justify-center px-4 overflow-y-auto">
+            <div className="max-w-md w-full bg-white p-6 sm:p-8 rounded-2xl shadow-lg text-center my-auto">
                 <div className="w-16 h-16 bg-brand-100 text-brand-600 rounded-full flex items-center justify-center mx-auto mb-6">
                     <Shield size={32} />
                 </div>

@@ -18,7 +18,10 @@ const HostListings: React.FC<HostListingsProps> = ({ listings, onEdit, onDelete,
     const { locale } = useLocale();
     const [activeFilter, setActiveFilter] = useState<FilterType>('ALL');
 
-    const filteredListings = listings.filter(listing => {
+    // Filter out deleted listings - hosts shouldn't see these (only admins for audit purposes)
+    const activeListings = listings.filter(l => l.status !== ListingStatus.DELETED);
+
+    const filteredListings = activeListings.filter(listing => {
         if (activeFilter === 'ALL') return true;
         if (activeFilter === 'LIVE') return listing.status === ListingStatus.LIVE;
         if (activeFilter === 'PENDING') return listing.status === ListingStatus.PENDING_APPROVAL || listing.status === ListingStatus.PENDING_KYC;
@@ -31,9 +34,9 @@ const HostListings: React.FC<HostListingsProps> = ({ listings, onEdit, onDelete,
         return dateB - dateA;
     });
 
-    const liveCount = listings.filter(l => l.status === ListingStatus.LIVE).length;
-    const pendingCount = listings.filter(l => l.status === ListingStatus.PENDING_APPROVAL || l.status === ListingStatus.PENDING_KYC).length;
-    const offMarketCount = listings.filter(l => l.status === ListingStatus.DRAFT || l.status === ListingStatus.REJECTED).length;
+    const liveCount = activeListings.filter(l => l.status === ListingStatus.LIVE).length;
+    const pendingCount = activeListings.filter(l => l.status === ListingStatus.PENDING_APPROVAL || l.status === ListingStatus.PENDING_KYC).length;
+    const offMarketCount = activeListings.filter(l => l.status === ListingStatus.DRAFT || l.status === ListingStatus.REJECTED).length;
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
@@ -53,7 +56,7 @@ const HostListings: React.FC<HostListingsProps> = ({ listings, onEdit, onDelete,
             </div>
 
             {/* Filters */}
-            {listings.length > 0 && (
+            {activeListings.length > 0 && (
                 <div className="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar">
                     <button
                         onClick={() => setActiveFilter('ALL')}
@@ -64,7 +67,7 @@ const HostListings: React.FC<HostListingsProps> = ({ listings, onEdit, onDelete,
                                 : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-200"
                         )}
                     >
-                        All Listings ({listings.length})
+                        All Listings ({activeListings.length})
                     </button>
                     <button
                         onClick={() => setActiveFilter('LIVE')}
@@ -103,7 +106,7 @@ const HostListings: React.FC<HostListingsProps> = ({ listings, onEdit, onDelete,
                 </div>
             )}
 
-            {listings.length === 0 ? (
+            {activeListings.length === 0 ? (
                 <div className="glass-card rounded-3xl p-12 text-center border-dashed border-2 border-gray-300 bg-gray-50/50">
                     <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
                         <Home size={32} className="text-gray-400" />

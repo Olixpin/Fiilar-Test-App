@@ -385,8 +385,17 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onSearch, searchTerm, o
           </div>
 
           {/* Mobile Toggle */}
-          <div className="flex items-center md:hidden gap-4">
-            <button type="button" onClick={() => setIsMobileSearchOpen(true)} title="Search" aria-label="Search" className="p-2 text-gray-900">
+          <div className="flex items-center md:hidden gap-3">
+            {!user && (
+              <button 
+                type="button" 
+                onClick={onBecomeHost} 
+                className="text-xs font-semibold text-gray-700 hover:text-gray-900 transition-colors"
+              >
+                Host your home
+              </button>
+            )}
+            <button type="button" onClick={() => setIsMobileSearchOpen(true)} title="Search" aria-label="Search" className="p-2 text-gray-900 hidden">
               <Sparkles size={20} />
             </button>
             <button type="button" onClick={() => setIsMobileOpen(!isMobileOpen)} title="Toggle menu" aria-label="Toggle menu" className="text-gray-900 p-2 border border-gray-200 rounded-full">

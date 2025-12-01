@@ -5,6 +5,9 @@ import { ArrowRight, ChevronDown, ChevronUp, Calendar, Clock, Shield } from 'luc
 import ScheduleTab from './ScheduleTab';
 import CalendarTab from './CalendarTab';
 import RulesTab from './RulesTab';
+import { useSwipeNavigation } from './useSwipeNavigation';
+import { SwipeIndicator } from './SwipeIndicator';
+import { SwipeHint } from './SwipeHint';
 
 interface ListingAvailabilityProps {
     newListing: Partial<Listing>;
@@ -49,6 +52,12 @@ const ListingAvailability: React.FC<ListingAvailabilityProps> = ({
     // Default to having the first section (Schedule) open
     const [expandedSections, setExpandedSections] = useState<number[]>([1]);
 
+    // Swipe navigation - both directions
+    const { swipeOffset, isDragging, handlers } = useSwipeNavigation({
+        onSwipeLeft: () => setStep(4), // Continue to Verification
+        onSwipeRight: () => setStep(2), // Back to Photos
+    });
+
     const toggleSection = (section: number) => {
         setExpandedSections(prev =>
             prev.includes(section)
@@ -58,13 +67,18 @@ const ListingAvailability: React.FC<ListingAvailabilityProps> = ({
     };
 
     return (
-        <div className="space-y-6 animate-in slide-in-from-right duration-500">
+        <div
+            className={`space-y-6 animate-in slide-in-from-right duration-500 ${isDragging ? 'cursor-grabbing select-none' : 'cursor-grab'}`}
+            {...handlers}
+        >
+            <SwipeIndicator swipeOffset={swipeOffset} direction="left" label="Continue" />
+            <SwipeIndicator swipeOffset={swipeOffset} direction="right" label="Back" />
 
             {/* Section 1: Weekly Schedule */}
             <div className="glass-card rounded-2xl border border-white/40 shadow-sm overflow-hidden transition-all duration-300">
                 <button
                     onClick={() => toggleSection(1)}
-                    className="w-full p-6 flex items-center justify-between hover:bg-white/40 transition-colors text-left"
+                    className="w-full p-4 sm:p-6 flex items-center justify-between hover:bg-white/40 transition-colors text-left"
                 >
                     <h3 className="text-lg font-bold text-gray-900 flex items-center gap-3">
                         <span className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shadow-sm">
@@ -76,7 +90,7 @@ const ListingAvailability: React.FC<ListingAvailabilityProps> = ({
                 </button>
 
                 <div className={`transition-all duration-300 ease-in-out ${expandedSections.includes(1) ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0 overflow-hidden'}`}>
-                    <div className="p-6 pt-0 border-t border-white/20">
+                    <div className="p-4 sm:p-6 pt-0 border-t border-white/20">
                         <ScheduleTab
                             weeklySchedule={weeklySchedule}
                             toggleDaySchedule={toggleDaySchedule}
@@ -91,7 +105,7 @@ const ListingAvailability: React.FC<ListingAvailabilityProps> = ({
             <div className="glass-card rounded-2xl border border-white/40 shadow-sm overflow-hidden transition-all duration-300">
                 <button
                     onClick={() => toggleSection(2)}
-                    className="w-full p-6 flex items-center justify-between hover:bg-white/40 transition-colors text-left"
+                    className="w-full p-4 sm:p-6 flex items-center justify-between hover:bg-white/40 transition-colors text-left"
                 >
                     <h3 className="text-lg font-bold text-gray-900 flex items-center gap-3">
                         <span className="w-10 h-10 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center shadow-sm">
@@ -103,7 +117,7 @@ const ListingAvailability: React.FC<ListingAvailabilityProps> = ({
                 </button>
 
                 <div className={`transition-all duration-300 ease-in-out ${expandedSections.includes(2) ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0 overflow-hidden'}`}>
-                    <div className="p-6 pt-0 border-t border-white/20">
+                    <div className="p-4 sm:p-6 pt-0 border-t border-white/20">
                         <CalendarTab
                             newListing={newListing}
                             currentMonth={currentMonth}
@@ -124,7 +138,7 @@ const ListingAvailability: React.FC<ListingAvailabilityProps> = ({
             <div className="glass-card rounded-2xl border border-white/40 shadow-sm overflow-hidden transition-all duration-300">
                 <button
                     onClick={() => toggleSection(3)}
-                    className="w-full p-6 flex items-center justify-between hover:bg-white/40 transition-colors text-left"
+                    className="w-full p-4 sm:p-6 flex items-center justify-between hover:bg-white/40 transition-colors text-left"
                 >
                     <h3 className="text-lg font-bold text-gray-900 flex items-center gap-3">
                         <span className="w-10 h-10 rounded-full bg-green-100 text-green-600 flex items-center justify-center shadow-sm">
@@ -136,7 +150,7 @@ const ListingAvailability: React.FC<ListingAvailabilityProps> = ({
                 </button>
 
                 <div className={`transition-all duration-300 ease-in-out ${expandedSections.includes(3) ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0 overflow-hidden'}`}>
-                    <div className="p-6 pt-0 border-t border-white/20">
+                    <div className="p-4 sm:p-6 pt-0 border-t border-white/20">
                         <RulesTab
                             newListing={newListing}
                             setNewListing={setNewListing}
@@ -156,14 +170,21 @@ const ListingAvailability: React.FC<ListingAvailabilityProps> = ({
                 </div>
             </div>
 
-            {/* Navigation */}
-            <div className="flex justify-between items-center pt-6 border-t border-white/20 mt-8">
+            {/* Navigation - Mobile: Swipe/Drag, Desktop: Buttons */}
+
+            {/* Mobile Hint */}
+            <div className="md:hidden">
+                <SwipeHint showContinue={true} showBack={true} />
+            </div>
+
+            {/* Desktop Navigation */}
+            <div className="hidden md:flex justify-between items-center pt-6 border-t border-gray-200 mt-8">
                 <Button
                     onClick={() => setStep(2)}
                     variant="ghost"
                     size="lg"
-                    className="text-gray-500 hover:text-gray-900 hover:bg-white/50"
-                    leftIcon={<span className="text-lg">←</span>}
+                    className="text-gray-500 hover:text-gray-900 hover:bg-gray-100"
+                    leftIcon={<ArrowRight size={18} className="rotate-180" />}
                 >
                     Back to Photos
                 </Button>
@@ -171,7 +192,7 @@ const ListingAvailability: React.FC<ListingAvailabilityProps> = ({
                     onClick={() => setStep(4)}
                     variant="primary"
                     size="lg"
-                    className="shadow-xl shadow-brand-500/20 hover:shadow-brand-500/40 transition-all hover:scale-[1.02] px-8"
+                    className="shadow-lg shadow-brand-500/20 hover:shadow-brand-500/30 transition-all px-8"
                     rightIcon={<ArrowRight size={18} />}
                 >
                     Continue to Verification

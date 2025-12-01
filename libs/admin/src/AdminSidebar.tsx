@@ -4,14 +4,15 @@ import { useLocale } from '@fiilar/ui';
 import { APP_INFO } from '@fiilar/storage';
 
 interface AdminSidebarProps {
-    activeTab: 'kyc' | 'hosts' | 'listings' | 'financials' | 'escrow' | 'disputes';
-    setActiveTab: (tab: 'kyc' | 'hosts' | 'listings' | 'financials' | 'escrow' | 'disputes') => void;
+    activeTab: 'kyc' | 'hosts' | 'listings' | 'financials' | 'escrow' | 'disputes' | 'series-debug';
+    setActiveTab: (tab: 'kyc' | 'hosts' | 'listings' | 'financials' | 'escrow' | 'disputes' | 'series-debug') => void;
     kycCount: number;
     listingsCount: number;
     disputesCount: number;
+    seriesCount: number;
 }
 
-export const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeTab, setActiveTab, kycCount, listingsCount, disputesCount }) => {
+export const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeTab, setActiveTab, kycCount, listingsCount, disputesCount, seriesCount }) => {
     const { locale } = useLocale();
     const navItems = [
         { id: 'kyc' as const, icon: UserCheck, label: 'KYC Requests', count: kycCount, color: 'red' },
@@ -20,6 +21,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeTab, setActive
         { id: 'financials' as const, icon: DollarSign, label: 'Financials', count: 0, color: 'green' },
         { id: 'escrow' as const, icon: Scale, label: 'Escrow Manager', count: 0, color: 'purple' },
         { id: 'disputes' as const, icon: AlertTriangle, label: 'Disputes', count: disputesCount, color: 'red' },
+        { id: 'series-debug' as const, icon: ShieldCheck, label: 'Series Debug', count: seriesCount, color: 'blue' },
     ];
 
     return (

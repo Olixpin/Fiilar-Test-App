@@ -74,7 +74,7 @@ describe('ChatList', () => {
 
     it('renders empty state when no conversations exist', () => {
         render(<ChatList {...defaultProps} />);
-        expect(screen.getByText('No messages yet.')).toBeInTheDocument();
+        expect(screen.getByText('No messages yet')).toBeInTheDocument();
     });
 
     it('renders conversations list correctly', () => {
@@ -132,7 +132,7 @@ describe('ChatList', () => {
         (messagingService.getConversations as any).mockReturnValue([]);
         
         render(<ChatList {...defaultProps} />);
-        expect(screen.getByText('No messages yet.')).toBeInTheDocument();
+        expect(screen.getByText('No messages yet')).toBeInTheDocument();
 
         // Update mock to return conversation on next call
         (messagingService.getConversations as any).mockReturnValue([mockConversation]);
@@ -151,7 +151,7 @@ describe('ChatList', () => {
         render(<ChatList {...defaultProps} selectedId="conv1" />);
         
         const convItem = screen.getByText('Other User').closest('div.cursor-pointer');
-        expect(convItem).toHaveClass('bg-brand-50');
+        expect(convItem).toHaveClass('bg-brand-50/60');
         expect(convItem).toHaveClass('border-l-brand-600');
     });
 });

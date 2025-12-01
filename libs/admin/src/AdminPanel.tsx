@@ -8,6 +8,7 @@ import { AdminSidebar } from './AdminSidebar';
 import { AdminKYC } from './AdminKYC';
 import { AdminHosts } from './AdminHosts';
 import { AdminListings } from './AdminListings';
+import { AdminSeriesDebug } from './AdminSeriesDebug';
 import { useAdminData } from './useAdminData';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 
@@ -36,7 +37,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ users, listings, refreshData })
     handleDeleteListing,
     openRejectionModal,
     handleRejectionSubmit,
-    presetPhotographyOffer
+    presetPhotographyOffer,
+    seriesCount
   } = useAdminData({ users: users || [], listings: listings || [], refreshData });
 
   // Show error state if authorization failed
@@ -72,6 +74,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ users, listings, refreshData })
         kycCount={unverifiedHosts.length}
         listingsCount={pendingListings.length}
         disputesCount={openDisputes.length}
+        seriesCount={seriesCount}
       />
 
       {/* Main Content */}
@@ -153,6 +156,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ users, listings, refreshData })
                   listings={listings}
                   refreshData={loadFinancialData}
                 />
+              </div>
+            )}
+
+            {activeTab === 'series-debug' && (
+              <div className="animate-in fade-in">
+                <AdminSeriesDebug bookings={bookings} listings={listings} />
               </div>
             )}
 
