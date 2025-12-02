@@ -26,15 +26,24 @@ export const filterListings = (
 ): Listing[] => {
     return listings.filter(listing => {
         // Search term (title, description, tags, location)
+        // Matches if ANY word in the search term is found in any field
         if (filters.searchTerm) {
-            const searchLower = filters.searchTerm.toLowerCase();
-            const matchesSearch =
-                listing.title.toLowerCase().includes(searchLower) ||
-                listing.description.toLowerCase().includes(searchLower) ||
-                listing.location.toLowerCase().includes(searchLower) ||
-                listing.tags.some(tag => tag.toLowerCase().includes(searchLower));
-
-            if (!matchesSearch) return false;
+            const searchTerms = filters.searchTerm.toLowerCase().split(/\s+/).filter(t => t.length >= 2);
+            
+            if (searchTerms.length > 0) {
+                const searchableText = [
+                    listing.title,
+                    listing.description,
+                    listing.location,
+                    listing.address || '',
+                    ...(listing.tags || []),
+                    listing.type || ''
+                ].join(' ').toLowerCase();
+                
+                // Match if ANY search term is found (OR logic for flexibility)
+                const matchesSearch = searchTerms.some(term => searchableText.includes(term));
+                if (!matchesSearch) return false;
+            }
         }
 
         // Location filter
@@ -164,74 +173,117 @@ export const getLocationSuggestions = (query: string): string[] => {
 /**
  * Parse natural language query into structured filters
  * e.g. "studio in Lagos under $100 for 5 people"
+ * 
+ * This function extracts structured filters AND keeps remaining words as searchTerm
+ * for flexible text-based matching. This makes search more intuitive - users don't
+ * need to use exact keywords.
  */
 export const parseNaturalLanguageQuery = (query: string): Partial<SearchFilters> => {
     const filters: Partial<SearchFilters> = {};
     const lowerQuery = query.toLowerCase();
+    let remainingQuery = query; // Track what's left after extracting structured filters
+    
     console.log('Parsing query:', query);
 
+    // Helper to remove matched text from remainingQuery
+    const removeFromRemaining = (pattern: RegExp | string) => {
+        if (typeof pattern === 'string') {
+            remainingQuery = remainingQuery.replace(new RegExp(pattern, 'gi'), ' ');
+        } else {
+            remainingQuery = remainingQuery.replace(pattern, ' ');
+        }
+    };
+
     // 1. Parse Space Type
-    if (lowerQuery.includes('apartment') || lowerQuery.includes('flat')) filters.spaceType = SpaceType.APARTMENT;
-    else if (lowerQuery.includes('studio')) filters.spaceType = SpaceType.STUDIO;
-    else if (lowerQuery.includes('conference') || lowerQuery.includes('meeting')) filters.spaceType = SpaceType.CONFERENCE;
-    else if (lowerQuery.includes('event') || lowerQuery.includes('party') || lowerQuery.includes('hall')) filters.spaceType = SpaceType.EVENT_CENTER;
-    else if (lowerQuery.includes('co-working') || lowerQuery.includes('office') || lowerQuery.includes('desk')) filters.spaceType = SpaceType.CO_WORKING;
-    else if (lowerQuery.includes('open space') || lowerQuery.includes('garden') || lowerQuery.includes('outdoor')) filters.spaceType = SpaceType.OPEN_SPACE;
+    const spaceTypePatterns: [RegExp, SpaceType][] = [
+        [/\b(apartment|flat)\b/i, SpaceType.APARTMENT],
+        [/\bstudio\b/i, SpaceType.STUDIO],
+        [/\b(conference|meeting\s*room)\b/i, SpaceType.CONFERENCE],
+        [/\b(event\s*center|event\s*space|party\s*hall|hall|venue)\b/i, SpaceType.EVENT_CENTER],
+        [/\b(co-?working|coworking|office|desk|workspace)\b/i, SpaceType.CO_WORKING],
+        [/\b(open\s*space|garden|outdoor|rooftop)\b/i, SpaceType.OPEN_SPACE],
+    ];
+
+    for (const [pattern, spaceType] of spaceTypePatterns) {
+        if (pattern.test(lowerQuery)) {
+            filters.spaceType = spaceType;
+            removeFromRemaining(pattern);
+            break;
+        }
+    }
 
     // 2. Parse Price
     // "under $100", "less than 100", "cheap" (<50), "luxury" (>200), "$100", "100 dollars", "budget 500"
 
     // Check for explicit "under/below/budget" patterns first
-    const maxPriceMatch = lowerQuery.match(/(?:under|less than|below|budget|max)\s*:?\s*(?:[\$\₦\£\€]|currency)?\s*(\d+)/);
+    const maxPricePattern = /(?:under|less than|below|budget|max)\s*:?\s*(?:[\$\₦\£\€]|currency)?\s*(\d+)/i;
+    const maxPriceMatch = lowerQuery.match(maxPricePattern);
     if (maxPriceMatch) {
         filters.priceMax = parseInt(maxPriceMatch[1]);
+        removeFromRemaining(maxPricePattern);
     } else {
         // Fallback: check for just "$100" or "100 dollars" and assume it's a max price preference
-        // unless it's clearly a "min" (which we'll handle separately if needed)
-        const simplePriceMatch = lowerQuery.match(/(?:[\$\₦\£\€])(\d+)|(\d+)\s*(?:dollars|usd|naira)/);
+        const simplePricePattern = /(?:[\$\₦\£\€])(\d+)|(\d+)\s*(?:dollars|usd|naira)/i;
+        const simplePriceMatch = lowerQuery.match(simplePricePattern);
         if (simplePriceMatch) {
             filters.priceMax = parseInt(simplePriceMatch[1] || simplePriceMatch[2]);
+            removeFromRemaining(simplePricePattern);
         }
     }
 
-    if (lowerQuery.includes('cheap') || lowerQuery.includes('budget') || lowerQuery.includes('affordable')) {
-        filters.priceMax = 50; // Arbitrary "cheap" threshold
+    if (lowerQuery.includes('cheap') || lowerQuery.includes('affordable')) {
+        filters.priceMax = 50;
+        removeFromRemaining(/\b(cheap|affordable)\b/i);
     }
 
     if (lowerQuery.includes('luxury') || lowerQuery.includes('expensive') || lowerQuery.includes('premium')) {
-        filters.priceMin = 200; // Arbitrary "luxury" threshold
+        filters.priceMin = 200;
+        removeFromRemaining(/\b(luxury|expensive|premium)\b/i);
     }
 
     // 3. Parse Guests & Size
-    // "5 people", "for 10", "2 guests"
-    const guestMatch = lowerQuery.match(/(?:for|with)\s*(\d+)|(\d+)\s*(?:people|guests|persons)/);
+    // "5 people", "for 10", "2 guests", "for 20 people"
+    const guestPattern = /(?:for|with)\s*(\d+)(?:\s*(?:people|guests|persons))?|(\d+)\s*(?:people|guests|persons)/i;
+    const guestMatch = lowerQuery.match(guestPattern);
     if (guestMatch) {
         const count = parseInt(guestMatch[1] || guestMatch[2]);
-        if (!isNaN(count)) filters.guestCount = count;
+        if (!isNaN(count) && count > 0) {
+            filters.guestCount = count;
+            removeFromRemaining(guestPattern);
+        }
     }
 
     // Size keywords
-    if (lowerQuery.includes('large') || lowerQuery.includes('huge') || lowerQuery.includes('big')) {
+    if (lowerQuery.includes('large') || lowerQuery.includes('huge') || lowerQuery.includes('big') || lowerQuery.includes('spacious')) {
         filters.guestCount = Math.max(filters.guestCount || 0, 20);
-    } else if (lowerQuery.includes('small') || lowerQuery.includes('tiny') || lowerQuery.includes('cozy')) {
-        filters.guestCount = Math.max(filters.guestCount || 0, 2); // Ensure at least 2 for small
+        removeFromRemaining(/\b(large|huge|big|spacious)\b/i);
+    } else if (lowerQuery.includes('small') || lowerQuery.includes('tiny') || lowerQuery.includes('cozy') || lowerQuery.includes('intimate')) {
+        filters.guestCount = Math.max(filters.guestCount || 0, 2);
+        removeFromRemaining(/\b(small|tiny|cozy|intimate)\b/i);
     }
 
     // 4. Parse Location
-    // "in Lagos", "at Ikeja"
-    const locationMatch = lowerQuery.match(/(?:in|at|near)\s+([a-zA-Z\s]+?)(?:\s+(?:under|for|with|below|less|next|tomorrow|$)|$)/);
-    if (locationMatch) {
-        const location = locationMatch[1].trim();
-        if (!['the', 'a', 'an'].includes(location)) {
+    // "in Lagos", "at Ikeja", "near Lekki", "Lagos for 20 people"
+    // First try with preposition pattern: "in Lagos", "at Ikeja"
+    const locationWithPrepPattern = /\b(?:in|at|near)\s+([a-zA-Z][a-zA-Z\-]{1,20})(?:\s|,|$)/i;
+    const locationWithPrepMatch = lowerQuery.match(locationWithPrepPattern);
+    if (locationWithPrepMatch) {
+        const location = locationWithPrepMatch[1].trim();
+        // Filter out common words that aren't locations
+        const stopWords = ['the', 'a', 'an', 'for', 'with', 'people', 'guests', 'persons', 'under', 'below', 'budget'];
+        if (!stopWords.includes(location.toLowerCase()) && location.length > 1) {
             filters.location = location;
+            removeFromRemaining(new RegExp(`\\b(?:in|at|near)\\s+${location.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'i'));
         }
     }
 
     // 5. Parse Duration / Booking Type
-    if (lowerQuery.includes('daily') || lowerQuery.includes('day') || lowerQuery.includes('night') || lowerQuery.includes('week')) {
+    if (/\b(daily|per\s*day|night|nightly|week|weekly)\b/i.test(lowerQuery)) {
         filters.bookingType = BookingType.DAILY;
-    } else if (lowerQuery.includes('hourly') || lowerQuery.includes('hour')) {
+        removeFromRemaining(/\b(daily|per\s*day|night|nightly|week|weekly)\b/i);
+    } else if (/\b(hourly|per\s*hour|hour)\b/i.test(lowerQuery)) {
         filters.bookingType = BookingType.HOURLY;
+        removeFromRemaining(/\b(hourly|per\s*hour|hour)\b/i);
     }
 
     // 6. Parse Dates (Simple)
@@ -241,13 +293,42 @@ export const parseNaturalLanguageQuery = (query: string): Partial<SearchFilters>
         tomorrow.setDate(tomorrow.getDate() + 1);
         filters.dateFrom = tomorrow.toISOString().split('T')[0];
         filters.dateTo = tomorrow.toISOString().split('T')[0];
+        removeFromRemaining(/\btomorrow\b/i);
     } else if (lowerQuery.includes('next week')) {
         const nextWeek = new Date(today);
         nextWeek.setDate(nextWeek.getDate() + 7);
         filters.dateFrom = nextWeek.toISOString().split('T')[0];
         const endNextWeek = new Date(nextWeek);
-        endNextWeek.setDate(endNextWeek.getDate() + 1); // Default 1 day
+        endNextWeek.setDate(endNextWeek.getDate() + 1);
         filters.dateTo = endNextWeek.toISOString().split('T')[0];
+        removeFromRemaining(/\bnext\s*week\b/i);
+    } else if (lowerQuery.includes('today')) {
+        filters.dateFrom = today.toISOString().split('T')[0];
+        filters.dateTo = today.toISOString().split('T')[0];
+        removeFromRemaining(/\btoday\b/i);
+    } else if (lowerQuery.includes('this weekend')) {
+        const dayOfWeek = today.getDay();
+        const daysUntilSaturday = (6 - dayOfWeek + 7) % 7 || 7;
+        const saturday = new Date(today);
+        saturday.setDate(today.getDate() + daysUntilSaturday);
+        const sunday = new Date(saturday);
+        sunday.setDate(saturday.getDate() + 1);
+        filters.dateFrom = saturday.toISOString().split('T')[0];
+        filters.dateTo = sunday.toISOString().split('T')[0];
+        removeFromRemaining(/\bthis\s*weekend\b/i);
+    }
+
+    // 7. Clean up remaining query and use as searchTerm for flexible matching
+    // This allows users to search for anything not covered by structured filters
+    remainingQuery = remainingQuery
+        .replace(/\s+/g, ' ')  // Collapse multiple spaces
+        .replace(/\b(for|with|in|at|near|and|or|the|a|an)\b/gi, ' ')  // Remove common stop words
+        .trim();
+
+    // If there's meaningful remaining text, use it as searchTerm for text-based matching
+    // This enables searching by title, description, tags, etc.
+    if (remainingQuery.length >= 2) {
+        filters.searchTerm = remainingQuery;
     }
 
     console.log('Parsed filters:', filters);

@@ -1,10 +1,25 @@
 import React from 'react';
-import { Listing, User, ListingStatus, SpaceType } from '@fiilar/types';
+import { Listing, User, ListingStatus, SpaceType, SpaceCategory, SPACE_TYPE_CATEGORIES } from '@fiilar/types';
 import ListingCard from '../components/ListingCard';
 import AdvancedSearch from '../components/AdvancedSearch';
 import { filterListings, parseNaturalLanguageQuery, SearchFilters } from '@fiilar/search';
-import { Home as HomeIcon, Camera, Users, Music, Briefcase, Sun, Search, Plus, X, SlidersHorizontal, TrendingUp, ArrowRight } from 'lucide-react';
+import { 
+    Briefcase, 
+    Search, 
+    Plus, 
+    X, 
+    SlidersHorizontal, 
+    TrendingUp, 
+    ArrowRight, 
+    MapPin, 
+    PartyPopper,
+    Clapperboard,
+    Bed,
+    Sparkles,
+    ChevronDown
+} from 'lucide-react';
 import { Button } from '@fiilar/ui';
+import useUserLocation, { calculateDistance } from '../../../hooks/useUserLocation';
 
 const ListingSkeleton = () => (
     <div className="flex flex-col gap-2 animate-pulse">
@@ -29,15 +44,54 @@ interface HomeProps {
     onBecomeHostClick: () => void;
 }
 
+// Category tabs based on Fiilar Space categories
 const categories = [
     { id: 'All', label: 'All', icon: null },
-    { id: SpaceType.APARTMENT, label: 'Apartments', icon: HomeIcon },
-    { id: SpaceType.STUDIO, label: 'Studios', icon: Camera },
-    { id: SpaceType.CONFERENCE, label: 'Conference', icon: Users },
-    { id: SpaceType.EVENT_CENTER, label: 'Events', icon: Music },
-    { id: SpaceType.CO_WORKING, label: 'Co-working', icon: Briefcase },
-    { id: SpaceType.OPEN_SPACE, label: 'Open Air', icon: Sun },
+    { id: SpaceCategory.WORK_PRODUCTIVITY, label: 'Work', icon: Briefcase },
+    { id: SpaceCategory.EVENT_SOCIAL, label: 'Events', icon: PartyPopper },
+    { id: SpaceCategory.CREATIVE_PRODUCTION, label: 'Creative', icon: Clapperboard },
+    { id: SpaceCategory.STAY_ACCOMMODATION, label: 'Stay', icon: Bed },
+    { id: SpaceCategory.SPECIALTY, label: 'Specialty', icon: Sparkles },
 ];
+
+// Subcategories for each parent category (for hover dropdown)
+const SUBCATEGORIES: Record<string, { type: SpaceType; label: string }[]> = {
+    [SpaceCategory.WORK_PRODUCTIVITY]: [
+        { type: SpaceType.CO_WORKING, label: 'Co-working Space' },
+        { type: SpaceType.PRIVATE_OFFICE, label: 'Private Office' },
+        { type: SpaceType.MEETING_ROOM, label: 'Meeting Room' },
+        { type: SpaceType.TRAINING_ROOM, label: 'Training Room' },
+    ],
+    [SpaceCategory.EVENT_SOCIAL]: [
+        { type: SpaceType.EVENT_HALL, label: 'Event Hall' },
+        { type: SpaceType.BANQUET_HALL, label: 'Banquet Hall' },
+        { type: SpaceType.OUTDOOR_VENUE, label: 'Outdoor Venue' },
+        { type: SpaceType.LOUNGE_ROOFTOP, label: 'Lounge & Rooftop' },
+    ],
+    [SpaceCategory.CREATIVE_PRODUCTION]: [
+        { type: SpaceType.PHOTO_STUDIO, label: 'Photo Studio' },
+        { type: SpaceType.RECORDING_STUDIO, label: 'Recording Studio' },
+        { type: SpaceType.FILM_STUDIO, label: 'Film Studio' },
+    ],
+    [SpaceCategory.STAY_ACCOMMODATION]: [
+        { type: SpaceType.BOUTIQUE_HOTEL, label: 'Boutique Hotel' },
+        { type: SpaceType.SERVICED_APARTMENT, label: 'Serviced Apartment' },
+        { type: SpaceType.SHORT_TERM_RENTAL, label: 'Short-term Rental' },
+    ],
+    [SpaceCategory.SPECIALTY]: [
+        { type: SpaceType.POP_UP_RETAIL, label: 'Pop-up & Retail' },
+        { type: SpaceType.SHOWROOM, label: 'Showroom' },
+        { type: SpaceType.KITCHEN_CULINARY, label: 'Kitchen & Culinary' },
+        { type: SpaceType.WAREHOUSE, label: 'Warehouse' },
+        { type: SpaceType.ART_GALLERY, label: 'Art Gallery' },
+        { type: SpaceType.DANCE_STUDIO, label: 'Dance Studio' },
+        { type: SpaceType.GYM_FITNESS, label: 'Gym & Fitness' },
+        { type: SpaceType.PRAYER_MEDITATION, label: 'Prayer & Meditation' },
+        { type: SpaceType.TECH_HUB, label: 'Tech Hub' },
+        { type: SpaceType.GAMING_LOUNGE, label: 'Gaming Lounge' },
+        { type: SpaceType.CONFERENCE_CENTER, label: 'Conference Center' },
+    ],
+};
 
 const Home: React.FC<HomeProps> = ({
     listings,
@@ -47,6 +101,22 @@ const Home: React.FC<HomeProps> = ({
     searchTerm,
     onBecomeHostClick
 }) => {
+    // User location for distance-based sorting
+    const { 
+        location: userLocation, 
+        isLoading: locationLoading, 
+        requestLocation, 
+        hasPermission,
+        isSupported 
+    } = useUserLocation();
+    const [sortByDistance, setSortByDistance] = React.useState(false);
+
+    // Enable distance sorting when location becomes available
+    React.useEffect(() => {
+        if (userLocation && !sortByDistance && hasPermission) {
+            setSortByDistance(true);
+        }
+    }, [userLocation, hasPermission]);
 
     const [filters, setFilters] = React.useState<SearchFilters>({
         searchTerm: searchTerm,
@@ -72,6 +142,20 @@ const Home: React.FC<HomeProps> = ({
     const loadMoreRef = React.useRef<HTMLDivElement>(null);
     const [isHeaderVisible, setIsHeaderVisible] = React.useState(true);
     const lastScrollY = React.useRef(0);
+    
+    // Hover state for category dropdown
+    const [hoveredCategory, setHoveredCategory] = React.useState<string | null>(null);
+    const [selectedSubcategory, setSelectedSubcategory] = React.useState<SpaceType | null>(null);
+    const [dropdownPosition, setDropdownPosition] = React.useState<{ left: number; top: number } | null>(null);
+    const hoverTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+    const categoryButtonRefs = React.useRef<Map<string, HTMLDivElement>>(new Map());
+
+    // Auto-enable distance sorting when location becomes available
+    React.useEffect(() => {
+        if (userLocation && !sortByDistance) {
+            setSortByDistance(true);
+        }
+    }, [userLocation, sortByDistance]);
 
     React.useEffect(() => {
         const handleScroll = () => {
@@ -127,40 +211,115 @@ const Home: React.FC<HomeProps> = ({
         }
 
         // Parse natural language query
+        // The parser extracts structured filters (location, price, guests, etc.)
+        // AND keeps any remaining words as searchTerm for flexible text matching
         const parsedFilters = parseNaturalLanguageQuery(searchTerm);
 
-        // Reset to defaults and apply new parsed filters
-        // We clear 'searchTerm' here so the raw natural language string doesn't 
-        // cause the text-based filter to fail (e.g. "Apartment in Lagos" shouldn't fail 
-        // just because the title doesn't contain that exact sentence)
+        // Apply parsed filters - the parser now intelligently keeps
+        // unmatched words as searchTerm for text-based search in title/description/tags
         setFilters({
             ...initialFilters,
             ...parsedFilters,
-            searchTerm: ''
         });
     }, [searchTerm]);
 
     const handleFilterChange = (newFilters: SearchFilters) => {
         setFilters(newFilters);
+        
+        // If user sets spaceType in advanced search, check which category it belongs to
+        if (newFilters.spaceType !== filters.spaceType) {
+            if (newFilters.spaceType === 'all') {
+                setActiveCategory('All');
+            } else {
+                // Map the spaceType to its category
+                const category = SPACE_TYPE_CATEGORIES[newFilters.spaceType as SpaceType];
+                if (category) {
+                    setActiveCategory(category);
+                }
+            }
+        }
     };
 
-    const displayListings = React.useMemo(() => {
-        // First apply category filter if selected (unless it's 'All')
-        let filtered = listings;
-        if (activeCategory !== 'All') {
-            filtered = filtered.filter(l => l.type === activeCategory);
-        }
+    // Filter by category - get all SpaceTypes that belong to the selected category
+    const getSpaceTypesForCategory = (category: string): SpaceType[] => {
+        if (category === 'All') return [];
+        return Object.entries(SPACE_TYPE_CATEGORIES)
+            .filter(([_, cat]) => cat === category)
+            .map(([spaceType]) => spaceType as SpaceType);
+    };
 
-        // Then apply advanced filters
-        return filterListings(filtered, filters)
-            .filter(l => l.status === ListingStatus.LIVE)
-            .sort((a, b) => {
-                // Sort by createdAt descending (newest first)
+    // No longer sync spaceType with category - we filter by category group instead
+
+    const displayListings = React.useMemo(() => {
+        // Apply advanced filters (location, price, dates, etc.)
+        let filtered = filterListings(listings, filters)
+            .filter(l => l.status === ListingStatus.LIVE);
+        
+        // Apply subcategory filter if a specific subcategory is selected
+        if (selectedSubcategory) {
+            filtered = filtered.filter(l => l.type === selectedSubcategory);
+        } else if (activeCategory !== 'All') {
+            // Otherwise apply category filter based on selected tab
+            const categorySpaceTypes = getSpaceTypesForCategory(activeCategory);
+            filtered = filtered.filter(l => categorySpaceTypes.includes(l.type));
+        }
+        
+        // Sort based on mode
+        if (sortByDistance && userLocation) {
+            // Sort by distance (listings with coordinates first, then by distance)
+            return filtered.sort((a, b) => {
+                const distA = a.coordinates ? calculateDistance(userLocation.lat, userLocation.lng, a.coordinates.lat, a.coordinates.lng) : Infinity;
+                const distB = b.coordinates ? calculateDistance(userLocation.lat, userLocation.lng, b.coordinates.lat, b.coordinates.lng) : Infinity;
+                return distA - distB;
+            });
+        } else {
+            // Sort by createdAt descending (newest first)
+            return filtered.sort((a, b) => {
                 const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
                 const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
                 return dateB - dateA;
             });
-    }, [listings, activeCategory, filters]);
+        }
+    }, [listings, filters, activeCategory, selectedSubcategory, sortByDistance, userLocation]);
+
+    // Handle category hover with delay for better UX
+    const handleCategoryMouseEnter = (categoryId: string) => {
+        if (hoverTimeoutRef.current) {
+            clearTimeout(hoverTimeoutRef.current);
+        }
+        if (SUBCATEGORIES[categoryId]) {
+            const buttonEl = categoryButtonRefs.current.get(categoryId);
+            if (buttonEl) {
+                const rect = buttonEl.getBoundingClientRect();
+                setDropdownPosition({
+                    left: rect.left + rect.width / 2,
+                    top: rect.bottom + 8,
+                });
+            }
+            setHoveredCategory(categoryId);
+        }
+    };
+
+    const handleCategoryMouseLeave = () => {
+        hoverTimeoutRef.current = setTimeout(() => {
+            setHoveredCategory(null);
+            setDropdownPosition(null);
+        }, 150);
+    };
+
+    const handleSubcategoryClick = (spaceType: SpaceType, category: string) => {
+        setSelectedSubcategory(spaceType);
+        setActiveCategory(category);
+        setHoveredCategory(null);
+        setDropdownPosition(null);
+    };
+
+    const handleCategoryClick = (categoryId: string) => {
+        setActiveCategory(categoryId);
+        setSelectedSubcategory(null); // Clear subcategory when clicking category
+        setHoveredCategory(null);
+        setDropdownPosition(null);
+    };
 
     // Handle image load callback from ListingCard
     const handleImageLoad = React.useCallback((listingId: string) => {
@@ -210,19 +369,65 @@ const Home: React.FC<HomeProps> = ({
         return () => observer.disconnect();
     }, [isLoading, displayListings.length]);
 
+    // Check if any filters are active (excluding spaceType which is handled by category tabs)
+    const hasActiveFilters = React.useMemo(() => {
+        return (
+            activeCategory !== 'All' ||
+            filters.location !== '' ||
+            filters.priceMin !== undefined ||
+            filters.priceMax !== undefined ||
+            filters.bookingType !== 'all' ||
+            filters.guestCount > 1 ||
+            filters.dateFrom !== '' ||
+            filters.dateTo !== ''
+        );
+    }, [filters, activeCategory]);
+
+    // Clear all filters
+    const clearAllFilters = () => {
+        setActiveCategory('All');
+        setFilters({
+            searchTerm: '',
+            location: '',
+            priceMin: undefined,
+            priceMax: undefined,
+            spaceType: 'all',
+            bookingType: 'all',
+            guestCount: 1,
+            dateFrom: '',
+            dateTo: ''
+        });
+    };
+
     const renderListingsWithPromo = () => {
         const items: React.ReactNode[] = [];
         let promoAdded = false;
 
-        if (displayListings.length === 0 && !user) {
+        if (displayListings.length === 0) {
             return (
                 <div className="col-span-full flex flex-col items-center justify-center py-20 text-center">
-                    <HomeIcon size={48} className="text-gray-300 mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-900">No matches found</h3>
-                    <p className="text-gray-500 mb-8">Try selecting a different category.</p>
-                    <Button onClick={onBecomeHostClick} variant="primary" className="bg-black hover:bg-gray-800">
-                        Become a Host
-                    </Button>
+                    <Search size={48} className="text-gray-300 mb-4" />
+                    <h3 className="text-lg font-semibold text-gray-900">No spaces found</h3>
+                    <p className="text-gray-500 mb-4">
+                        {hasActiveFilters 
+                            ? "Try adjusting your filters or clearing them to see more results."
+                            : "There are no spaces available at the moment."
+                        }
+                    </p>
+                    {hasActiveFilters && (
+                        <Button 
+                            onClick={clearAllFilters} 
+                            variant="outline" 
+                            className="mb-4"
+                        >
+                            Clear All Filters
+                        </Button>
+                    )}
+                    {!user && (
+                        <Button onClick={onBecomeHostClick} variant="primary" className="bg-black hover:bg-gray-800">
+                            Become a Host
+                        </Button>
+                    )}
                 </div>
             );
         }
@@ -248,7 +453,8 @@ const Home: React.FC<HomeProps> = ({
                 />
             );
 
-            if (!user && !promoAdded && (index === 3 || (displayListings.length < 4 && index === displayListings.length - 1))) {
+            // Insert "Become a Host" promo card at 3rd position (after 2 listings) for non-logged-in users
+            if (!user && !promoAdded && (index === 1 || (displayListings.length < 2 && index === displayListings.length - 1))) {
                 items.push(
                     <button
                         key="promo"
@@ -290,6 +496,17 @@ const Home: React.FC<HomeProps> = ({
         return items;
     };
 
+    // Get display text for location
+    const getLocationDisplayText = () => {
+        if (filters.location) {
+            return filters.location;
+        }
+        if (sortByDistance && userLocation?.displayName) {
+            return `Near ${userLocation.displayName}`;
+        }
+        return 'Where to?';
+    };
+
     return (
         <div className="pb-20 bg-gray-50/50 min-h-screen">
             {/* Mobile Header - Sticky & Premium */}
@@ -302,11 +519,21 @@ const Home: React.FC<HomeProps> = ({
                     >
                         <Search size={20} className="text-gray-900" strokeWidth={2.5} />
                         <div className="flex-1 text-left">
-                            <div className="text-sm font-bold text-gray-900">Where to?</div>
-                            <div className="text-[11px] text-gray-500 font-medium">Anywhere • Any week • Add guests</div>
+                            <div className="text-sm font-bold text-gray-900 flex items-center gap-1">
+                                {sortByDistance && userLocation && !filters.location && (
+                                    <MapPin size={14} className="text-brand-600" />
+                                )}
+                                {getLocationDisplayText()}
+                            </div>
+                            <div className="text-[11px] text-gray-500 font-medium">
+                                {activeCategory !== 'All' ? activeCategory : 'Any type'} • {filters.dateFrom || 'Any date'} • {filters.guestCount > 1 ? `${filters.guestCount} guests` : 'Add guests'}
+                            </div>
                         </div>
-                        <div className="w-9 h-9 flex items-center justify-center rounded-full border border-gray-200 bg-white text-gray-900">
+                        <div className="relative w-9 h-9 flex items-center justify-center rounded-full border border-gray-200 bg-white text-gray-900">
                             <SlidersHorizontal size={16} strokeWidth={2} />
+                            {hasActiveFilters && (
+                                <span className="absolute -top-1 -right-1 w-3 h-3 bg-brand-600 rounded-full" />
+                            )}
                         </div>
                     </button>
 
@@ -315,10 +542,7 @@ const Home: React.FC<HomeProps> = ({
                         {categories.map((cat) => (
                             <button
                                 key={cat.id}
-                                onClick={(e) => {
-                                    setActiveCategory(cat.id);
-                                    e.currentTarget.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-                                }}
+                                onClick={() => handleCategoryClick(cat.id)}
                                 className={`flex flex-col items-center gap-1.5 min-w-[64px] transition-all duration-200 group ${activeCategory === cat.id ? 'opacity-100 scale-105' : 'opacity-60 hover:opacity-100'}`}
                             >
                                 <div className={`w-7 h-7 flex items-center justify-center rounded-full transition-all ${activeCategory === cat.id ? 'text-black' : 'text-gray-500 group-hover:text-gray-800'}`}>
@@ -333,6 +557,23 @@ const Home: React.FC<HomeProps> = ({
                             </button>
                         ))}
                     </div>
+
+                    {/* Mobile selected subcategory indicator */}
+                    {selectedSubcategory && (
+                        <div className="lg:hidden flex items-center gap-2 -mx-4 px-4 pb-2">
+                            <span className="text-xs text-gray-500">Filter:</span>
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-brand-50 text-brand-700 rounded-full text-xs font-medium">
+                                {selectedSubcategory}
+                                <button 
+                                    onClick={() => setSelectedSubcategory(null)}
+                                    className="hover:bg-brand-100 rounded-full p-0.5"
+                                    aria-label="Clear subcategory filter"
+                                >
+                                    <X size={12} />
+                                </button>
+                            </span>
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -348,30 +589,146 @@ const Home: React.FC<HomeProps> = ({
 
                     {/* Main Content Area */}
                     <div className="flex-1 min-w-0">
-                        {/* Desktop Categories */}
-                        <div className={`hidden lg:flex sticky top-20 z-30 flex-1 items-center gap-2 sm:gap-3 lg:gap-0 overflow-x-auto py-2 sm:py-3 no-scrollbar rounded-full bg-white/80 backdrop-blur-md border border-white/20 px-2 sm:px-4 lg:justify-between lg:w-full lg:mx-0 lg:bg-white lg:border-gray-100 lg:shadow-faint lg:shadow-none hover:shadow-lg transition-all duration-300 mb-8 ${isHeaderVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0 pointer-events-none'}`}>
+                        {/* Desktop Categories with Subcategory Dropdown */}
+                        <div className={`hidden lg:flex sticky top-20 z-30 mb-6 transition-all duration-300 items-center gap-0 py-2 no-scrollbar rounded-full bg-white border-gray-100 shadow-faint hover:shadow-lg px-2 justify-between w-full ${isHeaderVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0 pointer-events-none'}`}>
                             {categories.map((cat, index) => (
                                 <React.Fragment key={cat.id}>
-                                    <button
-                                        data-category={cat.id}
-                                        onClick={(e) => {
-                                            setActiveCategory(cat.id);
-                                            e.currentTarget.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-                                        }}
-                                        className={`flex items-center gap-1.5 sm:gap-2 ${cat.id === 'All' ? 'pl-4 pr-3 sm:px-4' : 'px-3 sm:px-4'} py-1.5 sm:py-2 rounded-full whitespace-nowrap transition-all duration-200 text-xs sm:text-sm hover:scale-105 active:scale-95 ${activeCategory === cat.id
-                                            ? 'bg-brand-600 text-white shadow-md shadow-brand-600/20'
-                                            : 'bg-white/50 backdrop-blur-sm text-gray-700 hover:bg-white/80 border border-gray-200/50 lg:bg-transparent lg:border-0 lg:hover:bg-gray-50'
-                                            }`}
+                                    <div 
+                                        ref={(el) => { if (el) categoryButtonRefs.current.set(cat.id, el); }}
+                                        className="relative group"
+                                        onMouseEnter={() => handleCategoryMouseEnter(cat.id)}
+                                        onMouseLeave={handleCategoryMouseLeave}
                                     >
-                                        {cat.icon ? <cat.icon size={16} className="sm:w-[18px] sm:h-[18px]" strokeWidth={1.5} /> : <Search size={16} className="sm:w-[18px] sm:h-[18px]" strokeWidth={1.5} />}
-                                        <span className="font-medium">{cat.label}</span>
-                                    </button>
+                                        <button
+                                            data-category={cat.id}
+                                            onClick={() => handleCategoryClick(cat.id)}
+                                            className={`flex items-center gap-1.5 sm:gap-2 ${cat.id === 'All' ? 'pl-4 pr-3 sm:px-4' : 'px-3 sm:px-4'} py-1.5 sm:py-2 rounded-full whitespace-nowrap transition-all duration-200 text-xs sm:text-sm hover:scale-105 active:scale-95 ${activeCategory === cat.id
+                                                ? 'bg-brand-600 text-white shadow-md shadow-brand-600/20'
+                                                : 'bg-transparent text-gray-700 hover:bg-gray-50'
+                                                }`}
+                                        >
+                                            {cat.icon ? <cat.icon size={16} className="sm:w-[18px] sm:h-[18px]" strokeWidth={1.5} /> : <Search size={16} className="sm:w-[18px] sm:h-[18px]" strokeWidth={1.5} />}
+                                            <span className="font-medium">{cat.label}</span>
+                                            {SUBCATEGORIES[cat.id] && (
+                                                <ChevronDown size={14} className={`transition-transform duration-200 ${hoveredCategory === cat.id ? 'rotate-180' : ''}`} />
+                                            )}
+                                        </button>
+                                    </div>
                                     {index < categories.length - 1 && (
                                         <div className="hidden lg:block h-5 w-px bg-gray-200 shrink-0 mx-2"></div>
                                     )}
                                 </React.Fragment>
                             ))}
                         </div>
+
+                        {/* Subcategory Dropdown - Fixed positioned based on hovered button */}
+                        {hoveredCategory && SUBCATEGORIES[hoveredCategory] && dropdownPosition && (
+                            <div 
+                                className="hidden lg:block fixed z-[100]"
+                                style={{
+                                    top: `${dropdownPosition.top}px`,
+                                    left: `${dropdownPosition.left}px`,
+                                    transform: 'translateX(-50%)',
+                                }}
+                                onMouseEnter={() => handleCategoryMouseEnter(hoveredCategory)}
+                                onMouseLeave={handleCategoryMouseLeave}
+                            >
+                                <div className="bg-white rounded-xl shadow-xl border border-gray-200 py-2 min-w-[220px] animate-in fade-in slide-in-from-top-2 duration-200">
+                                    {/* Arrow pointer */}
+                                    <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-l border-t border-gray-200 transform rotate-45" />
+                                    
+                                    <div className="relative bg-white rounded-xl">
+                                        <div className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide border-b border-gray-100">
+                                            {categories.find(c => c.id === hoveredCategory)?.label} Spaces
+                                        </div>
+                                        <div className="py-1">
+                                            {SUBCATEGORIES[hoveredCategory].map((sub) => (
+                                                <button
+                                                    key={sub.type}
+                                                    onClick={() => handleSubcategoryClick(sub.type, hoveredCategory)}
+                                                    className={`w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors flex items-center justify-between ${
+                                                        selectedSubcategory === sub.type ? 'bg-brand-50 text-brand-700 font-medium' : 'text-gray-700'
+                                                    }`}
+                                                >
+                                                    <span>{sub.label}</span>
+                                                    {selectedSubcategory === sub.type && (
+                                                        <span className="w-2 h-2 bg-brand-600 rounded-full" />
+                                                    )}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <div className="border-t border-gray-100 pt-1">
+                                            <button
+                                                onClick={() => handleCategoryClick(hoveredCategory)}
+                                                className="w-full text-left px-4 py-2.5 text-sm text-brand-600 hover:bg-brand-50 transition-colors font-medium"
+                                            >
+                                                View all {categories.find(c => c.id === hoveredCategory)?.label}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Selected subcategory indicator */}
+                        {selectedSubcategory && (
+                            <div className="hidden lg:flex items-center gap-2 mb-4 px-1">
+                                <span className="text-sm text-gray-600">Showing:</span>
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-brand-50 text-brand-700 rounded-full text-sm font-medium">
+                                    {selectedSubcategory}
+                                    <button 
+                                        onClick={() => setSelectedSubcategory(null)}
+                                        className="hover:bg-brand-100 rounded-full p-0.5 transition-colors"
+                                        aria-label="Clear subcategory filter"
+                                    >
+                                        <X size={14} />
+                                    </button>
+                                </span>
+                            </div>
+                        )}
+
+                        {/* Location-based sorting info & toggle */}
+                        {isSupported && (
+                            <div className="flex items-center justify-between mb-4 px-1">
+                                <div className="flex items-center gap-2">
+                                    {userLocation && sortByDistance && (
+                                        <div className="flex items-center gap-1.5 text-sm text-gray-600">
+                                            <MapPin size={14} className="text-brand-600" />
+                                            <span>Showing spaces near <span className="font-medium text-gray-900">{userLocation.displayName}</span></span>
+                                        </div>
+                                    )}
+                                    {!userLocation && !locationLoading && (
+                                        <button
+                                            onClick={requestLocation}
+                                            className="flex items-center gap-1.5 text-sm text-brand-600 hover:text-brand-700 font-medium"
+                                        >
+                                            <MapPin size={14} />
+                                            <span>Use my location</span>
+                                        </button>
+                                    )}
+                                    {locationLoading && (
+                                        <div className="flex items-center gap-1.5 text-sm text-gray-500">
+                                            <div className="w-3.5 h-3.5 border-2 border-brand-600 border-t-transparent rounded-full animate-spin" />
+                                            <span>Detecting location...</span>
+                                        </div>
+                                    )}
+                                </div>
+                                {userLocation && (
+                                    <button
+                                        onClick={() => setSortByDistance(!sortByDistance)}
+                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                                            sortByDistance 
+                                                ? 'bg-brand-50 text-brand-700 border border-brand-200' 
+                                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                        }`}
+                                    >
+                                        <MapPin size={12} />
+                                        <span>Near me</span>
+                                        {sortByDistance && <span className="w-1.5 h-1.5 bg-brand-600 rounded-full" />}
+                                    </button>
+                                )}
+                            </div>
+                        )}
 
                         {/* Listings Grid */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 sm:gap-x-6 gap-y-8 sm:gap-y-10 animate-in fade-in duration-500">

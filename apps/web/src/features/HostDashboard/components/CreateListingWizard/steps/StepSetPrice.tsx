@@ -147,7 +147,7 @@ const StepSetPrice: React.FC<StepSetPriceProps> = ({
                             }))}
                             placeholder="0"
                             min="1"
-                            className="text-4xl sm:text-5xl font-bold text-gray-900 w-full outline-none bg-transparent"
+                            className="text-4xl sm:text-5xl font-bold text-gray-900 w-full outline-none bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                     </div>
                     <p className="text-sm text-gray-500 mt-2">per {priceLabel}</p>
@@ -221,7 +221,7 @@ const StepSetPrice: React.FC<StepSetPriceProps> = ({
                                     }))}
                                     placeholder="0"
                                     min="0"
-                                    className="text-xl font-semibold text-gray-900 w-full outline-none bg-transparent"
+                                    className="text-xl font-semibold text-gray-900 w-full outline-none bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                 />
                             </div>
                             <p className="text-xs text-gray-500 mt-2">Refundable deposit to cover potential damages</p>
@@ -263,7 +263,7 @@ const StepSetPrice: React.FC<StepSetPriceProps> = ({
                                         }))}
                                         placeholder="0"
                                         min="0"
-                                        className="text-xl font-semibold text-gray-900 w-full outline-none bg-transparent"
+                                        className="text-xl font-semibold text-gray-900 w-full outline-none bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                     />
                                 </div>
                                 <p className="text-xs text-gray-500 mt-2">

@@ -154,16 +154,19 @@ const ListingDetailsRoute: React.FC<{
 import { useBookingExpiry } from './features/Bookings/hooks/useBookingExpiry';
 
 const BecomeHostAction: React.FC<{ user: User; onSwitchRole: (role: Role) => void }> = ({ user, onSwitchRole }) => {
+  const navigate = useNavigate();
+  
   useEffect(() => {
-    if (user.role !== Role.HOST) {
+    if (user.role === Role.HOST) {
+      // Already a host, go to host dashboard
+      navigate('/host/dashboard', { replace: true });
+    } else {
+      // Switch role to HOST, then navigate
       onSwitchRole(Role.HOST);
     }
-  }, [user, onSwitchRole]);
-
-  if (user.role === Role.HOST) {
-    return <Navigate to="/host/dashboard" replace />;
-  }
-
+  }, [user.role, onSwitchRole, navigate]);
+  
+  // Show loading while switching
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50">
       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600"></div>
@@ -393,10 +396,19 @@ const App: React.FC = () => {
 
   const handleSwitchRole = (newRole: Role) => {
     if (!user) return;
-    const updatedUser = { ...user, role: newRole };
+    const updatedUser = { ...user, role: newRole, isHost: newRole === Role.HOST ? true : user.isHost };
     setUser(updatedUser);
-    // Update storage
+    
+    // Update session storage
     localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(updatedUser));
+    
+    // Also update users database to keep in sync
+    const users = getAllUsers();
+    const idx = users.findIndex(u => u.id === user.id);
+    if (idx >= 0) {
+      users[idx] = updatedUser;
+      localStorage.setItem(STORAGE_KEYS.USERS_DB, JSON.stringify(users));
+    }
 
     if (newRole === Role.HOST) {
       navigate('/host/dashboard');
@@ -499,8 +511,13 @@ const App: React.FC = () => {
     const createdBookings: Booking[] = [];
 
     // Process bookings sequentially to ensure order and correct return
-    for (const date of dates) {
-      const bookingId = `bk_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    for (let i = 0; i < dates.length; i++) {
+      const date = dates[i];
+      // Include index in ID to guarantee uniqueness even within the same millisecond
+      const bookingId = `bk_${Date.now()}_${i}_${Math.random().toString(36).substr(2, 9)}`;
+
+      // Determine booking status: Confirmed for instant book, Pending otherwise
+      const bookingStatus = listing.settings?.instantBook ? 'Confirmed' : 'Pending';
 
       const newBooking: Booking = {
         id: bookingId,
@@ -513,7 +530,7 @@ const App: React.FC = () => {
         totalPrice: pricePerBooking,
         serviceFee: serviceFeePerBooking,
         cautionFee: cautionFeePerBooking,
-        status: 'Pending',
+        status: bookingStatus,
         groupId: groupId,
         guestCount: guestCount || 1,
         selectedAddOns: selectedAddOns || [],
@@ -554,9 +571,14 @@ const App: React.FC = () => {
 
     // Only show success toast if at least one booking was created
     if (createdBookings.length > 0) {
+      const isInstantBook = listing.settings?.instantBook;
       const message = dates.length > 1
-        ? `Recurring Booking Request Sent! (${createdBookings.length} of ${dates.length} dates)`
-        : `Booking Request Sent! Total: ${formatCurrency(breakdown.total)}`;
+        ? isInstantBook 
+          ? `Recurring Booking Confirmed! (${createdBookings.length} of ${dates.length} dates)`
+          : `Recurring Booking Request Sent! (${createdBookings.length} of ${dates.length} dates)`
+        : isInstantBook
+          ? `Booking Confirmed! Total: ${formatCurrency(breakdown.total)}`
+          : `Booking Request Sent! Total: ${formatCurrency(breakdown.total)}`;
 
       showToast({ message, type: 'success' });
     }
@@ -650,6 +672,7 @@ const App: React.FC = () => {
                           listings={listings}
                           onRefreshUser={refreshData}
                           onLogout={handleLogout}
+                          onSwitchRole={handleSwitchRole}
                         />
                   } />
                   <Route path="/host/dashboard" element={
@@ -663,6 +686,7 @@ const App: React.FC = () => {
                               refreshData={refreshData}
                               hideUI={showCompleteProfile}
                               onLogout={handleLogout}
+                              onSwitchRole={handleSwitchRole}
                               onUpdateListing={(updated) => {
                                 // Just update React state - localStorage is already updated by saveListing()
                                 // DON'T write to localStorage here - it would overwrite raw data with transformed data

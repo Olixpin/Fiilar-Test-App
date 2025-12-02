@@ -475,10 +475,28 @@ const HostSettings: React.FC<HostSettingsProps> = ({ user, onUpdateUser }) => {
                                         onDoubleClick={() => !isEditing && setIsEditing(true)}
                                         placeholder={isEditing ? "Tell guests a bit about yourself..." : "No bio yet"}
                                         rows={4}
-                                        className={`w-full border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none transition-colors ${isEditing ? 'border-gray-300 bg-white' : 'border-transparent bg-gray-50 cursor-pointer hover:bg-gray-100'}`}
+                                        className={`w-full border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none transition-colors ${
+                                            isEditing 
+                                                ? formData.bio.length > 0 && formData.bio.length < 10 
+                                                    ? 'border-red-300 bg-red-50 focus:ring-red-500' 
+                                                    : 'border-gray-300 bg-white' 
+                                                : 'border-transparent bg-gray-50 cursor-pointer hover:bg-gray-100'
+                                        }`}
                                         readOnly={!isEditing}
                                         title={!isEditing ? 'Double-click to edit' : undefined}
                                     />
+                                    {isEditing && formData.bio.length > 0 && formData.bio.length < 10 && (
+                                        <p className="mt-1.5 text-sm text-red-600 flex items-center gap-1">
+                                            <AlertTriangle size={14} />
+                                            Bio must be at least 10 characters ({10 - formData.bio.length} more needed)
+                                        </p>
+                                    )}
+                                    {isEditing && formData.bio.length >= 10 && (
+                                        <p className="mt-1.5 text-sm text-green-600 flex items-center gap-1">
+                                            <Check size={14} />
+                                            {formData.bio.length}/500 characters
+                                        </p>
+                                    )}
                                 </div>
 
                                 {/* Currency & Region Settings */}

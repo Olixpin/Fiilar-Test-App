@@ -145,7 +145,7 @@ export const useAdminData = ({ users, listings, refreshData }: UseAdminDataProps
                 read: false,
                 actionRequired: false,
                 metadata: {
-                    link: `/listings/${listing.id}`
+                    link: `/listing/${listing.id}`
                 }
             });
             showToast({ message: `Listing "${listing.title}" Approved. Host has been notified.`, type: 'success' });
@@ -159,7 +159,7 @@ export const useAdminData = ({ users, listings, refreshData }: UseAdminDataProps
                 read: false,
                 actionRequired: true,
                 metadata: {
-                    link: `/host/listings/${listing.id}/edit`
+                    link: `/host/dashboard?view=listings`
                 }
             });
         }

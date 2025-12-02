@@ -6,14 +6,100 @@ export enum Role {
   ADMIN = 'ADMIN'
 }
 
+// Space Type Categories - Fiilar Spaces
 export enum SpaceType {
-  APARTMENT = 'Apartment',
-  STUDIO = 'Studio',
-  CONFERENCE = 'Conference Room',
-  EVENT_CENTER = 'Event Center',
+  // Work & Productivity Spaces
   CO_WORKING = 'Co-working Space',
-  OPEN_SPACE = 'Open Space'
+  PRIVATE_OFFICE = 'Private Office',
+  MEETING_ROOM = 'Meeting Room',
+  TRAINING_ROOM = 'Training Room',
+  CONFERENCE = 'Conference Room',  // Legacy - maps to Meeting Room category
+  
+  // Event & Social Spaces
+  EVENT_HALL = 'Event Hall',
+  BANQUET_HALL = 'Banquet Hall',
+  OUTDOOR_VENUE = 'Outdoor Venue',
+  LOUNGE_ROOFTOP = 'Lounge & Rooftop',
+  EVENT_CENTER = 'Event Center',  // Legacy - maps to Event Hall
+  OPEN_SPACE = 'Open Space',      // Legacy - maps to Outdoor Venue
+  
+  // Creative & Production Spaces
+  PHOTO_STUDIO = 'Photo Studio',
+  RECORDING_STUDIO = 'Recording Studio',
+  FILM_STUDIO = 'Film Studio',
+  STUDIO = 'Studio',              // Legacy - maps to Photo Studio
+  
+  // Stay & Accommodation
+  BOUTIQUE_HOTEL = 'Boutique Hotel',
+  SERVICED_APARTMENT = 'Serviced Apartment',
+  SHORT_TERM_RENTAL = 'Short-term Rental',
+  APARTMENT = 'Apartment',        // Legacy - maps to Serviced Apartment
+  
+  // Specialty Spaces
+  POP_UP_RETAIL = 'Pop-up & Retail Space',
+  SHOWROOM = 'Showroom',
+  KITCHEN_CULINARY = 'Kitchen & Culinary Space',
+  WAREHOUSE = 'Warehouse',
+  ART_GALLERY = 'Art Gallery',
+  DANCE_STUDIO = 'Dance Studio',
+  GYM_FITNESS = 'Gym & Fitness Space',
+  PRAYER_MEDITATION = 'Prayer & Meditation Room',
+  TECH_HUB = 'Tech Hub & Innovation Lab',
+  GAMING_LOUNGE = 'Gaming Lounge',
+  CONFERENCE_CENTER = 'Conference Center'
 }
+
+// Space Category Groups for UI
+export enum SpaceCategory {
+  WORK_PRODUCTIVITY = 'Work & Productivity',
+  EVENT_SOCIAL = 'Event & Social',
+  CREATIVE_PRODUCTION = 'Creative & Production',
+  STAY_ACCOMMODATION = 'Stay & Accommodation',
+  SPECIALTY = 'Specialty Spaces'
+}
+
+// Mapping of SpaceTypes to their parent category
+export const SPACE_TYPE_CATEGORIES: Record<SpaceType, SpaceCategory> = {
+  // Work & Productivity
+  [SpaceType.CO_WORKING]: SpaceCategory.WORK_PRODUCTIVITY,
+  [SpaceType.PRIVATE_OFFICE]: SpaceCategory.WORK_PRODUCTIVITY,
+  [SpaceType.MEETING_ROOM]: SpaceCategory.WORK_PRODUCTIVITY,
+  [SpaceType.TRAINING_ROOM]: SpaceCategory.WORK_PRODUCTIVITY,
+  [SpaceType.CONFERENCE]: SpaceCategory.WORK_PRODUCTIVITY,
+  
+  // Event & Social
+  [SpaceType.EVENT_HALL]: SpaceCategory.EVENT_SOCIAL,
+  [SpaceType.BANQUET_HALL]: SpaceCategory.EVENT_SOCIAL,
+  [SpaceType.OUTDOOR_VENUE]: SpaceCategory.EVENT_SOCIAL,
+  [SpaceType.LOUNGE_ROOFTOP]: SpaceCategory.EVENT_SOCIAL,
+  [SpaceType.EVENT_CENTER]: SpaceCategory.EVENT_SOCIAL,
+  [SpaceType.OPEN_SPACE]: SpaceCategory.EVENT_SOCIAL,
+  
+  // Creative & Production
+  [SpaceType.PHOTO_STUDIO]: SpaceCategory.CREATIVE_PRODUCTION,
+  [SpaceType.RECORDING_STUDIO]: SpaceCategory.CREATIVE_PRODUCTION,
+  [SpaceType.FILM_STUDIO]: SpaceCategory.CREATIVE_PRODUCTION,
+  [SpaceType.STUDIO]: SpaceCategory.CREATIVE_PRODUCTION,
+  
+  // Stay & Accommodation
+  [SpaceType.BOUTIQUE_HOTEL]: SpaceCategory.STAY_ACCOMMODATION,
+  [SpaceType.SERVICED_APARTMENT]: SpaceCategory.STAY_ACCOMMODATION,
+  [SpaceType.SHORT_TERM_RENTAL]: SpaceCategory.STAY_ACCOMMODATION,
+  [SpaceType.APARTMENT]: SpaceCategory.STAY_ACCOMMODATION,
+  
+  // Specialty
+  [SpaceType.POP_UP_RETAIL]: SpaceCategory.SPECIALTY,
+  [SpaceType.SHOWROOM]: SpaceCategory.SPECIALTY,
+  [SpaceType.KITCHEN_CULINARY]: SpaceCategory.SPECIALTY,
+  [SpaceType.WAREHOUSE]: SpaceCategory.SPECIALTY,
+  [SpaceType.ART_GALLERY]: SpaceCategory.SPECIALTY,
+  [SpaceType.DANCE_STUDIO]: SpaceCategory.SPECIALTY,
+  [SpaceType.GYM_FITNESS]: SpaceCategory.SPECIALTY,
+  [SpaceType.PRAYER_MEDITATION]: SpaceCategory.SPECIALTY,
+  [SpaceType.TECH_HUB]: SpaceCategory.SPECIALTY,
+  [SpaceType.GAMING_LOUNGE]: SpaceCategory.SPECIALTY,
+  [SpaceType.CONFERENCE_CENTER]: SpaceCategory.SPECIALTY,
+};
 
 export enum BookingType {
   HOURLY = 'Hourly',

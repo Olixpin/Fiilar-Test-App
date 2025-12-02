@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Role } from '@fiilar/types';
 import { X } from 'lucide-react';
 import { useToast, Form } from '@fiilar/ui';
-import { Link } from 'react-router-dom';
 import LoginOptions from '../../Auth/components/Login/LoginOptions';
 import EmailLogin from '../../Auth/components/Login/EmailLogin';
 import OtpVerification from '../../Auth/components/Login/OtpVerification';
@@ -193,18 +192,6 @@ const HostOnboarding: React.FC<HostOnboardingProps> = ({ onLogin, onBack }) => {
                                 error={error}
                                 variant="glass-dark"
                             />
-                        )}
-
-                        {/* Switch to Guest Login */}
-                        {step === 0 && (
-                            <div className="mt-6 pt-4 border-t border-white/10 text-center">
-                                <p className="text-xs sm:text-sm text-white/60">
-                                    Looking to book a space?{' '}
-                                    <Link to="/login" className="text-white font-semibold hover:text-brand-300 hover:underline transition-colors">
-                                        Sign in as Guest
-                                    </Link>
-                                </p>
-                            </div>
                         )}
                     </div>
                 </div>

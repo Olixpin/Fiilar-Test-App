@@ -305,23 +305,17 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
         // For now, we keep the default weekly schedule state but the listing has its availability.
     };
 
-    const emitListingsUpdatedEvent = () => {
-        try {
-            window.dispatchEvent(new Event('fiilar:listings-updated'));
-        } catch (e) {
-            console.error('Failed to dispatch listings updated event', e);
-        }
-    };
-
     const handleAiAutoFill = async () => {
         if (!aiPrompt.trim()) return;
 
+        const currentPrompt = aiPrompt; // Store the prompt before clearing
+        setAiPrompt(''); // Clear the input immediately when Generate is clicked
         setIsAiGenerating(true);
         try {
             // Simulate AI generation with a timeout
             await new Promise(resolve => setTimeout(resolve, 2000));
 
-            const prompt = aiPrompt.toLowerCase();
+            const prompt = currentPrompt.toLowerCase();
             
             // Detect space type from prompt
             const isStudio = prompt.includes('studio') || prompt.includes('photo') || prompt.includes('podcast');
@@ -415,11 +409,46 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
             };
 
             const getSpaceType = () => {
-                if (isStudio) return SpaceType.STUDIO;
-                if (isConference) return SpaceType.CONFERENCE;
-                if (isEvent) return SpaceType.EVENT_CENTER;
-                if (isCoWorking) return SpaceType.CO_WORKING;
-                return SpaceType.APARTMENT;
+                // Creative & Production
+                if (isStudio) {
+                    if (prompt.includes('photo') || prompt.includes('photograp')) return SpaceType.PHOTO_STUDIO;
+                    if (prompt.includes('record') || prompt.includes('podcast') || prompt.includes('audio')) return SpaceType.RECORDING_STUDIO;
+                    if (prompt.includes('film') || prompt.includes('video')) return SpaceType.FILM_STUDIO;
+                    return SpaceType.PHOTO_STUDIO;
+                }
+                // Work & Productivity
+                if (isConference) {
+                    if (prompt.includes('training') || prompt.includes('seminar') || prompt.includes('workshop')) return SpaceType.TRAINING_ROOM;
+                    return SpaceType.MEETING_ROOM;
+                }
+                if (isCoWorking) {
+                    if (prompt.includes('private') || prompt.includes('office')) return SpaceType.PRIVATE_OFFICE;
+                    return SpaceType.CO_WORKING;
+                }
+                // Event & Social
+                if (isEvent) {
+                    if (prompt.includes('wedding') || prompt.includes('banquet')) return SpaceType.BANQUET_HALL;
+                    if (prompt.includes('outdoor') || prompt.includes('garden') || prompt.includes('lawn')) return SpaceType.OUTDOOR_VENUE;
+                    if (prompt.includes('rooftop') || prompt.includes('lounge')) return SpaceType.LOUNGE_ROOFTOP;
+                    return SpaceType.EVENT_HALL;
+                }
+                // Stay & Accommodation
+                if (prompt.includes('hotel') || prompt.includes('boutique')) return SpaceType.BOUTIQUE_HOTEL;
+                if (prompt.includes('apartment') || prompt.includes('flat') || prompt.includes('serviced')) return SpaceType.SERVICED_APARTMENT;
+                if (prompt.includes('rental') || prompt.includes('airbnb') || prompt.includes('vacation')) return SpaceType.SHORT_TERM_RENTAL;
+                // Specialty
+                if (prompt.includes('pop-up') || prompt.includes('popup') || prompt.includes('retail')) return SpaceType.POP_UP_RETAIL;
+                if (prompt.includes('showroom')) return SpaceType.SHOWROOM;
+                if (prompt.includes('kitchen') || prompt.includes('culinary') || prompt.includes('cloud')) return SpaceType.KITCHEN_CULINARY;
+                if (prompt.includes('warehouse') || prompt.includes('storage')) return SpaceType.WAREHOUSE;
+                if (prompt.includes('gallery') || prompt.includes('art')) return SpaceType.ART_GALLERY;
+                if (prompt.includes('dance')) return SpaceType.DANCE_STUDIO;
+                if (prompt.includes('gym') || prompt.includes('fitness')) return SpaceType.GYM_FITNESS;
+                if (prompt.includes('prayer') || prompt.includes('meditation') || prompt.includes('spiritual')) return SpaceType.PRAYER_MEDITATION;
+                if (prompt.includes('tech') || prompt.includes('innovation') || prompt.includes('maker')) return SpaceType.TECH_HUB;
+                if (prompt.includes('gaming') || prompt.includes('esport')) return SpaceType.GAMING_LOUNGE;
+                
+                return SpaceType.SERVICED_APARTMENT;
             };
 
             // Mock AI response based on prompt analysis
@@ -632,14 +661,47 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
         // Host limits
         MAX_ACTIVE_LISTINGS: 50,            // Maximum 50 active listings per host
         
-        // Price sanity limits per space type (reasonable maximums for hourly bookings)
+        // Price sanity limits per space type (reasonable maximums)
         PRICE_SANITY: {
-            [SpaceType.STUDIO]: { hourlyMax: 500000, dailyMax: 2000000 },           // Studio: max ₦500k/hr, ₦2M/day
-            [SpaceType.CONFERENCE]: { hourlyMax: 300000, dailyMax: 1500000 },       // Conference: max ₦300k/hr, ₦1.5M/day
-            [SpaceType.CO_WORKING]: { hourlyMax: 50000, dailyMax: 200000 },         // Co-working: max ₦50k/hr, ₦200k/day
-            [SpaceType.OPEN_SPACE]: { hourlyMax: 200000, dailyMax: 1000000 },       // Open space: max ₦200k/hr, ₦1M/day
-            [SpaceType.EVENT_CENTER]: { hourlyMax: 1000000, dailyMax: 10000000 },   // Event center: max ₦1M/hr, ₦10M/day
-            [SpaceType.APARTMENT]: { hourlyMax: 100000, nightlyMax: 5000000 },      // Apartment: max ₦100k/hr, ₦5M/night
+            // Work & Productivity
+            [SpaceType.CO_WORKING]: { hourlyMax: 50000, dailyMax: 200000 },
+            [SpaceType.PRIVATE_OFFICE]: { hourlyMax: 100000, dailyMax: 500000 },
+            [SpaceType.MEETING_ROOM]: { hourlyMax: 200000, dailyMax: 1000000 },
+            [SpaceType.TRAINING_ROOM]: { hourlyMax: 300000, dailyMax: 1500000 },
+            [SpaceType.CONFERENCE]: { hourlyMax: 300000, dailyMax: 1500000 },
+            
+            // Event & Social
+            [SpaceType.EVENT_HALL]: { hourlyMax: 500000, dailyMax: 5000000 },
+            [SpaceType.BANQUET_HALL]: { hourlyMax: 1000000, dailyMax: 10000000 },
+            [SpaceType.OUTDOOR_VENUE]: { hourlyMax: 300000, dailyMax: 3000000 },
+            [SpaceType.LOUNGE_ROOFTOP]: { hourlyMax: 200000, dailyMax: 1000000 },
+            [SpaceType.EVENT_CENTER]: { hourlyMax: 1000000, dailyMax: 10000000 },
+            [SpaceType.OPEN_SPACE]: { hourlyMax: 200000, dailyMax: 1000000 },
+            
+            // Creative & Production
+            [SpaceType.PHOTO_STUDIO]: { hourlyMax: 300000, dailyMax: 1500000 },
+            [SpaceType.RECORDING_STUDIO]: { hourlyMax: 500000, dailyMax: 2000000 },
+            [SpaceType.FILM_STUDIO]: { hourlyMax: 1000000, dailyMax: 5000000 },
+            [SpaceType.STUDIO]: { hourlyMax: 500000, dailyMax: 2000000 },
+            
+            // Stay & Accommodation
+            [SpaceType.BOUTIQUE_HOTEL]: { hourlyMax: 200000, nightlyMax: 10000000 },
+            [SpaceType.SERVICED_APARTMENT]: { hourlyMax: 100000, nightlyMax: 5000000 },
+            [SpaceType.SHORT_TERM_RENTAL]: { hourlyMax: 100000, nightlyMax: 3000000 },
+            [SpaceType.APARTMENT]: { hourlyMax: 100000, nightlyMax: 5000000 },
+            
+            // Specialty
+            [SpaceType.POP_UP_RETAIL]: { hourlyMax: 200000, dailyMax: 2000000 },
+            [SpaceType.SHOWROOM]: { hourlyMax: 300000, dailyMax: 3000000 },
+            [SpaceType.KITCHEN_CULINARY]: { hourlyMax: 200000, dailyMax: 1000000 },
+            [SpaceType.WAREHOUSE]: { hourlyMax: 100000, dailyMax: 2000000 },
+            [SpaceType.ART_GALLERY]: { hourlyMax: 200000, dailyMax: 2000000 },
+            [SpaceType.DANCE_STUDIO]: { hourlyMax: 100000, dailyMax: 500000 },
+            [SpaceType.GYM_FITNESS]: { hourlyMax: 150000, dailyMax: 800000 },
+            [SpaceType.PRAYER_MEDITATION]: { hourlyMax: 50000, dailyMax: 200000 },
+            [SpaceType.TECH_HUB]: { hourlyMax: 100000, dailyMax: 500000 },
+            [SpaceType.GAMING_LOUNGE]: { hourlyMax: 100000, dailyMax: 500000 },
+            [SpaceType.CONFERENCE_CENTER]: { hourlyMax: 2000000, dailyMax: 20000000 },
         } as Record<string, { hourlyMax?: number; dailyMax?: number; nightlyMax?: number }>,
     };
 
@@ -702,12 +764,13 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
             return;
         }
 
-        // Check for duplicate title (same host)
+        // Check for duplicate title (same host) - exclude deleted listings
         const existingListingId = (newListing as any).id;
         const duplicateTitle = listings.find(l => 
             l.hostId === user.id && 
             l.title.toLowerCase().trim() === newListing.title!.toLowerCase().trim() &&
-            l.id !== existingListingId // Exclude current listing when editing
+            l.id !== existingListingId && // Exclude current listing when editing
+            l.status !== ListingStatus.DELETED // Exclude deleted listings
         );
         if (duplicateTitle) {
             toast.showToast({ 
@@ -717,10 +780,11 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
             return;
         }
 
-        // Check maximum active listings per host
+        // Check maximum active listings per host (exclude drafts and deleted)
         const activeListingsCount = listings.filter(l => 
             l.hostId === user.id && 
             l.status !== ListingStatus.DRAFT &&
+            l.status !== ListingStatus.DELETED &&
             l.id !== existingListingId
         ).length;
         if (activeListingsCount >= VALIDATION_RULES.MAX_ACTIVE_LISTINGS && !existingListingId) {

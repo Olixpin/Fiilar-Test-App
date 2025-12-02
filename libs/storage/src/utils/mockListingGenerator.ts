@@ -336,7 +336,10 @@ const CAPACITY_RANGES: Record<SpaceType, { min: number; max: number }> = {
 };
 
 // Helper functions
-const randomFromArray = <T>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
+const randomFromArray = <T>(arr: T[] | undefined): T | undefined => {
+  if (!arr || arr.length === 0) return undefined;
+  return arr[Math.floor(Math.random() * arr.length)];
+};
 const randomInt = (min: number, max: number): number => Math.floor(Math.random() * (max - min + 1)) + min;
 const randomFloat = (min: number, max: number, decimals: number = 1): number => {
   const multiplier = Math.pow(10, decimals);
@@ -392,27 +395,35 @@ const generateDescription = (type: SpaceType): string => {
  * Generate a single mock listing
  */
 const generateListing = (id: string, hostId: string): Listing => {
-  const spaceTypes = Object.values(SpaceType);
-  const type = randomFromArray(spaceTypes);
-  const location = randomFromArray(ALL_LOCATIONS);
-  const titles = TITLE_TEMPLATES[type];
-  const title = `${randomFromArray(titles)} - ${location.split(',')[0]}`;
+  // Only use space types that have complete template data
+  const supportedSpaceTypes = [
+    SpaceType.STUDIO,
+    SpaceType.APARTMENT,
+    SpaceType.CONFERENCE,
+    SpaceType.EVENT_CENTER,
+    SpaceType.CO_WORKING,
+    SpaceType.OPEN_SPACE,
+  ];
+  const type = randomFromArray(supportedSpaceTypes) || SpaceType.STUDIO;
+  const location = randomFromArray(ALL_LOCATIONS) || 'Lagos, Nigeria';
+  const titles = TITLE_TEMPLATES[type] || TITLE_TEMPLATES[SpaceType.STUDIO];
+  const title = `${randomFromArray(titles) || 'Premium Space'} - ${location.split(',')[0]}`;
   
-  const priceConfig = PRICE_RANGES[type];
+  const priceConfig = PRICE_RANGES[type] || PRICE_RANGES[SpaceType.STUDIO];
   const price = randomInt(priceConfig.min, priceConfig.max);
   const priceUnit = priceConfig.isHourly ? BookingType.HOURLY : BookingType.DAILY;
   const pricingModel = priceConfig.isHourly ? PricingModel.HOURLY : PricingModel.NIGHTLY;
   
-  const capacityConfig = CAPACITY_RANGES[type];
+  const capacityConfig = CAPACITY_RANGES[type] || CAPACITY_RANGES[SpaceType.STUDIO];
   const capacity = randomInt(capacityConfig.min, capacityConfig.max);
   const includedGuests = Math.max(1, Math.floor(capacity * randomFloat(0.3, 0.7)));
   
-  const allAmenities = AMENITIES_BY_TYPE[type];
-  const numAmenities = randomInt(3, Math.min(6, allAmenities.length));
+  const allAmenities = AMENITIES_BY_TYPE[type] || AMENITIES_BY_TYPE[SpaceType.STUDIO] || [];
+  const numAmenities = allAmenities.length > 0 ? randomInt(3, Math.min(6, allAmenities.length)) : 0;
   const amenities = shuffleArray(allAmenities).slice(0, numAmenities);
   
-  const allAddons = ADDONS_BY_TYPE[type];
-  const numAddons = randomInt(1, allAddons.length);
+  const allAddons = ADDONS_BY_TYPE[type] || ADDONS_BY_TYPE[SpaceType.STUDIO] || [];
+  const numAddons = allAddons.length > 0 ? randomInt(1, allAddons.length) : 0;
   const addOns = shuffleArray(allAddons).slice(0, numAddons).map((addon, idx) => ({
     ...addon,
     id: `${id}-addon-${idx}`,

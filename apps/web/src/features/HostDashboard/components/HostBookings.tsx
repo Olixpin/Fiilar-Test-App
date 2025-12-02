@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { Booking, Listing } from '@fiilar/types';
 import { Briefcase, FileText, MapPin, Calendar as CalendarIcon, CheckCircle, X, DollarSign, ShieldCheck, MessageCircle, Edit, Clock, User } from 'lucide-react';
@@ -129,69 +130,74 @@ const HostBookings: React.FC<HostBookingsProps> = ({ bookings, listings, filter,
         }
     };
 
-    return (
-        <div className="space-y-6 animate-in fade-in duration-500">
-            {/* Verification Modal */}
-            {verifyingId && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
-                    <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-300 border border-gray-100">
-                        <div className="text-center mb-8">
-                            <div className="w-20 h-20 bg-brand-50 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
-                                <ShieldCheck size={40} className="text-brand-600" />
-                            </div>
-                            <h3 className="text-2xl font-bold text-gray-900">Verify Guest</h3>
-                            <p className="text-gray-500 mt-2">Enter the 6-digit code provided by the guest to grant access.</p>
-                        </div>
+    // Verification Modal rendered via portal to ensure it's above all other content
+    const verificationModal = verifyingId ? createPortal(
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4 animate-in fade-in duration-200">
+            <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-300 border border-gray-100">
+                <div className="text-center mb-8">
+                    <div className="w-20 h-20 bg-brand-50 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+                        <ShieldCheck size={40} className="text-brand-600" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-gray-900">Verify Guest</h3>
+                    <p className="text-gray-500 mt-2">Enter the 6-character code provided by the guest to grant access.</p>
+                </div>
 
-                        <div className="space-y-6">
-                            <div className="flex justify-center">
-                                <div className={cn("transition-transform duration-200", verificationError && "animate-shake")}>
-                                    <OTPInput
-                                        value={verificationCode}
-                                        onChange={(val: string) => {
-                                            setVerificationCode(val.toUpperCase());
-                                            setVerificationError(false);
-                                        }}
-                                        length={6}
-                                        variant="default"
-                                        onComplete={() => {
-                                            // Optional: auto-submit on complete
-                                            // if (val.length === 6) handleVerifySubmit();
-                                        }}
-                                        onSubmit={handleVerifySubmit}
-                                    />
-                                </div>
-                            </div>
-
-                            {verificationError && (
-                                <p className="text-red-600 text-sm text-center font-medium animate-in fade-in slide-in-from-top-1 flex items-center justify-center gap-1">
-                                    <X size={14} /> Invalid code. Please try again.
-                                </p>
-                            )}
-
-                            <div className="flex gap-4 pt-4">
-                                <button
-                                    className="flex-1 px-4 py-3 rounded-xl font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
-                                    onClick={() => {
-                                        setVerifyingId(null);
-                                        setVerificationCode('');
-                                        setVerificationError(false);
-                                    }}
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    className="flex-1 px-4 py-3 rounded-xl font-bold text-white bg-brand-600 hover:bg-brand-700 shadow-lg shadow-brand-600/20 hover:shadow-brand-600/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                                    onClick={handleVerifySubmit}
-                                    disabled={verificationCode.length < 6}
-                                >
-                                    Verify & Start
-                                </button>
-                            </div>
+                <div className="space-y-6">
+                    <div className="flex justify-center">
+                        <div className={cn("transition-transform duration-200", verificationError && "animate-shake")}>
+                            <OTPInput
+                                value={verificationCode}
+                                onChange={(val: string) => {
+                                    setVerificationCode(val.toUpperCase());
+                                    setVerificationError(false);
+                                }}
+                                length={6}
+                                variant="default"
+                                alphanumeric={true}
+                                onComplete={() => {
+                                    // Optional: auto-submit on complete
+                                    // if (val.length === 6) handleVerifySubmit();
+                                }}
+                                onSubmit={handleVerifySubmit}
+                            />
                         </div>
                     </div>
+
+                    {verificationError && (
+                        <p className="text-red-600 text-sm text-center font-medium animate-in fade-in slide-in-from-top-1 flex items-center justify-center gap-1">
+                            <X size={14} /> Invalid code. Please try again.
+                        </p>
+                    )}
+
+                    <div className="flex gap-4 pt-4">
+                        <button
+                            className="flex-1 px-4 py-3 rounded-xl font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
+                            onClick={() => {
+                                setVerifyingId(null);
+                                setVerificationCode('');
+                                setVerificationError(false);
+                            }}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            className="flex-1 px-4 py-3 rounded-xl font-bold text-white bg-brand-600 hover:bg-brand-700 shadow-lg shadow-brand-600/20 hover:shadow-brand-600/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            onClick={handleVerifySubmit}
+                            disabled={verificationCode.length < 6}
+                        >
+                            Verify & Start
+                        </button>
+                    </div>
                 </div>
-            )}
+            </div>
+        </div>,
+        document.body
+    ) : null;
+
+    return (
+        <div className="space-y-6 animate-in fade-in duration-500">
+            {/* Verification Modal - rendered via portal */}
+            {verificationModal}
 
             {/* Header Section */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">

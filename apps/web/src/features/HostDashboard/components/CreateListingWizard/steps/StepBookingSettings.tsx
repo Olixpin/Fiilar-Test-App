@@ -28,11 +28,11 @@ const BOOKING_WINDOWS = [
 
 // Notice periods for daily/nightly (in days)
 const NOTICE_PERIODS_DAYS = [
-    { value: 0, label: 'Same day', description: 'Accept last-minute bookings' },
-    { value: 1, label: '1 day', description: 'A little time to prepare' },
-    { value: 2, label: '2 days', description: 'Comfortable buffer' },
-    { value: 3, label: '3 days', description: 'More preparation time' },
-    { value: 7, label: '1 week', description: 'Plan ahead' },
+    { value: 0, label: 'Same day', description: 'I can handle last-minute bookings' },
+    { value: 1, label: '1 day', description: 'Give me at least a day to prepare' },
+    { value: 2, label: '2 days', description: 'I need a couple days to get ready' },
+    { value: 3, label: '3 days', description: 'I like to plan ahead' },
+    { value: 7, label: '1 week', description: 'I need time to prepare properly' },
 ];
 
 // Notice periods for hourly (in hours) 
@@ -46,9 +46,9 @@ const NOTICE_PERIODS_HOURS = [
 
 // Prep times for daily/nightly (in days)
 const PREP_TIMES_DAYS = [
-    { value: 0, label: 'None', description: 'Back-to-back guests OK', descNightly: 'Back-to-back guests OK', descDaily: 'Back-to-back events OK' },
-    { value: 1, label: '1 day', description: 'Time for turnover', descNightly: 'Time for turnover', descDaily: 'Time for cleanup' },
-    { value: 2, label: '2 days', description: 'Extra buffer between guests', descNightly: 'Extra buffer between guests', descDaily: 'Extra buffer between events' },
+    { value: 0, label: 'None', description: 'Bookings can be back-to-back', descNightly: 'Guests can check in right after checkout', descDaily: 'Events can be scheduled back-to-back' },
+    { value: 1, label: '1 day', description: 'One day gap between bookings', descNightly: 'One day gap for cleaning', descDaily: 'One day gap to reset the space' },
+    { value: 2, label: '2 days', description: 'Two days gap between bookings', descNightly: 'Two days gap for deep cleaning', descDaily: 'Two days gap between events' },
 ];
 
 // Buffer times for hourly (in minutes)
@@ -170,15 +170,15 @@ const StepBookingSettings: React.FC<StepBookingSettingsProps> = ({
                     <div className="flex items-center gap-2 mb-4">
                         <Clock size={18} className="text-brand-600" />
                         <h3 className="font-medium text-gray-900">
-                            How much notice do you need?
+                            How much advance notice do you need?
                         </h3>
                     </div>
                     <p className="text-sm text-gray-500 mb-4">
                         {isHourly 
-                            ? 'Minimum time before an hourly booking can start'
+                            ? 'How early should guests book before their session?'
                             : isNightly
-                                ? 'Minimum time before a guest can check in'
-                                : 'Minimum time before an event booking can start'
+                                ? 'How early should guests book before check-in?'
+                                : 'How early should guests book before their event?'
                         }
                     </p>
                     <div className="space-y-2">
@@ -215,11 +215,16 @@ const StepBookingSettings: React.FC<StepBookingSettingsProps> = ({
                     <div className="flex items-center gap-2 mb-4">
                         <Sparkles size={18} className="text-brand-600" />
                         <h3 className="font-medium text-gray-900">
-                            {isNightly ? 'Time between guests?' : 'Time between bookings?'}
+                            {isNightly ? 'Gap between guests?' : 'Gap between bookings?'}
                         </h3>
                     </div>
                     <p className="text-sm text-gray-500 mb-4">
-                        {prepTimeLabel}
+                        {isNightly 
+                            ? 'How much time do you need to clean up after checkout?'
+                            : isDaily
+                                ? 'How much time do you need to reset your space between events?'
+                                : 'How much time do you need between bookings?'
+                        }
                     </p>
                     <div className={`grid gap-3 ${isHourly ? 'grid-cols-5' : 'grid-cols-3'}`}>
                         {bufferOptions.map((option) => {

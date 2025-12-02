@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Listing, User } from '@fiilar/types';
 import StepWrapper from './StepWrapper';
-import { Upload, FileCheck, AlertTriangle, CheckCircle, X, Info, FileText } from 'lucide-react';
+import { Upload, FileCheck, AlertTriangle, CheckCircle, X, Info, FileText, MapPin } from 'lucide-react';
 
 interface StepVerificationProps {
     newListing: Partial<Listing>;
@@ -27,10 +27,9 @@ const StepVerification: React.FC<StepVerificationProps> = ({
     listings,
 }) => {
     const hasProofOfAddress = !!newListing.proofOfAddress;
-    const isUserKycVerified = user?.kycVerified || user?.kycStatus === 'verified';
 
     // Find other listings by this host at the SAME address with proof of address
-    // This is the professional standard - proof of address is address-specific
+    // This allows reusing documents for multiple units at the same property
     const reusableProofs = useMemo(() => {
         if (!newListing.address || !user?.id) return [];
         
@@ -79,8 +78,8 @@ const StepVerification: React.FC<StepVerificationProps> = ({
         setNewListing(prev => ({ ...prev, proofOfAddress: proof }));
     };
 
-    // Can continue if user is KYC verified OR has uploaded proof
-    const canContinue = isUserKycVerified || hasProofOfAddress;
+    // Proof of address is REQUIRED for each listing
+    const canContinue = hasProofOfAddress;
 
     return (
         <StepWrapper
@@ -94,24 +93,24 @@ const StepVerification: React.FC<StepVerificationProps> = ({
             canContinue={canContinue}
         >
             <div className="space-y-6">
-                {/* User Verification Status */}
-                {isUserKycVerified ? (
+                {/* Listing Verification Status */}
+                {hasProofOfAddress ? (
                     <div className="flex items-start gap-3 p-4 bg-green-50 rounded-xl border border-green-100">
                         <CheckCircle size={20} className="text-green-600 shrink-0 mt-0.5" />
                         <div>
-                            <p className="font-medium text-green-900">You're verified!</p>
+                            <p className="font-medium text-green-900">Property verified!</p>
                             <p className="text-sm text-green-700 mt-1">
-                                Your identity has been verified. Proof of address is optional but recommended.
+                                Your proof of address has been uploaded for this listing.
                             </p>
                         </div>
                     </div>
                 ) : (
                     <div className="flex items-start gap-3 p-4 bg-amber-50 rounded-xl border border-amber-100">
-                        <AlertTriangle size={20} className="text-amber-600 shrink-0 mt-0.5" />
+                        <MapPin size={20} className="text-amber-600 shrink-0 mt-0.5" />
                         <div>
-                            <p className="font-medium text-amber-900">Verification required</p>
+                            <p className="font-medium text-amber-900">Proof of address required</p>
                             <p className="text-sm text-amber-700 mt-1">
-                                Please upload proof of address to verify this listing.
+                                Upload a document showing this property address to verify your listing.
                             </p>
                         </div>
                     </div>
@@ -121,7 +120,7 @@ const StepVerification: React.FC<StepVerificationProps> = ({
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-3">
                         Proof of address
-                        {isUserKycVerified && <span className="text-gray-400 ml-1">(optional)</span>}
+                        <span className="text-red-500 ml-1">*</span>
                     </label>
 
                     {hasProofOfAddress ? (
@@ -193,10 +192,10 @@ const StepVerification: React.FC<StepVerificationProps> = ({
 
                             {/* Note about address-specific verification */}
                             {!reusableProofs.length && hasOtherListingsWithProof && (
-                                <div className="flex items-start gap-3 p-3 bg-amber-50 border border-amber-200 rounded-xl">
-                                    <Info size={16} className="text-amber-600 shrink-0 mt-0.5" />
-                                    <p className="text-sm text-amber-800">
-                                        You have verified documents for other addresses. Each property address requires its own proof of address.
+                                <div className="flex items-start gap-3 p-3 bg-blue-50 border border-blue-200 rounded-xl">
+                                    <Info size={16} className="text-blue-600 shrink-0 mt-0.5" />
+                                    <p className="text-sm text-blue-800">
+                                        Each listing requires its own proof of address. Upload a document showing this property's address.
                                     </p>
                                 </div>
                             )}

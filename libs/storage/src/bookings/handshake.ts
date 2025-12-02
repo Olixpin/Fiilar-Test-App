@@ -2,6 +2,7 @@ import { Booking } from '@fiilar/types';
 import { STORAGE_KEYS } from '../constants';
 import { getBookings } from './bookingStorage';
 import { getListings } from '../listings';
+import { addNotification } from '@fiilar/notifications';
 
 /**
  * Handshake Verification Service
@@ -39,6 +40,25 @@ export const verifyHandshake = (bookingId: string, code: string): boolean => {
 
         bookings[idx] = booking;
         localStorage.setItem(STORAGE_KEYS.BOOKINGS, JSON.stringify(bookings));
+        
+        // Get listing details for notification
+        const listings = getListings();
+        const listing = listings.find(l => l.id === booking.listingId);
+        const listingTitle = listing?.title || 'your booked space';
+        
+        // Send notification to the guest
+        addNotification({
+            userId: booking.userId,
+            type: 'booking',
+            title: 'Booking Started! 🎉',
+            message: `Your booking for "${listingTitle}" has been verified. Your session has now started. Enjoy your time!`,
+            read: false,
+            data: {
+                bookingId: booking.id,
+                listingId: booking.listingId,
+                action: 'booking_started'
+            }
+        });
         
         console.log('✅ API RESPONSE: Handshake verified', {
             bookingId,

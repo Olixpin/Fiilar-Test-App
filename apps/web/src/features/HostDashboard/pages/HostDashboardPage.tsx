@@ -39,11 +39,12 @@ interface HostDashboardPageProps {
     onUpdateListing: (listing: Listing) => void;
     onCreateListing: (listing: Listing) => void;
     onLogout?: () => void;
+    onSwitchRole?: (role: Role) => void;
 }
 
 type View = 'overview' | 'listings' | 'create' | 'edit' | 'calendar' | 'settings' | 'bookings' | 'earnings' | 'payouts' | 'messages' | 'notifications' | 'verify' | 'menu' | 'explore';
 
-const HostDashboardPage: React.FC<HostDashboardPageProps> = ({ user, listings, refreshData, hideUI = false, onUpdateListing, onCreateListing, onLogout }) => {
+const HostDashboardPage: React.FC<HostDashboardPageProps> = ({ user, listings, refreshData, hideUI = false, onUpdateListing, onCreateListing, onLogout, onSwitchRole }) => {
     // View State
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
@@ -376,13 +377,17 @@ const HostDashboardPage: React.FC<HostDashboardPageProps> = ({ user, listings, r
 
                                     <button
                                         onClick={() => {
-                                            setView('explore');
                                             setIsProfileMenuOpen(false);
+                                            if (onSwitchRole) {
+                                                onSwitchRole(Role.USER);
+                                            } else {
+                                                navigate('/dashboard');
+                                            }
                                         }}
                                         className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
                                     >
                                         <UserIcon size={16} />
-                                        Switch to Guest (Explore)
+                                        Switch to Guest
                                     </button>
 
                                     <div className="h-px bg-gray-100 my-1" />
@@ -503,6 +508,7 @@ const HostDashboardPage: React.FC<HostDashboardPageProps> = ({ user, listings, r
                                     onDelete={handleDeleteListing}
                                     onCreate={handleStartNewListing}
                                     onPreview={handlePreviewListing}
+                                    searchTerm={searchQuery}
                                 />
                             )}
 
@@ -657,11 +663,20 @@ const HostDashboardPage: React.FC<HostDashboardPageProps> = ({ user, listings, r
 
                                     <div className="space-y-2">
                                         <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Switch Mode</h3>
-                                        <button onClick={() => navigate('/dashboard')} className="w-full flex items-center gap-3 p-4 bg-white border border-gray-100 rounded-xl hover:bg-gray-50 transition-colors">
+                                        <button 
+                                            onClick={() => {
+                                                if (onSwitchRole) {
+                                                    onSwitchRole(Role.USER);
+                                                } else {
+                                                    navigate('/dashboard');
+                                                }
+                                            }} 
+                                            className="w-full flex items-center gap-3 p-4 bg-white border border-gray-100 rounded-xl hover:bg-gray-50 transition-colors"
+                                        >
                                             <div className="p-2 bg-brand-50 text-brand-600 rounded-lg">
                                                 <UserIcon size={20} />
                                             </div>
-                                            <span className="font-medium text-gray-900">Switch to Guest Dashboard</span>
+                                            <span className="font-medium text-gray-900">Switch to Traveling</span>
                                             <ChevronRight size={16} className="ml-auto text-gray-400" />
                                         </button>
                                     </div>

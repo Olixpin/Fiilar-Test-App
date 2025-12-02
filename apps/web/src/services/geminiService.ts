@@ -70,6 +70,9 @@ export const parseListingDescription = async (text: string): Promise<Partial<Lis
   }
 
   try {
+    // Get all space type values for the prompt
+    const spaceTypesList = Object.values(SpaceType).join(", ");
+    
     const prompt = `
       You are an intelligent assistant helping a host list their property on Fiilar.
       Analyze the following description text and extract the listing details.
@@ -77,7 +80,14 @@ export const parseListingDescription = async (text: string): Promise<Partial<Lis
       Text to analyze: "${text}"
 
       Instructions:
-      1. Map 'type' to exactly one of: ${Object.values(SpaceType).join(", ")}.
+      1. Map 'type' to the most appropriate space type from this list:
+         Work & Productivity: Co-working Space, Private Office, Meeting Room, Training Room
+         Event & Social: Event Hall, Banquet Hall, Outdoor Venue, Lounge & Rooftop
+         Creative & Production: Photo Studio, Recording Studio, Film Studio
+         Stay & Accommodation: Boutique Hotel, Serviced Apartment, Short-term Rental
+         Specialty: Pop-up & Retail Space, Showroom, Kitchen & Culinary Space, Warehouse, Art Gallery, Dance Studio, Gym & Fitness Space, Prayer & Meditation Room, Tech Hub & Innovation Lab, Gaming Lounge, Conference Center
+         
+         Exact values: ${spaceTypesList}
       2. Map 'priceUnit' to exactly one of: ${Object.values(BookingType).join(", ")}.
       3. Extract specific amenities as 'tags'.
       4. Infer 'capacity' if mentioned (default to 1 if not).

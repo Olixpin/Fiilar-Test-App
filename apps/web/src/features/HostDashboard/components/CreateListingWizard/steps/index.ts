@@ -34,8 +34,7 @@ export interface WizardStep {
 export const WIZARD_STEPS: WizardStep[] = [
     // Phase 1: Property Basics
     { id: 'space-type', phase: 1, phaseName: 'Property Basics', title: 'What type of space?', subtitle: 'Choose the category that best describes your space', component: 'StepSpaceType' },
-    { id: 'location', phase: 1, phaseName: 'Property Basics', title: 'Where is your space?', subtitle: 'Enter the city or neighborhood', component: 'StepLocation' },
-    { id: 'address', phase: 1, phaseName: 'Property Basics', title: 'Confirm your address', subtitle: 'This helps guests find your space', component: 'StepAddress' },
+    { id: 'location', phase: 1, phaseName: 'Property Basics', title: 'Where is your space?', subtitle: 'Enter location and address details', component: 'StepLocation' },
     { id: 'capacity', phase: 1, phaseName: 'Property Basics', title: 'How many guests?', subtitle: 'Set the maximum number of guests', component: 'StepCapacity' },
     { id: 'title-description', phase: 1, phaseName: 'Property Basics', title: 'Describe your space', subtitle: 'Create a title and description', component: 'StepTitleDescription' },
 

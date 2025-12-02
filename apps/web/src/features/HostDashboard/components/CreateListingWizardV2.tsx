@@ -7,7 +7,6 @@ import LivePreview from './CreateListingWizard/common/LivePreview';
 import {
     StepSpaceType,
     StepLocation,
-    StepAddress,
     StepCapacity,
     StepTitleDescription,
     StepPhotos,
@@ -38,14 +37,14 @@ interface CreateListingWizardProps {
 
 // Phase definitions for navigation
 const PHASES = [
-    { id: 1, name: 'Basics', icon: Home, steps: [1, 2, 3, 4, 5] },
-    { id: 2, name: 'Stand Out', icon: Camera, steps: [6, 7, 8] },
-    { id: 3, name: 'Pricing', icon: DollarSign, steps: [9, 10, 11, 12, 13, 14] },
-    { id: 4, name: 'Policies', icon: Shield, steps: [15, 16] },
-    { id: 5, name: 'Publish', icon: Rocket, steps: [17, 18] },
+    { id: 1, name: 'Basics', icon: Home, steps: [1, 2, 3, 4] },
+    { id: 2, name: 'Stand Out', icon: Camera, steps: [5, 6, 7] },
+    { id: 3, name: 'Pricing', icon: DollarSign, steps: [8, 9, 10, 11, 12, 13] },
+    { id: 4, name: 'Policies', icon: Shield, steps: [14, 15] },
+    { id: 5, name: 'Publish', icon: Rocket, steps: [16, 17] },
 ];
 
-const TOTAL_STEPS = 18;
+const TOTAL_STEPS = 17;
 
 const CreateListingWizardV2: React.FC<CreateListingWizardProps> = ({
     user, listings, activeBookings, editingListing, setView, refreshData, onCreateListing, onUpdateListing
@@ -79,7 +78,55 @@ const CreateListingWizardV2: React.FC<CreateListingWizardProps> = ({
         }
     };
 
-    const goNext = () => goToStep(step + 1);
+    // Check if current step can continue (validation)
+    const canContinue = React.useMemo(() => {
+        switch (step) {
+            case 1: // Space Type
+                return !!newListing.type;
+            case 2: // Location
+                return !!newListing.location && newListing.location.trim().length >= 3 
+                    && !!newListing.address && newListing.address.trim().length >= 10;
+            case 3: // Capacity
+                return (newListing.capacity ?? 0) >= 1;
+            case 4: // Title & Description
+                return !!newListing.title && newListing.title.trim().length >= 5 
+                    && !!newListing.description && newListing.description.trim().length >= 20;
+            case 5: // Photos
+                return (newListing.images?.length ?? 0) >= 5;
+            case 6: // Amenities
+                return (newListing.amenities?.length ?? 0) >= 1;
+            case 7: // Highlights (optional)
+                return true;
+            case 8: // Pricing Model
+                return !!newListing.pricingModel;
+            case 9: // Set Price
+                return (newListing.price ?? 0) > 0;
+            case 10: // Schedule
+                return true; // Schedule has defaults
+            case 11: // Booking Settings
+                return true; // Has defaults
+            case 12: // Booking Rules
+                return true; // Has defaults
+            case 13: // Add-ons (optional)
+                return true;
+            case 14: // House Rules
+                return true; // Optional
+            case 15: // Safety
+                return true; // Optional
+            case 16: // Verification
+                return !!newListing.proofOfAddress && newListing.proofOfAddress.length > 0;
+            case 17: // Review
+                return true;
+            default:
+                return true;
+        }
+    }, [step, newListing]);
+
+    const goNext = () => {
+        if (canContinue) {
+            goToStep(step + 1);
+        }
+    };
     const goBack = () => goToStep(step - 1);
 
     // Render the current step
@@ -109,21 +156,13 @@ const CreateListingWizardV2: React.FC<CreateListingWizardProps> = ({
                 );
             case 3:
                 return (
-                    <StepAddress
-                        {...commonProps}
-                        onNext={goNext}
-                        onBack={goBack}
-                    />
-                );
-            case 4:
-                return (
                     <StepCapacity
                         {...commonProps}
                         onNext={goNext}
                         onBack={goBack}
                     />
                 );
-            case 5:
+            case 4:
                 return (
                     <StepTitleDescription
                         {...commonProps}
@@ -135,7 +174,7 @@ const CreateListingWizardV2: React.FC<CreateListingWizardProps> = ({
                         handleAiAutoFill={handleAiAutoFill}
                     />
                 );
-            case 6:
+            case 5:
                 return (
                     <StepPhotos
                         {...commonProps}
@@ -149,7 +188,7 @@ const CreateListingWizardV2: React.FC<CreateListingWizardProps> = ({
                         draggedImageIndex={draggedImageIndex}
                     />
                 );
-            case 7:
+            case 6:
                 return (
                     <StepAmenities
                         {...commonProps}
@@ -157,7 +196,7 @@ const CreateListingWizardV2: React.FC<CreateListingWizardProps> = ({
                         onBack={goBack}
                     />
                 );
-            case 8:
+            case 7:
                 return (
                     <StepHighlights
                         {...commonProps}
@@ -166,16 +205,21 @@ const CreateListingWizardV2: React.FC<CreateListingWizardProps> = ({
                         onSkip={goNext}
                     />
                 );
-            case 9:
+            case 8:
                 return (
                     <StepPricingModel
                         {...commonProps}
                         onNext={goNext}
                         onBack={goBack}
-                        hasActiveBookings={activeBookings.length > 0}
+                        hasActiveBookings={
+                            // Only lock pricing model when EDITING an existing listing that has active bookings
+                            editingListing 
+                                ? activeBookings.some(b => b.listingId === editingListing.id)
+                                : false
+                        }
                     />
                 );
-            case 10:
+            case 9:
                 return (
                     <StepSetPrice
                         {...commonProps}
@@ -183,7 +227,7 @@ const CreateListingWizardV2: React.FC<CreateListingWizardProps> = ({
                         onBack={goBack}
                     />
                 );
-            case 11:
+            case 10:
                 return (
                     <StepSchedule
                         {...commonProps}
@@ -195,7 +239,7 @@ const CreateListingWizardV2: React.FC<CreateListingWizardProps> = ({
                         applyWeeklySchedule={applyWeeklySchedule}
                     />
                 );
-            case 12:
+            case 11:
                 return (
                     <StepBookingSettings
                         {...commonProps}
@@ -203,7 +247,7 @@ const CreateListingWizardV2: React.FC<CreateListingWizardProps> = ({
                         onBack={goBack}
                     />
                 );
-            case 13:
+            case 12:
                 return (
                     <StepBookingRules
                         {...commonProps}
@@ -211,7 +255,7 @@ const CreateListingWizardV2: React.FC<CreateListingWizardProps> = ({
                         onBack={goBack}
                     />
                 );
-            case 14:
+            case 13:
                 return (
                     <StepAddOns
                         {...commonProps}
@@ -223,7 +267,7 @@ const CreateListingWizardV2: React.FC<CreateListingWizardProps> = ({
                         handleRemoveAddOn={handleRemoveAddOn}
                     />
                 );
-            case 15:
+            case 14:
                 return (
                     <StepHouseRules
                         {...commonProps}
@@ -231,7 +275,7 @@ const CreateListingWizardV2: React.FC<CreateListingWizardProps> = ({
                         onBack={goBack}
                     />
                 );
-            case 16:
+            case 15:
                 return (
                     <StepSafety
                         {...commonProps}
@@ -243,7 +287,7 @@ const CreateListingWizardV2: React.FC<CreateListingWizardProps> = ({
                         toggleSafetyItem={toggleSafetyItem}
                     />
                 );
-            case 17:
+            case 16:
                 return (
                     <StepVerification
                         {...commonProps}
@@ -254,7 +298,7 @@ const CreateListingWizardV2: React.FC<CreateListingWizardProps> = ({
                         listings={listings}
                     />
                 );
-            case 18:
+            case 17:
                 return (
                     <StepReview
                         newListing={newListing}
@@ -332,17 +376,17 @@ const CreateListingWizardV2: React.FC<CreateListingWizardProps> = ({
             </header>
 
             {/* Main Split Layout */}
-            <div className="flex-1 flex">
+            <div className="flex-1 flex overflow-hidden">
                 {/* Left Side - Form */}
-                <div className="flex-1 flex flex-col lg:w-1/2">
-                    <main className="flex-1 overflow-y-auto">
+                <div className="flex-1 flex flex-col lg:w-1/2 overflow-hidden">
+                    <main className="flex-1 overflow-y-auto pb-32 sm:pb-24">
                         {renderStep()}
                     </main>
                 </div>
 
                 {/* Right Side - Live Preview (Hidden on mobile) */}
-                <div className="hidden lg:block w-1/2 bg-gray-100 border-l border-gray-200">
-                    <div className="sticky top-14 h-[calc(100vh-56px)] p-6">
+                <div className="hidden lg:block w-1/2 bg-gray-100 border-l border-gray-200 overflow-hidden">
+                    <div className="h-full overflow-y-auto p-6">
                         <LivePreview listing={newListing} currentStep={step} />
                     </div>
                 </div>
@@ -395,7 +439,8 @@ const CreateListingWizardV2: React.FC<CreateListingWizardProps> = ({
                             ) : (
                                 <button
                                     onClick={goNext}
-                                    className={`${step > 1 ? 'flex-1' : 'w-full'} py-3 bg-brand-600 rounded-xl text-sm font-semibold text-white hover:bg-brand-700 transition-colors`}
+                                    disabled={!canContinue}
+                                    className={`${step > 1 ? 'flex-1' : 'w-full'} py-3 bg-brand-600 rounded-xl text-sm font-semibold text-white hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
                                 >
                                     Next
                                 </button>
@@ -457,7 +502,8 @@ const CreateListingWizardV2: React.FC<CreateListingWizardProps> = ({
                         ) : (
                             <button
                                 onClick={goNext}
-                                className="px-6 py-2.5 bg-brand-600 rounded-lg text-sm font-medium text-white hover:bg-brand-700 transition-colors shadow-sm hover:shadow"
+                                disabled={!canContinue}
+                                className="px-6 py-2.5 bg-brand-600 rounded-lg text-sm font-medium text-white hover:bg-brand-700 transition-colors shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 Next
                             </button>

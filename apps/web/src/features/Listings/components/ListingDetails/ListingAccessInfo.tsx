@@ -11,9 +11,13 @@ export const ListingAccessInfo: React.FC<ListingAccessInfoProps> = ({ listing })
         return null;
     }
 
-    const formatTime = (time: string) => {
-        const [hours, minutes] = time.split(':');
+    const formatTime = (time: string | undefined) => {
+        if (!time) return 'Not specified';
+        const parts = time.split(':');
+        if (parts.length < 2) return time;
+        const [hours, minutes] = parts;
         const hour = parseInt(hours);
+        if (isNaN(hour)) return time;
         const ampm = hour >= 12 ? 'PM' : 'AM';
         const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
         return `${displayHour}:${minutes} ${ampm}`;

@@ -184,12 +184,19 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onSearch, searchTerm, o
                   Log in
                 </button>
               </>
-            ) : user.role === Role.USER ? (
+            ) : user.role === Role.USER && user.isHost ? (
               <button
                 onClick={() => onSwitchRole?.(Role.HOST)}
                 className="text-gray-900 hover:bg-gray-100 px-4 py-2 rounded-full text-sm font-semibold transition-colors"
               >
                 Switch to hosting
+              </button>
+            ) : user.role === Role.USER && !user.isHost ? (
+              <button
+                onClick={onBecomeHost}
+                className="text-gray-900 hover:bg-gray-100 px-4 py-2 rounded-full text-sm font-semibold transition-colors"
+              >
+                Host your home
               </button>
             ) : null}
 
@@ -330,10 +337,15 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onSearch, searchTerm, o
                       <RefreshCw size={16} className="text-gray-500 transition-colors" />
                       Switch to traveling
                     </button>
-                  ) : user.role === Role.USER ? (
+                  ) : user.role === Role.USER && user.isHost ? (
                     <button onClick={() => { onSwitchRole?.(Role.HOST); setIsAccountOpen(false); }} className="w-full text-left px-4 py-2.5 text-sm font-semibold text-gray-700 hover:text-black hover:bg-gray-50 rounded-xl transition-colors flex items-center gap-3">
                       <RefreshCw size={16} className="text-gray-500 transition-colors" />
                       Switch to hosting
+                    </button>
+                  ) : user.role === Role.USER && !user.isHost ? (
+                    <button onClick={() => { setIsAccountOpen(false); onBecomeHost?.(); }} className="w-full text-left px-4 py-2.5 text-sm font-semibold text-gray-700 hover:text-black hover:bg-gray-50 rounded-xl transition-colors flex items-center gap-3">
+                      <HomeIcon size={16} className="text-gray-500 transition-colors" />
+                      Become a Host
                     </button>
                   ) : null}
                   <hr className="my-1 border-gray-100" />

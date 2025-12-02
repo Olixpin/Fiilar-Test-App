@@ -10,18 +10,32 @@ interface HostListingsProps {
     onDelete: (id: string, status: ListingStatus) => void;
     onCreate: () => void;
     onPreview: (id: string) => void;
+    searchTerm?: string;
 }
 
 type FilterType = 'ALL' | 'LIVE' | 'PENDING' | 'OFF_MARKET';
 
-const HostListings: React.FC<HostListingsProps> = ({ listings, onEdit, onDelete, onCreate, onPreview }) => {
+const HostListings: React.FC<HostListingsProps> = ({ listings, onEdit, onDelete, onCreate, onPreview, searchTerm = '' }) => {
     const { locale } = useLocale();
     const [activeFilter, setActiveFilter] = useState<FilterType>('ALL');
 
     // Filter out deleted listings - hosts shouldn't see these (only admins for audit purposes)
     const activeListings = listings.filter(l => l.status !== ListingStatus.DELETED);
 
-    const filteredListings = activeListings.filter(listing => {
+    // Apply search filter
+    const searchFilteredListings = activeListings.filter(listing => {
+        if (!searchTerm.trim()) return true;
+        const search = searchTerm.toLowerCase().trim();
+        return (
+            listing.title.toLowerCase().includes(search) ||
+            listing.description?.toLowerCase().includes(search) ||
+            listing.location?.toLowerCase().includes(search) ||
+            listing.address?.toLowerCase().includes(search) ||
+            listing.tags?.some(tag => tag.toLowerCase().includes(search))
+        );
+    });
+
+    const filteredListings = searchFilteredListings.filter(listing => {
         if (activeFilter === 'ALL') return true;
         if (activeFilter === 'LIVE') return listing.status === ListingStatus.LIVE;
         if (activeFilter === 'PENDING') return listing.status === ListingStatus.PENDING_APPROVAL || listing.status === ListingStatus.PENDING_KYC;
@@ -34,9 +48,9 @@ const HostListings: React.FC<HostListingsProps> = ({ listings, onEdit, onDelete,
         return dateB - dateA;
     });
 
-    const liveCount = activeListings.filter(l => l.status === ListingStatus.LIVE).length;
-    const pendingCount = activeListings.filter(l => l.status === ListingStatus.PENDING_APPROVAL || l.status === ListingStatus.PENDING_KYC).length;
-    const offMarketCount = activeListings.filter(l => l.status === ListingStatus.DRAFT || l.status === ListingStatus.REJECTED).length;
+    const liveCount = searchFilteredListings.filter(l => l.status === ListingStatus.LIVE).length;
+    const pendingCount = searchFilteredListings.filter(l => l.status === ListingStatus.PENDING_APPROVAL || l.status === ListingStatus.PENDING_KYC).length;
+    const offMarketCount = searchFilteredListings.filter(l => l.status === ListingStatus.DRAFT || l.status === ListingStatus.REJECTED).length;
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
@@ -67,7 +81,7 @@ const HostListings: React.FC<HostListingsProps> = ({ listings, onEdit, onDelete,
                                 : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-200"
                         )}
                     >
-                        All Listings ({activeListings.length})
+                        All Listings ({searchFilteredListings.length})
                     </button>
                     <button
                         onClick={() => setActiveFilter('LIVE')}

@@ -4,7 +4,7 @@ import { useToast, UserAvatar } from '@fiilar/ui';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { getCurrentUser, getBookings } from '@fiilar/storage';
 import { startConversation, getConversations } from '@fiilar/messaging';
-import { User, Listing, Booking, CancellationPolicy } from '@fiilar/types';
+import { User, Listing, Booking, CancellationPolicy, Role } from '@fiilar/types';
 import { WalletCard } from '../components/WalletCard';
 import { TransactionHistory } from '../components/TransactionHistory';
 import { PaymentMethods } from '../components/PaymentMethods';
@@ -28,9 +28,10 @@ interface UserDashboardProps {
   listings: Listing[];
   onRefreshUser: () => void;
   onLogout?: () => void;
+  onSwitchRole?: (role: Role) => void;
 }
 
-const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings, onRefreshUser, onLogout }) => {
+const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings, onRefreshUser, onLogout, onSwitchRole }) => {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -724,14 +725,26 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings, onRefresh
                   <div className="space-y-2">
                     <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Switch Mode</h3>
                     <button
-                      onClick={() => navigate(user.role === 'HOST' ? '/host/dashboard' : '/login-host')}
+                      onClick={() => {
+                        if (user.isHost || user.role === Role.HOST) {
+                          // User was previously a host, switch back to host mode
+                          if (onSwitchRole) {
+                            onSwitchRole(Role.HOST);
+                          } else {
+                            navigate('/host/dashboard');
+                          }
+                        } else {
+                          // New user, go to host onboarding
+                          navigate('/become-a-host');
+                        }
+                      }}
                       className="w-full flex items-center gap-3 p-4 bg-white border border-gray-100 rounded-xl hover:bg-gray-50 transition-colors"
                     >
                       <div className="p-2 bg-brand-50 text-brand-600 rounded-lg">
                         <Briefcase size={20} />
                       </div>
                       <span className="font-medium text-gray-900">
-                        {user.role === 'HOST' ? 'Switch to Host Dashboard' : 'Become a Host'}
+                        {user.isHost ? 'Switch to Hosting' : 'Become a Host'}
                       </span>
                       <ChevronRight size={16} className="ml-auto text-gray-400" />
                     </button>

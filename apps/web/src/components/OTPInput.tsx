@@ -14,6 +14,8 @@ interface OTPInputProps {
     onComplete?: (value: string) => void;
     onSubmit?: () => void;
     variant?: 'default' | 'glass' | 'glass-dark';
+    /** Allow alphanumeric input (for guest codes). Default is digits only. */
+    alphanumeric?: boolean;
 }
 
 export const OTPInput: React.FC<OTPInputProps> = ({
@@ -23,6 +25,7 @@ export const OTPInput: React.FC<OTPInputProps> = ({
     onComplete,
     onSubmit,
     variant = 'default',
+    alphanumeric = false,
 }) => {
     const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -44,8 +47,10 @@ export const OTPInput: React.FC<OTPInputProps> = ({
         const target = e.target;
         let val = target.value;
 
-        // Keep only digits
-        val = val.replace(/\D/g, '');
+        // Keep only allowed characters (digits, or alphanumeric if enabled)
+        val = alphanumeric 
+            ? val.replace(/[^a-zA-Z0-9]/g, '').toUpperCase()
+            : val.replace(/\D/g, '');
 
         // Construct new value
         const currentData = value.split('');
@@ -96,7 +101,10 @@ export const OTPInput: React.FC<OTPInputProps> = ({
 
     const handlePaste = (e: ClipboardEvent<HTMLInputElement>, index: number) => {
         e.preventDefault();
-        const pasteData = e.clipboardData.getData('text').replace(/\D/g, '');
+        const rawPaste = e.clipboardData.getData('text');
+        const pasteData = alphanumeric
+            ? rawPaste.replace(/[^a-zA-Z0-9]/g, '').toUpperCase()
+            : rawPaste.replace(/\D/g, '');
 
         const currentData = value.split('');
         while (currentData.length < length) currentData.push('');
@@ -139,7 +147,7 @@ export const OTPInput: React.FC<OTPInputProps> = ({
                     name={`otp-${index}`}
                     value={valueArray[index] || ''}
                     type="text"
-                    inputMode="numeric"
+                    inputMode={alphanumeric ? "text" : "numeric"}
                     autoComplete="one-time-code"
                     aria-label={`Digit ${index + 1} of ${length}`}
                     placeholder="·"

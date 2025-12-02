@@ -11,41 +11,42 @@ interface MockGoogleAccount {
 }
 
 // Mock Google accounts for demo purposes
+// Matches the test users in QA documentation
 const MOCK_GOOGLE_ACCOUNTS: MockGoogleAccount[] = [
     {
-        email: 'jessica.lee@gmail.example.com',
+        email: 'jessica.chen@demo.com',
         firstName: 'Jessica',
-        lastName: 'Lee',
+        lastName: 'Chen',
         avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop',
-        role: Role.USER,
+        role: Role.HOST, // Primary host for testing
     },
     {
-        email: 'alex.taylor@gmail.example.com',
+        email: 'alex.rivera@demo.com',
         firstName: 'Alex',
-        lastName: 'Taylor',
+        lastName: 'Rivera',
         avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop',
-        role: Role.HOST,
+        role: Role.USER, // Primary guest for testing
     },
     {
-        email: 'marcus.johnson@gmail.example.com',
+        email: 'marcus.johnson@demo.com',
         firstName: 'Marcus',
         lastName: 'Johnson',
         avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop',
-        role: Role.USER,
+        role: Role.USER, // Secondary guest
     },
     {
-        email: 'sarah.williams@gmail.example.com',
+        email: 'sarah.williams@demo.com',
         firstName: 'Sarah',
         lastName: 'Williams',
         avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop',
-        role: Role.HOST,
+        role: Role.USER, // For testing guest-to-host conversion
     },
     {
-        email: 'admin@fiilar.example.com',
+        email: 'admin@fiilar.com',
         firstName: 'Admin',
         lastName: 'User',
         avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop',
-        role: Role.ADMIN,
+        role: Role.ADMIN, // Admin for dispute resolution
     },
 ];
 

@@ -1,0 +1,463 @@
+================================================================================
+                    FIILAR BOOKING PLATFORM
+                 END-TO-END TEST PLAN
+================================================================================
+                    Version: 1.0
+                    Date: December 2025
+================================================================================
+
+
+================================================================================
+PREREQUISITES SETUP
+================================================================================
+
+1. Clear localStorage: localStorage.clear() then refresh
+2. Have 3 browser tabs/windows ready (or use incognito for different users)
+3. Dev server running: pnpm dev (http://localhost:5173)
+
+
+================================================================================
+TEST SESSION 1: GUEST BOOKING FLOW
+================================================================================
+
+1.1 LOGIN AS GUEST
+──────────────────
+User: Alex Rivera (alex.rivera@demo.com)
+Role: USER/GUEST
+
+[ ] Go to /login
+[ ] Click "Continue with Google"
+[ ] Select "Alex Rivera" from account picker
+[ ] Verify redirected to home/dashboard
+
+
+1.2 BROWSE & SELECT LISTING
+───────────────────────────
+[ ] Go to /listings
+[ ] Browse available listings
+[ ] Click on a listing to view details
+[ ] Verify listing info displays (title, price, amenities, host info)
+
+
+1.3 CREATE BOOKING (HOURLY)
+───────────────────────────
+[ ] Select a date on the calendar
+[ ] Select 2-3 hours (e.g., 14:00, 15:00, 16:00)
+[ ] Adjust guest count (try adding extra guests)
+[ ] Click "Book Now"
+[ ] VERIFY price breakdown:
+    - Base price = hourly rate × hours
+    - Extra guest fee (if applicable)
+    - Service fee = 10%
+    - Total calculated correctly
+
+
+1.4 COMPLETE PAYMENT
+────────────────────
+[ ] Review booking summary in confirm modal
+[ ] Select payment method (Wallet or Card)
+[ ] Click "Confirm Booking"
+[ ] VERIFY success modal shows booking details
+[ ] VERIFY notification received ("Booking Request Sent")
+[ ] Check /dashboard?tab=bookings - booking shows as PENDING
+
+
+1.5 VIEW GUEST CODE
+───────────────────
+[ ] After host accepts (do in Session 2), return here
+[ ] Go to booking details
+[ ] VERIFY guest code visible (6 characters like "A3X7K9")
+
+
+================================================================================
+TEST SESSION 2: HOST ACCEPTING/REJECTING
+================================================================================
+
+2.1 LOGIN AS HOST
+─────────────────
+User: Jessica Chen (jessica.chen@demo.com)
+Role: HOST
+
+[ ] Logout from guest account
+[ ] Login as Jessica Chen
+
+
+2.2 VIEW PENDING BOOKINGS
+─────────────────────────
+[ ] Go to Host Dashboard → Bookings tab
+[ ] Find the pending booking from Alex
+[ ] Verify booking details match what guest submitted
+
+
+2.3 TEST: ACCEPT BOOKING
+────────────────────────
+[ ] Click "Accept" on the booking
+[ ] VERIFY status changes to Confirmed
+[ ] CHECK: Guest (Alex) should receive notification "Booking Confirmed!"
+
+
+2.4 TEST: REJECT BOOKING
+────────────────────────
+(Create new booking first)
+
+[ ] Have guest create another booking
+[ ] As host, click "Reject"
+[ ] VERIFY status changes to Cancelled
+[ ] VERIFY refund processed (check guest wallet)
+[ ] Guest receives notification "Booking Not Accepted - Refund Processed"
+
+
+2.5 TEST: ALLOW MODIFICATION
+────────────────────────────
+[ ] For a pending booking, click "Allow Modification"
+[ ] Guest receives notification to modify
+[ ] Guest can now change dates/hours
+
+
+================================================================================
+TEST SESSION 3: HANDSHAKE VERIFICATION
+================================================================================
+
+PRECONDITION: Have a CONFIRMED booking
+
+3.1 AS HOST - VERIFY GUEST CODE
+───────────────────────────────
+[ ] Go to Host Dashboard → Verify tab (or HostVerify component)
+[ ] Enter the guest's code (get it from guest's booking view)
+[ ] VERIFY:
+    - Success message appears
+    - Booking status → STARTED
+    - Both parties receive "Check-in confirmed!" notification
+
+
+3.2 TEST: WRONG CODE
+────────────────────
+[ ] Enter an incorrect code
+[ ] VERIFY error: "Invalid code" message
+[ ] Booking status remains unchanged
+
+
+================================================================================
+TEST SESSION 4: CANCELLATION SCENARIOS
+================================================================================
+
+4.1 GUEST CANCELS (FLEXIBLE POLICY - 48h before)
+─────────────────────────────────────────────────
+Precondition: Confirmed booking, >24 hours before start
+
+[ ] As guest, go to booking details
+[ ] Click "Cancel Booking"
+[ ] VERIFY refund calculation shows 100%
+[ ] Confirm cancellation
+[ ] VERIFY: Full refund to wallet, status → Cancelled
+
+
+4.2 GUEST CANCELS (FLEXIBLE POLICY - 18h before)
+─────────────────────────────────────────────────
+[ ] Create booking for tomorrow
+[ ] Wait or manually adjust booking date
+[ ] Cancel when 12-24h before
+[ ] VERIFY: 50% refund shown
+
+
+4.3 GUEST CANCELS (STRICT POLICY)
+─────────────────────────────────
+[ ] Find/create listing with Strict policy
+[ ] Book it
+[ ] Cancel >14 days before → EXPECT 50% refund
+[ ] Cancel <14 days before → EXPECT 0% refund
+
+
+4.4 CANNOT CANCEL PAST BOOKING
+──────────────────────────────
+[ ] Try to cancel a booking that's already started
+[ ] VERIFY error: "Cannot cancel past bookings"
+
+
+CANCELLATION POLICY REFERENCE TABLE
+───────────────────────────────────
+┌────────────────┬────────────────┬────────────────┬────────────────┐
+│ Policy         │ Full Refund    │ Partial Refund │ No Refund      │
+├────────────────┼────────────────┼────────────────┼────────────────┤
+│ Flexible       │ >24h before    │ 12-24h: 50%    │ <12h           │
+│ Moderate       │ >7 days before │ 2-7 days: 50%  │ <48h           │
+│ Strict         │ Never          │ >14 days: 50%  │ <14 days       │
+│ Non-refundable │ Never          │ Never          │ Always         │
+└────────────────┴────────────────┴────────────────┴────────────────┘
+
+
+================================================================================
+TEST SESSION 5: RECURRING BOOKING
+================================================================================
+
+5.1 CREATE RECURRING BOOKING
+────────────────────────────
+[ ] As guest, select a listing
+[ ] Enable "Recurring" toggle
+[ ] Select frequency (Weekly)
+[ ] Select count (4 sessions)
+[ ] Complete booking
+[ ] VERIFY: 4 bookings created with same groupId
+
+
+5.2 HOST ACCEPTS RECURRING SERIES
+─────────────────────────────────
+[ ] As host, accept one booking from the series
+[ ] VERIFY: All 4 bookings in series → Confirmed
+[ ] Guest receives ONE notification for all
+
+
+5.3 CANCEL SINGLE FROM SERIES
+─────────────────────────────
+[ ] As guest, cancel one booking from recurring
+[ ] VERIFY: Only that booking cancelled, others remain
+
+
+================================================================================
+TEST SESSION 6: ESCROW & PAYMENTS
+================================================================================
+
+6.1 VERIFY ESCROW HOLD
+──────────────────────
+[ ] Complete a booking (guest pays, host accepts)
+[ ] Check escrow transactions in Admin panel
+[ ] VERIFY: GUEST_PAYMENT transaction exists
+[ ] VERIFY: SERVICE_FEE (10%) recorded
+
+
+6.2 VERIFY 48-HOUR HOLD
+───────────────────────
+[ ] After handshake verified (Started status)
+[ ] Check escrowReleaseDate on booking
+[ ] SHOULD BE: booking end time + 48 hours
+
+
+6.3 FUNDS RELEASE (ADMIN)
+─────────────────────────
+[ ] Login as Admin (admin@fiilar.com)
+[ ] Go to Admin → Escrow Manager
+[ ] Find completed booking past release date
+[ ] Release funds
+[ ] VERIFY: HOST_PAYOUT transaction created
+[ ] Host wallet balance increases
+
+
+ESCROW RELEASE TIMING REFERENCE
+───────────────────────────────
+┌─────────────────┬─────────────────────────────┬─────────────────────────┐
+│ Booking Type    │ End Time Calculation        │ Release Time            │
+├─────────────────┼─────────────────────────────┼─────────────────────────┤
+│ Hourly 14-17:00 │ 17:00 (last hour + 1)       │ 17:00 + 48 hours        │
+│ Daily (3 nights)│ Check-in + 3 days + 11:00   │ 11:00 AM + 48 hours     │
+└─────────────────┴─────────────────────────────┴─────────────────────────┘
+
+
+================================================================================
+TEST SESSION 7: DISPUTE RESOLUTION
+================================================================================
+
+7.1 OPEN DISPUTE
+────────────────
+[ ] As Admin, go to Dispute Center
+[ ] Select a booking
+[ ] Open dispute
+[ ] VERIFY: disputeStatus = "OPEN"
+
+
+7.2 VIEW EVIDENCE
+─────────────────
+[ ] Check handshake status (VERIFIED/PENDING)
+[ ] Review transaction history
+[ ] Review message thread between parties
+
+
+7.3 RESOLVE: REFUND GUEST
+─────────────────────────
+[ ] Select "Refund Guest" resolution
+[ ] VERIFY:
+    - REFUND transaction created
+    - Guest wallet credited
+    - Booking → Cancelled
+    - Both parties notified
+
+
+7.4 RESOLVE: RELEASE TO HOST
+────────────────────────────
+[ ] Open another dispute
+[ ] Select "Release to Host"
+[ ] VERIFY:
+    - HOST_PAYOUT transaction
+    - Host wallet credited
+    - Booking → Completed
+
+
+================================================================================
+TEST SESSION 8: EDGE CASES
+================================================================================
+
+8.1 DOUBLE BOOKING PREVENTION
+─────────────────────────────
+[ ] Guest 1 books hours 14, 15, 16
+[ ] Guest 2 tries to book hour 15
+[ ] VERIFY error: "The following hours are already booked: 15"
+
+
+8.2 BOOK OWN LISTING
+────────────────────
+[ ] As host, try to book your own listing
+[ ] VERIFY: Error or prevention
+
+
+8.3 INSUFFICIENT WALLET BALANCE
+───────────────────────────────
+[ ] Set wallet to $0
+[ ] Try to pay with wallet
+[ ] VERIFY: Error "Insufficient balance"
+
+
+8.4 BOOKING EXPIRY (1 HOUR)
+───────────────────────────
+[ ] Create pending booking
+[ ] Wait 1 hour (or adjust BOOKING_EXPIRY_HOURS)
+[ ] VERIFY: System auto-cancels and refunds
+
+
+8.5 PRICE TAMPERING ATTEMPT
+───────────────────────────
+[ ] Modify price in localStorage before confirming
+[ ] VERIFY: Error "Price validation failed: Total mismatch"
+
+
+8.6 INVALID STATUS TRANSITION
+─────────────────────────────
+[ ] Try to transition Completed → Pending
+[ ] VERIFY: Error logged, transition blocked
+
+
+================================================================================
+TEST SESSION 9: NOTIFICATIONS VERIFICATION
+================================================================================
+
+Check notifications are received for each event:
+
+┌─────────────────────────┬────────────────────────┬────────────────────────┐
+│ Event                   │ Guest Gets             │ Host Gets              │
+├─────────────────────────┼────────────────────────┼────────────────────────┤
+│ Booking Created         │ ✓ "Request sent"       │ ✓ "New request"        │
+│ Host Accepts            │ ✓ "Confirmed!"         │ -                      │
+│ Host Rejects            │ ✓ "Not accepted"       │ -                      │
+│ Booking Expired         │ ✓ "Expired, refunded"  │ -                      │
+│ Modification Allowed    │ ✓ "Invited to modify"  │ -                      │
+│ Handshake Verified      │ ✓ "Check-in confirmed" │ ✓ "Check-in confirmed" │
+│ Funds Released          │ -                      │ ✓ "Payment received"   │
+│ Dispute Opened          │ ✓                      │ ✓                      │
+│ Dispute Resolved        │ ✓                      │ ✓                      │
+│ New Message             │ ✓ (if recipient)       │ ✓ (if recipient)       │
+└─────────────────────────┴────────────────────────┴────────────────────────┘
+
+
+================================================================================
+QUICK TEST COMMANDS (BROWSER CONSOLE)
+================================================================================
+
+// Check all bookings
+JSON.parse(localStorage.getItem('fiilar_bookings'))
+
+// Check escrow transactions
+JSON.parse(localStorage.getItem('fiilar_escrow_transactions'))
+
+// Check notifications
+JSON.parse(localStorage.getItem('fiilar_notifications'))
+
+// Check current user
+JSON.parse(localStorage.getItem('fiilar_user'))
+
+// Force expire a booking (for testing expiry)
+const bookings = JSON.parse(localStorage.getItem('fiilar_bookings'));
+bookings[0].createdAt = new Date(Date.now() - 2*60*60*1000).toISOString();
+localStorage.setItem('fiilar_bookings', JSON.stringify(bookings));
+
+// Check a specific booking's guest code
+const bookings = JSON.parse(localStorage.getItem('fiilar_bookings'));
+const booking = bookings.find(b => b.status === 'Confirmed');
+console.log('Guest Code:', booking?.guestCode);
+
+// Manually set escrow release to past (for testing release)
+const bookings = JSON.parse(localStorage.getItem('fiilar_bookings'));
+bookings[0].escrowReleaseDate = new Date(Date.now() - 1000).toISOString();
+localStorage.setItem('fiilar_bookings', JSON.stringify(bookings));
+
+// Clear all data and start fresh
+localStorage.clear();
+location.reload();
+
+
+================================================================================
+TEST EXECUTION ORDER (RECOMMENDED)
+================================================================================
+
+1. [ ] Session 1: Guest creates booking
+2. [ ] Session 2: Host accepts
+3. [ ] Session 3: Handshake verification
+4. [ ] Session 4: Cancellation tests
+5. [ ] Session 5: Recurring bookings
+6. [ ] Session 6: Escrow verification
+7. [ ] Session 7: Dispute resolution
+8. [ ] Session 8: Edge cases
+9. [ ] Session 9: Notification audit
+
+
+================================================================================
+TEST USERS REFERENCE
+================================================================================
+
+┌─────────────────┬───────────────────────────┬────────┬─────────────────────┐
+│ Name            │ Email                     │ Role   │ Best For Testing    │
+├─────────────────┼───────────────────────────┼────────┼─────────────────────┤
+│ Jessica Chen    │ jessica.chen@demo.com     │ HOST   │ Host dashboard      │
+│ Alex Rivera     │ alex.rivera@demo.com      │ USER   │ Guest booking       │
+│ Marcus Johnson  │ marcus.johnson@demo.com   │ USER   │ Guest experience    │
+│ Sarah Williams  │ sarah.williams@demo.com   │ USER   │ Guest-to-Host       │
+│ Admin User      │ admin@fiilar.com          │ ADMIN  │ Admin panel         │
+└─────────────────┴───────────────────────────┴────────┴─────────────────────┘
+
+
+================================================================================
+BOOKING STATUS STATE MACHINE
+================================================================================
+
+                            CREATED
+                               │
+                               ▼
+                           PENDING
+                               │
+              ┌────────────────┼────────────────┐
+              ▼                ▼                ▼
+         CONFIRMED        CANCELLED         RESERVED
+              │               (✓)               │
+              ▼                                 │
+          STARTED ◄─────────────────────────────┘
+              │
+       ┌──────┴──────┐
+       ▼             ▼
+  COMPLETED     CANCELLED
+     (✓)           (✓)
+
+
+VALID TRANSITIONS
+─────────────────
+From        → To
+Pending     → Confirmed, Cancelled
+Confirmed   → Started, Cancelled
+Started     → Completed, Cancelled
+Completed   → (terminal)
+Cancelled   → (terminal)
+Reserved    → Pending, Cancelled
+
+
+================================================================================
+                           END OF TEST PLAN
+================================================================================
+                    Document: E2E_BOOKING_TEST_PLAN.txt
+                    Location: /docs/
+================================================================================

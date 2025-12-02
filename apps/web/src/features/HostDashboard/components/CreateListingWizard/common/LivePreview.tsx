@@ -117,7 +117,7 @@ const LivePreview: React.FC<LivePreviewProps> = ({ listing }) => {
                         )}
 
                         {/* Booking Features Badges */}
-                        {(listing.settings?.instantBook || listing.requiresIdentityVerification || listing.settings?.allowRecurring || (listing.cautionFee && listing.cautionFee > 0)) && (
+                        {(listing.settings?.instantBook || listing.requiresIdentityVerification || listing.settings?.allowRecurring || (listing.cautionFee != null && listing.cautionFee > 0)) && (
                             <div className="flex flex-wrap gap-1.5">
                                 {listing.settings?.instantBook && (
                                     <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">
@@ -134,7 +134,7 @@ const LivePreview: React.FC<LivePreviewProps> = ({ listing }) => {
                                         <Repeat size={10} /> Recurring OK
                                     </span>
                                 )}
-                                {listing.cautionFee && listing.cautionFee > 0 && (
+                                {listing.cautionFee != null && listing.cautionFee > 0 && (
                                     <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">
                                         <Shield size={10} /> ₦{listing.cautionFee.toLocaleString()} deposit
                                     </span>

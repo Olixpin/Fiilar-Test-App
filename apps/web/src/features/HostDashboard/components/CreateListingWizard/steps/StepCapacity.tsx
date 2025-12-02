@@ -21,24 +21,61 @@ const StepCapacity: React.FC<StepCapacityProps> = ({
     onBack,
 }) => {
     const capacity = newListing.capacity || 1;
-    const includedGuests = newListing.includedGuests || 1;
+    const includedGuests = Math.min(newListing.includedGuests || 1, capacity);
 
     const updateCapacity = (value: number) => {
-        const newCapacity = Math.max(1, Math.min(50, value));
-        setNewListing(prev => ({
-            ...prev,
-            capacity: newCapacity,
-            // Keep includedGuests within bounds
-            includedGuests: Math.min(prev.includedGuests || 1, newCapacity)
-        }));
+        const newCapacity = Math.max(1, Math.min(100, value));
+        setNewListing(prev => {
+            const currentIncluded = prev.includedGuests || 1;
+            return {
+                ...prev,
+                capacity: newCapacity,
+                // Auto-adjust includedGuests if it exceeds new capacity
+                includedGuests: Math.min(currentIncluded, newCapacity)
+            };
+        });
     };
 
     const updateIncludedGuests = (value: number) => {
-        const newIncluded = Math.max(1, Math.min(capacity, value));
-        setNewListing(prev => ({
-            ...prev,
-            includedGuests: newIncluded
-        }));
+        setNewListing(prev => {
+            const maxCapacity = prev.capacity || 1;
+            const newIncluded = Math.max(1, Math.min(maxCapacity, value));
+            return {
+                ...prev,
+                includedGuests: newIncluded
+            };
+        });
+    };
+
+    const handleCapacityInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        if (value === '') {
+            setNewListing(prev => {
+                const currentIncluded = prev.includedGuests || 1;
+                return { 
+                    ...prev, 
+                    capacity: 1,
+                    includedGuests: Math.min(currentIncluded, 1)
+                };
+            });
+            return;
+        }
+        const num = parseInt(value, 10);
+        if (!isNaN(num)) {
+            updateCapacity(num);
+        }
+    };
+
+    const handleIncludedInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        if (value === '') {
+            setNewListing(prev => ({ ...prev, includedGuests: 1 }));
+            return;
+        }
+        const num = parseInt(value, 10);
+        if (!isNaN(num)) {
+            updateIncludedGuests(num);
+        }
     };
 
     const canContinue = capacity >= 1;
@@ -68,7 +105,7 @@ const StepCapacity: React.FC<StepCapacityProps> = ({
                             </div>
                         </div>
                         
-                        <div className="flex items-center justify-end gap-4">
+                        <div className="flex items-center justify-end gap-3">
                             <button
                                 onClick={() => updateCapacity(capacity - 1)}
                                 disabled={capacity <= 1}
@@ -82,12 +119,21 @@ const StepCapacity: React.FC<StepCapacityProps> = ({
                             >
                                 <Minus size={18} />
                             </button>
-                            <span className="text-2xl font-bold text-gray-900 w-12 text-center">{capacity}</span>
+                            <input
+                                type="number"
+                                min="1"
+                                max="100"
+                                value={capacity}
+                                onChange={handleCapacityInputChange}
+                                title="Maximum number of guests"
+                                aria-label="Maximum number of guests"
+                                className="w-16 h-11 text-center text-xl font-bold text-gray-900 border-2 border-gray-200 rounded-xl focus:border-gray-900 focus:ring-0 outline-none transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            />
                             <button
                                 onClick={() => updateCapacity(capacity + 1)}
-                                disabled={capacity >= 50}
+                                disabled={capacity >= 100}
                                 className={`w-11 h-11 rounded-full border-2 flex items-center justify-center transition-all ${
-                                    capacity >= 50
+                                    capacity >= 100
                                         ? 'border-gray-200 text-gray-300 cursor-not-allowed'
                                         : 'border-gray-300 text-gray-600 hover:border-gray-900 hover:text-gray-900'
                                 }`}
@@ -116,7 +162,7 @@ const StepCapacity: React.FC<StepCapacityProps> = ({
                             </p>
                         </div>
                         
-                        <div className="flex items-center justify-end gap-4">
+                        <div className="flex items-center justify-end gap-3">
                             <button
                                 onClick={() => updateIncludedGuests(includedGuests - 1)}
                                 disabled={includedGuests <= 1}
@@ -130,7 +176,16 @@ const StepCapacity: React.FC<StepCapacityProps> = ({
                             >
                                 <Minus size={18} />
                             </button>
-                            <span className="text-2xl font-bold text-gray-900 w-12 text-center">{includedGuests}</span>
+                            <input
+                                type="number"
+                                min="1"
+                                max={capacity}
+                                value={includedGuests}
+                                onChange={handleIncludedInputChange}
+                                title="Guests included in base price"
+                                aria-label="Guests included in base price"
+                                className="w-16 h-11 text-center text-xl font-bold text-gray-900 border-2 border-gray-200 rounded-xl focus:border-gray-900 focus:ring-0 outline-none transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            />
                             <button
                                 onClick={() => updateIncludedGuests(includedGuests + 1)}
                                 disabled={includedGuests >= capacity}

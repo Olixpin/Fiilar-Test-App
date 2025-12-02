@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Search, MapPin, DollarSign, Calendar, Users, Home, SlidersHorizontal, X } from 'lucide-react';
-import { SpaceType, BookingType } from '@fiilar/types';
+import { Search, MapPin, DollarSign, Calendar, Users, SlidersHorizontal, X } from 'lucide-react';
+import { BookingType } from '@fiilar/types';
 import { SearchFilters } from '@fiilar/search';
 import { useLocale } from '@fiilar/ui';
 
@@ -12,15 +12,7 @@ interface AdvancedSearchProps {
     onClose?: () => void;
 }
 
-const SPACE_TYPES = [
-    { value: 'all', label: 'All Types' },
-    { value: SpaceType.APARTMENT, label: 'Apartment' },
-    { value: SpaceType.STUDIO, label: 'Studio' },
-    { value: SpaceType.CONFERENCE, label: 'Conference Room' },
-    { value: SpaceType.EVENT_CENTER, label: 'Event Center' },
-    { value: SpaceType.CO_WORKING, label: 'Co-working Space' },
-    { value: SpaceType.OPEN_SPACE, label: 'Open Space' }
-];
+// Space types removed - now handled by category tabs in Home.tsx for cleaner UX
 
 const AdvancedSearch: React.FC<AdvancedSearchProps> = ({ filters, onFilterChange, onClose }) => {
     const { locale } = useLocale();
@@ -58,6 +50,7 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({ filters, onFilterChange
     const [isExpanded, setIsExpanded] = useState(true);
 
     const activeFilterCount = [
+        localFilters.location,
         localFilters.priceMin !== undefined,
         localFilters.priceMax !== undefined,
         localFilters.bookingType !== 'all',
@@ -65,13 +58,6 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({ filters, onFilterChange
         localFilters.dateFrom,
         localFilters.dateTo
     ].filter(Boolean).length;
-
-    // Helper to get display text
-    const getSpaceTypeLabel = () => {
-        if (localFilters.spaceType === 'all') return <span className="text-gray-300 border-b-2 border-gray-100 hover:border-gray-900 transition-colors pb-0.5">any space</span>;
-        const label = SPACE_TYPES.find(t => t.value === localFilters.spaceType)?.label;
-        return <span className="text-black font-bold border-b-2 border-black transition-colors pb-0.5">{label}</span>;
-    };
 
     const getLocationLabel = () => {
         if (!localFilters.location) return <span className="text-gray-300 border-b-2 border-gray-100 hover:border-gray-900 transition-colors pb-0.5">anywhere</span>;
@@ -113,9 +99,7 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({ filters, onFilterChange
             {/* Collapsed Summary Tooltip (Desktop) */}
             {!isExpanded && (
                 <div className="hidden lg:flex absolute left-full ml-4 top-0 bg-white border border-gray-200 shadow-xl text-sm p-3 rounded-xl whitespace-nowrap opacity-0 hover:opacity-100 transition-opacity pointer-events-none z-50 items-center gap-1">
-                    <span className="text-gray-500">Searching for</span>
-                    {getSpaceTypeLabel()}
-                    <span className="text-gray-500">in</span>
+                    <span className="text-gray-500">Searching in</span>
                     {getLocationLabel()}
                 </div>
             )}
@@ -137,23 +121,7 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({ filters, onFilterChange
 
                 {/* Natural Language Sentence - Desktop Only */}
                 <div className="hidden lg:block text-xl font-medium text-gray-900 leading-relaxed font-display">
-                    <span className="text-gray-400">I'm looking for </span>
-
-                    <div className="relative inline-block mx-1 group">
-                        <select
-                            value={localFilters.spaceType}
-                            onChange={(e) => handleChange('spaceType', e.target.value)}
-                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                            aria-label="Select space type"
-                        >
-                            {SPACE_TYPES.map(type => (
-                                <option key={type.value} value={type.value}>{type.label}</option>
-                            ))}
-                        </select>
-                        {getSpaceTypeLabel()}
-                    </div>
-
-                    <span className="text-gray-400"> in </span>
+                    <span className="text-gray-400">I'm looking for a space in </span>
 
                     <div className="relative inline-block mx-1 min-w-20">
                         <input
@@ -166,30 +134,8 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({ filters, onFilterChange
                     </div>
                 </div>
 
-                {/* Mobile-Friendly Space Type & Location */}
+                {/* Mobile-Friendly Location */}
                 <div className="lg:hidden space-y-4">
-                    <div>
-                        <label htmlFor="mobile-space-type" className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                            <Home size={16} /> Space Type
-                        </label>
-                        <div className="relative">
-                            <select
-                                id="mobile-space-type"
-                                value={localFilters.spaceType}
-                                onChange={(e) => handleChange('spaceType', e.target.value)}
-                                className="w-full py-3 px-4 pr-10 bg-gray-50 border border-gray-200 rounded-lg font-medium focus:outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20 text-gray-900 appearance-none text-base"
-                            >
-                                {SPACE_TYPES.map(type => (
-                                    <option key={type.value} value={type.value}>{type.label}</option>
-                                ))}
-                            </select>
-                            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <path d="M6 9l6 6 6-6" />
-                                </svg>
-                            </div>
-                        </div>
-                    </div>
                     <div>
                         <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
                             <MapPin size={16} /> Location
