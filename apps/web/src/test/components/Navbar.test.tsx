@@ -68,7 +68,7 @@ describe('Navbar', () => {
     const accountButton = screen.getByRole('button', { name: /account/i });
     fireEvent.click(accountButton);
 
-    expect(screen.getByText('Become a host')).toBeInTheDocument();
+    expect(screen.getByText('Host your space')).toBeInTheDocument();
   });
 
   it('renders correctly for logged in user', () => {

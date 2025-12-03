@@ -1,6 +1,12 @@
-import { Booking, EscrowTransaction, PlatformFinancials } from '@fiilar/types';
+import { Booking, EscrowTransaction, PlatformFinancials, PricingModel, Listing, NightlyConfig, DailyConfig } from '@fiilar/types';
 import { BOOKING_CONFIG } from '@fiilar/storage';
 import { safeJSONParse } from '@fiilar/utils';
+
+// Type for the listing info needed for release calculation
+interface ListingReleaseInfo {
+    pricingModel?: PricingModel;
+    bookingConfig?: Listing['bookingConfig'];
+}
 
 const STORAGE_KEYS = {
     ESCROW_TRANSACTIONS: 'fiilar_escrow_transactions',
@@ -98,30 +104,73 @@ export const escrowService = {
 
     /**
      * Calculate when funds should be released
-     * Production: 48 hours after booking END time
+     * Release timing varies by pricing model (industry standard):
+     * - HOURLY: 24 hours after session ends (short sessions, lower risk)
+     * - DAILY: 24 hours after access ends (event spaces, supervised)
+     * - NIGHTLY: 48 hours after checkout (overnight stays, higher risk)
+     * 
+     * Industry Standard End Times:
+     * - NIGHTLY: checkOutTime on the checkout day (start + duration nights)
+     * - DAILY: accessEndTime on the last booked day
+     * - HOURLY: End of the last booked hour
      */
-    calculateReleaseDate: (bookingDate: string, bookingHours?: number[], duration?: number): string => {
+    calculateReleaseDate: (bookingDate: string, bookingHours?: number[], duration?: number, listingInfo?: ListingReleaseInfo): string => {
         const bookingStart = new Date(bookingDate);
         let bookingEnd = new Date(bookingStart);
+        const pricingModel = listingInfo?.pricingModel || PricingModel.DAILY;
 
-        // If hourly booking
-        if (bookingHours && bookingHours.length > 0) {
-            // Find the latest hour to determine end time
+        if (pricingModel === PricingModel.HOURLY && bookingHours && bookingHours.length > 0) {
+            // HOURLY: End of the last booked hour
             const maxHour = Math.max(...bookingHours);
-            // End time is the end of the last hour booked
             bookingEnd.setHours(maxHour + 1, 0, 0, 0);
-        } else {
-            // Daily booking
-            // End time is check-out time (usually next day or after duration)
-            // If duration is not provided, default to 1 day
+            
+        } else if (pricingModel === PricingModel.NIGHTLY) {
+            // NIGHTLY: Use checkOutTime from listing config on checkout day
+            // Checkout day = start date + duration (nights)
+            const config = listingInfo?.bookingConfig as NightlyConfig | undefined;
+            const checkOutTime = config?.checkOutTime || '11:00'; // Default 11:00 AM
+            const [checkOutHour, checkOutMinute] = checkOutTime.split(':').map(Number);
+            
             const days = duration || 1;
             bookingEnd.setDate(bookingStart.getDate() + days);
-            // Assume check-out at 11:00 AM
-            bookingEnd.setHours(11, 0, 0, 0);
+            bookingEnd.setHours(checkOutHour, checkOutMinute, 0, 0);
+            
+        } else {
+            // DAILY: Use accessEndTime from listing config on the last day
+            const config = listingInfo?.bookingConfig as DailyConfig | undefined;
+            const accessEndTime = config?.accessEndTime || '23:00'; // Default 11:00 PM
+            const [endHour, endMinute] = accessEndTime.split(':').map(Number);
+            
+            const days = duration || 1;
+            bookingEnd.setDate(bookingStart.getDate() + days - 1); // Last day of booking
+            bookingEnd.setHours(endHour, endMinute, 0, 0);
         }
 
-        // Add escrow release period (configurable)
-        const releaseDate = new Date(bookingEnd.getTime() + (BOOKING_CONFIG.ESCROW_RELEASE_HOURS * 60 * 60 * 1000));
+        // Get escrow release hours based on pricing model
+        const releaseHoursConfig = BOOKING_CONFIG.ESCROW_RELEASE_HOURS;
+        let escrowHours: number;
+        
+        if (typeof releaseHoursConfig === 'number') {
+            // Legacy support: single number config
+            escrowHours = releaseHoursConfig;
+        } else {
+            // New config: per pricing model
+            switch (pricingModel) {
+                case PricingModel.HOURLY:
+                    escrowHours = releaseHoursConfig.HOURLY;
+                    break;
+                case PricingModel.NIGHTLY:
+                    escrowHours = releaseHoursConfig.NIGHTLY;
+                    break;
+                case PricingModel.DAILY:
+                default:
+                    escrowHours = releaseHoursConfig.DAILY || releaseHoursConfig.DEFAULT;
+                    break;
+            }
+        }
+
+        // Add escrow release period
+        const releaseDate = new Date(bookingEnd.getTime() + (escrowHours * 60 * 60 * 1000));
         return releaseDate.toISOString();
     },
 

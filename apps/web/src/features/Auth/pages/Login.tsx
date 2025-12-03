@@ -179,7 +179,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onBack }) => {
                             <p className="text-sm text-gray-500">
                                 Want to list your space?{' '}
                                 <Link to="/login-host" className="text-brand-600 font-semibold hover:text-brand-700 hover:underline transition-colors">
-                                    Become a Host
+                                    Host Your Space
                                 </Link>
                             </p>
                         </div>

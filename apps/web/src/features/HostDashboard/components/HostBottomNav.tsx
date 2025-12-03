@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Grid, Calendar, MessageSquare, User as UserIcon } from 'lucide-react';
+import { Home, Grid, Calendar, MessageSquare, User as UserIcon, Compass } from 'lucide-react';
 import { cn } from '@fiilar/utils';
 
 interface HostBottomNavProps {
@@ -12,9 +12,9 @@ const HostBottomNav: React.FC<HostBottomNavProps> = ({ view, setView, unreadMess
     const navItems = [
         { id: 'overview', icon: Home, label: 'Home' },
         { id: 'listings', icon: Grid, label: 'Listings' },
-        { id: 'bookings', icon: Calendar, label: 'Calendar' },
+        { id: 'explore', icon: Compass, label: 'Explore' },
         { id: 'messages', icon: MessageSquare, label: 'Inbox', badge: unreadMessages },
-        { id: 'menu', icon: UserIcon, label: 'Profile' } // New Menu Tab
+        { id: 'menu', icon: UserIcon, label: 'Profile' }
     ];
 
     return (

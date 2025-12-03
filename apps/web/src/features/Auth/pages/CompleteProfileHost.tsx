@@ -39,7 +39,7 @@ const CompleteProfileHost: React.FC<CompleteProfileHostProps> = ({ onComplete })
             <div className="hidden lg:flex lg:w-1/2 relative bg-gray-900 overflow-hidden">
                 <img
                     src="https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?q=80&w=2000&auto=format&fit=crop"
-                    alt="Become a Host"
+                    alt="Host Your Space"
                     className="absolute inset-0 w-full h-full object-cover opacity-80 scale-105 hover:scale-100 transition-transform duration-[20s]"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />

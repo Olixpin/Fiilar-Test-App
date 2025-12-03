@@ -1,7 +1,8 @@
 import React, { useMemo } from 'react';
 import { Listing, User } from '@fiilar/types';
 import StepWrapper from './StepWrapper';
-import { Upload, FileCheck, AlertTriangle, CheckCircle, X, Info, FileText, MapPin } from 'lucide-react';
+import { Upload, FileCheck, CheckCircle, X, Info, FileText, MapPin } from 'lucide-react';
+import { InfoBox } from '../../../../../components/common';
 
 interface StepVerificationProps {
     newListing: Partial<Listing>;
@@ -95,25 +96,23 @@ const StepVerification: React.FC<StepVerificationProps> = ({
             <div className="space-y-6">
                 {/* Listing Verification Status */}
                 {hasProofOfAddress ? (
-                    <div className="flex items-start gap-3 p-4 bg-green-50 rounded-xl border border-green-100">
-                        <CheckCircle size={20} className="text-green-600 shrink-0 mt-0.5" />
+                    <InfoBox variant="success" icon={<CheckCircle size={20} />}>
                         <div>
                             <p className="font-medium text-green-900">Property verified!</p>
-                            <p className="text-sm text-green-700 mt-1">
+                            <p className="text-xs text-green-700 mt-1">
                                 Your proof of address has been uploaded for this listing.
                             </p>
                         </div>
-                    </div>
+                    </InfoBox>
                 ) : (
-                    <div className="flex items-start gap-3 p-4 bg-amber-50 rounded-xl border border-amber-100">
-                        <MapPin size={20} className="text-amber-600 shrink-0 mt-0.5" />
+                    <InfoBox variant="warning" icon={<MapPin size={20} />}>
                         <div>
                             <p className="font-medium text-amber-900">Proof of address required</p>
-                            <p className="text-sm text-amber-700 mt-1">
+                            <p className="text-xs text-amber-700 mt-1">
                                 Upload a document showing this property address to verify your listing.
                             </p>
                         </div>
-                    </div>
+                    </InfoBox>
                 )}
 
                 {/* Proof of Address Upload */}

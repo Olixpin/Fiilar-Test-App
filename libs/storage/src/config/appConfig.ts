@@ -121,8 +121,17 @@ export const BOOKING_CONFIG = {
     
     /**
      * Escrow release period in hours after booking ends
+     * Configurable per pricing model for industry-standard payouts:
+     * - HOURLY: 24 hours (short sessions, lower risk)
+     * - DAILY: 24 hours (event spaces, supervised access)
+     * - NIGHTLY: 48 hours (overnight stays, higher damage risk)
      */
-    ESCROW_RELEASE_HOURS: 48,
+    ESCROW_RELEASE_HOURS: {
+        HOURLY: 24,
+        DAILY: 24,
+        NIGHTLY: 48,
+        DEFAULT: 48, // Fallback for legacy bookings
+    },
 };
 
 // ===== CANCELLATION =====

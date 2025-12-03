@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowLeft, Shield, FileText, Scale, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Shield, FileText, Scale, AlertCircle, CheckCircle2, ChevronDown, ChevronUp, List } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@fiilar/ui';
 
 const TermsAndConditions: React.FC = () => {
     const navigate = useNavigate();
     const [activeSection, setActiveSection] = useState<string>('acceptance');
+    const [isMobileTocOpen, setIsMobileTocOpen] = useState(false);
 
     // Handle scroll spy
     useEffect(() => {
@@ -42,6 +43,7 @@ const TermsAndConditions: React.FC = () => {
                 behavior: 'smooth'
             });
             setActiveSection(id);
+            setIsMobileTocOpen(false); // Close mobile TOC after selection
         }
     };
 
@@ -198,10 +200,45 @@ const TermsAndConditions: React.FC = () => {
                 </div>
             </div>
 
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-                <div className="flex flex-col lg:flex-row gap-12">
-                    {/* Sidebar Navigation - Sticky */}
-                    <div className="lg:w-80 shrink-0">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12 pb-24 md:pb-12">
+                <div className="flex flex-col lg:flex-row gap-6 lg:gap-12">
+                    {/* Mobile TOC Toggle Button */}
+                    <div className="lg:hidden">
+                        <button
+                            onClick={() => setIsMobileTocOpen(!isMobileTocOpen)}
+                            className="w-full flex items-center justify-between px-4 py-3 bg-white rounded-xl shadow-sm border border-gray-100 text-gray-700 font-medium"
+                        >
+                            <div className="flex items-center gap-2">
+                                <List size={18} className="text-brand-600" />
+                                <span>Jump to Section</span>
+                            </div>
+                            {isMobileTocOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                        </button>
+
+                        {/* Mobile TOC Dropdown */}
+                        {isMobileTocOpen && (
+                            <div className="mt-2 bg-white rounded-xl shadow-sm border border-gray-100 p-2 overflow-hidden">
+                                <nav className="space-y-0.5">
+                                    {sections.map((section) => (
+                                        <button
+                                            key={section.id}
+                                            onClick={() => scrollToSection(section.id)}
+                                            className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 text-left ${activeSection === section.id
+                                                ? 'bg-brand-50 text-brand-700 shadow-sm'
+                                                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                                                }`}
+                                        >
+                                            <section.icon size={16} className={activeSection === section.id ? 'text-brand-600' : 'text-gray-400'} />
+                                            {section.title.replace(/^\d+\.\s/, '')}
+                                        </button>
+                                    ))}
+                                </nav>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Sidebar Navigation - Sticky (Desktop Only) */}
+                    <div className="hidden lg:block lg:w-80 shrink-0">
                         <div className="sticky top-24 space-y-1">
                             <Button
                                 variant="ghost"
@@ -237,19 +274,19 @@ const TermsAndConditions: React.FC = () => {
 
                     {/* Main Content */}
                     <div className="flex-1 min-w-0">
-                        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+                        <div className="bg-white rounded-2xl md:rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
                             <div className="divide-y divide-gray-100">
                                 {sections.map((section) => (
                                     <section
                                         key={section.id}
                                         id={section.id}
-                                        className="p-8 md:p-12 scroll-mt-24 transition-colors hover:bg-gray-50/30"
+                                        className="p-6 md:p-12 scroll-mt-24 transition-colors hover:bg-gray-50/30"
                                     >
-                                        <div className="flex items-start gap-4 mb-6">
-                                            <div className="p-2 bg-brand-50 rounded-lg shrink-0 mt-1">
-                                                <section.icon className="text-brand-600 w-5 h-5" />
+                                        <div className="flex items-start gap-3 md:gap-4 mb-4 md:mb-6">
+                                            <div className="p-2 bg-brand-50 rounded-lg shrink-0">
+                                                <section.icon className="text-brand-600 w-4 h-4 md:w-5 md:h-5" />
                                             </div>
-                                            <h2 className="text-2xl font-bold text-gray-900">
+                                            <h2 className="text-xl md:text-2xl font-bold text-gray-900">
                                                 {section.title}
                                             </h2>
                                         </div>
@@ -262,7 +299,7 @@ const TermsAndConditions: React.FC = () => {
                         </div>
 
                         {/* Footer Note */}
-                        <div className="mt-12 p-8 bg-gray-900 rounded-3xl text-center text-white">
+                        <div className="mt-8 md:mt-12 p-6 md:p-8 bg-gray-900 rounded-2xl md:rounded-3xl text-center text-white">
                             <h3 className="text-xl font-bold mb-2">Still have questions?</h3>
                             <p className="text-gray-400 mb-6">
                                 Our support team is available 24/7 to assist you with any legal or platform-related queries.

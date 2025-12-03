@@ -33,6 +33,7 @@ const HostFinancials: React.FC<HostFinancialsProps> = ({
 }) => {
     const { locale } = useLocale();
     const [timeRange, setTimeRange] = useState<'week' | 'month' | 'year'>('week');
+    const [showAllTransactions, setShowAllTransactions] = useState(false);
 
     // Calculate stats
     const escrowBalance = useMemo(() => {
@@ -323,12 +324,27 @@ const HostFinancials: React.FC<HostFinancialsProps> = ({
             {/* Recent Transactions */}
             <div className="glass-card overflow-hidden">
                 <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-                    <h3 className="font-bold text-lg text-gray-900">Recent Transactions</h3>
-                    <button className="text-sm font-semibold text-brand-600 hover:text-brand-700">View All</button>
+                    <h3 className="font-bold text-lg text-gray-900">
+                        {showAllTransactions ? 'All Transactions' : 'Recent Transactions'}
+                    </h3>
+                    {hostTransactions.length > 5 && (
+                        <button 
+                            onClick={() => setShowAllTransactions(!showAllTransactions)}
+                            className="text-sm font-semibold text-brand-600 hover:text-brand-700 transition-colors"
+                        >
+                            {showAllTransactions ? 'Show Less' : `View All (${hostTransactions.length})`}
+                        </button>
+                    )}
                 </div>
-                <div className="overflow-x-auto">
+                <div className={cn(
+                    "overflow-x-auto",
+                    showAllTransactions && "max-h-[500px] overflow-y-auto"
+                )}>
                     <table className="w-full">
-                        <thead className="bg-gray-50/50">
+                        <thead className={cn(
+                            "bg-gray-50/50",
+                            showAllTransactions && "sticky top-0 z-10"
+                        )}>
                             <tr>
                                 <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Date</th>
                                 <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Type</th>
@@ -352,7 +368,7 @@ const HostFinancials: React.FC<HostFinancialsProps> = ({
                             ) : (
                                 hostTransactions
                                     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-                                    .slice(0, 5)
+                                    .slice(0, showAllTransactions ? undefined : 5)
                                     .map((tx) => (
                                         <tr key={tx.id} className="hover:bg-gray-50/50 transition-colors">
                                             <td className="px-6 py-4 text-sm text-gray-600 font-medium">

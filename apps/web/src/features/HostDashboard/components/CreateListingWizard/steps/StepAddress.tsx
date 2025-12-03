@@ -2,6 +2,7 @@ import React from 'react';
 import { Listing } from '@fiilar/types';
 import StepWrapper from './StepWrapper';
 import { Lock, MapPin } from 'lucide-react';
+import { InfoBox } from '../../../../../components/common';
 
 interface StepAddressProps {
     newListing: Partial<Listing>;
@@ -35,15 +36,14 @@ const StepAddress: React.FC<StepAddressProps> = ({
         >
             <div className="space-y-6">
                 {/* Privacy Notice */}
-                <div className="flex items-start gap-3 p-4 bg-blue-50 rounded-xl border border-blue-100">
-                    <Lock size={20} className="text-blue-600 shrink-0 mt-0.5" />
+                <InfoBox variant="info" icon={<Lock size={20} />}>
                     <div>
-                        <p className="text-sm font-medium text-blue-900">Your address is private</p>
+                        <p className="font-medium text-blue-900">Your address is private</p>
                         <p className="text-xs text-blue-700 mt-1">
                             We only share the exact address with confirmed guests to protect your privacy.
                         </p>
                     </div>
-                </div>
+                </InfoBox>
 
                 {/* Public Location Display */}
                 <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">

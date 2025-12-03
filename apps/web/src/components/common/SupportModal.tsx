@@ -30,8 +30,8 @@ const FAQS: FAQ[] = [
         answer: "Refunds are processed to your original payment method within 5-10 business days. For wallet refunds, the amount is credited instantly to your Fiilar wallet."
     },
     {
-        question: "How do I become a host?",
-        answer: "Click on 'Become a Host' in the menu, complete your profile, verify your identity through KYC, and create your first listing. Our team will review and approve it within 24-48 hours."
+        question: "How do I host my space?",
+        answer: "Click on 'Host Your Space' in the menu, complete your profile, verify your identity through KYC, and create your first listing. Our team will review and approve it within 24-48 hours."
     }
 ];
 

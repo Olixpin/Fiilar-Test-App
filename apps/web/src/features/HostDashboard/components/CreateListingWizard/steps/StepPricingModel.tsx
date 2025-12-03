@@ -3,6 +3,7 @@ import { Listing, PricingModel, BookingType } from '@fiilar/types';
 import StepWrapper from './StepWrapper';
 import SelectionCard from '../common/SelectionCard';
 import { Moon, Sun, Clock } from 'lucide-react';
+import { InfoBox } from '../../../../../components/common';
 
 interface StepPricingModelProps {
     newListing: Partial<Listing>;
@@ -100,11 +101,11 @@ const StepPricingModel: React.FC<StepPricingModelProps> = ({
         >
             <div className="space-y-4">
                 {hasActiveBookings && (
-                    <div className="p-4 bg-amber-50 rounded-xl border border-amber-100 mb-4">
-                        <p className="text-sm text-amber-800">
+                    <InfoBox variant="warning" className="mb-4">
+                        <p>
                             <strong>Pricing model is locked</strong> because you have active bookings. Complete or cancel them to change.
                         </p>
-                    </div>
+                    </InfoBox>
                 )}
 
                 {PRICING_MODELS.map((model) => (

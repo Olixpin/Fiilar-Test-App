@@ -42,6 +42,8 @@ interface HomeProps {
     setActiveCategory: (category: string) => void;
     searchTerm: string;
     onBecomeHostClick: () => void;
+    /** If true, show all listings including user's own (for host dashboard explore) */
+    showOwnListings?: boolean;
 }
 
 // Category tabs based on Fiilar Space categories
@@ -99,7 +101,8 @@ const Home: React.FC<HomeProps> = ({
     activeCategory,
     setActiveCategory,
     searchTerm,
-    onBecomeHostClick
+    onBecomeHostClick,
+    showOwnListings = false
 }) => {
     // User location for distance-based sorting
     const { 
@@ -255,6 +258,12 @@ const Home: React.FC<HomeProps> = ({
         let filtered = filterListings(listings, filters)
             .filter(l => l.status === ListingStatus.LIVE);
         
+        // Exclude user's own listings when browsing (like Airbnb/Peerspace)
+        // Hosts manage their listings in the dashboard, not in the browse view
+        if (!showOwnListings && user?.id) {
+            filtered = filtered.filter(l => l.hostId !== user.id);
+        }
+        
         // Apply subcategory filter if a specific subcategory is selected
         if (selectedSubcategory) {
             filtered = filtered.filter(l => l.type === selectedSubcategory);
@@ -280,7 +289,7 @@ const Home: React.FC<HomeProps> = ({
                 return dateB - dateA;
             });
         }
-    }, [listings, filters, activeCategory, selectedSubcategory, sortByDistance, userLocation]);
+    }, [listings, filters, activeCategory, selectedSubcategory, sortByDistance, userLocation, showOwnListings, user?.id]);
 
     // Handle category hover with delay for better UX
     const handleCategoryMouseEnter = (categoryId: string) => {
@@ -425,7 +434,7 @@ const Home: React.FC<HomeProps> = ({
                     )}
                     {!user && (
                         <Button onClick={onBecomeHostClick} variant="primary" className="bg-black hover:bg-gray-800">
-                            Become a Host
+                            Host Your Space
                         </Button>
                     )}
                 </div>
@@ -453,14 +462,14 @@ const Home: React.FC<HomeProps> = ({
                 />
             );
 
-            // Insert "Become a Host" promo card at 3rd position (after 2 listings) for non-logged-in users
+            // Insert "Host Your Space" promo card at 3rd position (after 2 listings) for non-logged-in users
             if (!user && !promoAdded && (index === 1 || (displayListings.length < 2 && index === displayListings.length - 1))) {
                 items.push(
                     <button
                         key="promo"
                         onClick={onBecomeHostClick}
                         className="group cursor-pointer flex flex-col gap-3 bg-white p-3 rounded-3xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-gray-100 text-left h-full"
-                        aria-label="Become a host and earn income"
+                        aria-label="Host your space and earn income"
                     >
                         <div className="relative aspect-square overflow-hidden rounded-2xl bg-gray-100 border border-gray-200 w-full group-hover:border-brand-200 transition-colors">
                             <div className="absolute inset-0 flex items-center justify-center">
@@ -470,7 +479,7 @@ const Home: React.FC<HomeProps> = ({
                             </div>
                         </div>
                         <div className="mt-1">
-                            <h3 className="font-medium text-base text-gray-900 leading-tight truncate">Become a Host</h3>
+                            <h3 className="font-medium text-base text-gray-900 leading-tight truncate">Host Your Space</h3>
                             <div className="flex items-center gap-1 text-gray-500 mt-1">
                                 <TrendingUp size={14} className="text-brand-600" />
                                 <span className="text-sm">Earn extra income</span>

@@ -219,7 +219,7 @@ const HostDashboardPage: React.FC<HostDashboardPageProps> = ({ user, listings, r
     const {
         bankDetails, setBankDetails, isVerifyingBank, hostTransactions,
         handleVerifyBank, handleSaveBankDetails
-    } = useHostFinancials(user, hostListings);
+    } = useHostFinancials(user, hostListings, refreshData);
 
     const { handleDeleteListing, deleteConfirm, confirmDelete, cancelDelete } = useListingActions(refreshData);
 
@@ -484,7 +484,7 @@ const HostDashboardPage: React.FC<HostDashboardPageProps> = ({ user, listings, r
                 )}>
                     <div className="lg:max-w-[1600px] lg:mx-auto">
                         <div className={cn(
-                            "-mx-4 lg:mx-0",
+                            "mx-0 lg:mx-0",
                             view === 'create' || view === 'edit'
                                 ? "" // No box styling for wizard
                                 : "min-h-full bg-white rounded-t-[32px] lg:rounded-3xl shadow-xl shadow-gray-200/50 px-4 sm:px-6 lg:px-8 py-8"
@@ -600,6 +600,7 @@ const HostDashboardPage: React.FC<HostDashboardPageProps> = ({ user, listings, r
                                         setActiveCategory={setActiveCategory}
                                         searchTerm={searchQuery}
                                         onBecomeHostClick={() => { }}
+                                        showOwnListings={true}
                                     />
                                 </div>
                             )}

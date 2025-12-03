@@ -294,13 +294,15 @@ export const saveBooking = createBooking;
 /**
  * Valid booking status transitions
  * Pending -> Confirmed, Cancelled
- * Confirmed -> Completed, Cancelled
+ * Confirmed -> Started, Cancelled
+ * Started -> Completed, Cancelled
  * Completed -> (no transitions allowed)
  * Cancelled -> (no transitions allowed)
  */
 const VALID_STATUS_TRANSITIONS: Record<string, string[]> = {
     'Pending': ['Confirmed', 'Cancelled'],
-    'Confirmed': ['Completed', 'Cancelled'],
+    'Confirmed': ['Started', 'Cancelled'],
+    'Started': ['Completed', 'Cancelled'],
     'Completed': [], // Terminal state
     'Cancelled': [], // Terminal state
 };

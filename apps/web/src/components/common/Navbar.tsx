@@ -345,7 +345,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onSearch, searchTerm, o
                   ) : user.role === Role.USER && !user.isHost ? (
                     <button onClick={() => { setIsAccountOpen(false); onBecomeHost?.(); }} className="w-full text-left px-4 py-2.5 text-sm font-semibold text-gray-700 hover:text-black hover:bg-gray-50 rounded-xl transition-colors flex items-center gap-3">
                       <HomeIcon size={16} className="text-gray-500 transition-colors" />
-                      Become a Host
+                      Host your space
                     </button>
                   ) : null}
                   <hr className="my-1 border-gray-100" />
@@ -388,7 +388,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onSearch, searchTerm, o
                   <hr className="my-1 border-gray-100" />
                   <button onClick={() => { onBecomeHost?.(); setIsAccountOpen(false); }} className="w-full text-left px-4 py-2.5 text-sm font-semibold text-gray-700 hover:text-black hover:bg-gray-50 rounded-xl transition-colors flex items-center gap-3">
                     <HomeIcon size={16} className="text-gray-500 transition-colors" />
-                    Become a host
+                    Host your space
                   </button>
                 </div>
                 </>
@@ -426,7 +426,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, onSearch, searchTerm, o
           <NavItem label="Explore" to="/" icon={HomeIcon} />
           {!user ? (
             <>
-              <NavItem label="Become a host" to="/login-host" icon={Briefcase} />
+              <NavItem label="Host your space" to="/login-host" icon={Briefcase} />
               <hr className="my-2" />
               <NavItem label="Sign In" to="/login" icon={UserIcon} />
             </>

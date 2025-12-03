@@ -490,7 +490,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings, onRefresh
         {/* Content Area with White Background Card */}
         <main className="flex-1 overflow-y-auto px-4 lg:px-8 pb-24 lg:pb-8">
           <div className="lg:max-w-[1600px] lg:mx-auto">
-            <div className="bg-white rounded-t-[32px] lg:rounded-3xl min-h-full shadow-xl shadow-gray-200/50 -mx-4 lg:mx-0 px-4 sm:px-6 lg:px-8 py-8">
+            <div className="bg-white rounded-t-[32px] lg:rounded-3xl min-h-full shadow-xl shadow-gray-200/50 lg:mx-0 px-4 sm:px-6 lg:px-8 py-8">
 
               {activeTab === 'wallet' && (
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
@@ -722,33 +722,27 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings, onRefresh
                     </button>
                   </div>
 
-                  <div className="space-y-2">
-                    <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Switch Mode</h3>
-                    <button
-                      onClick={() => {
-                        if (user.isHost || user.role === Role.HOST) {
-                          // User was previously a host, switch back to host mode
+                  {(user.isHost || user.role === Role.HOST) && (
+                    <div className="space-y-2">
+                      <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Switch Mode</h3>
+                      <button
+                        onClick={() => {
                           if (onSwitchRole) {
                             onSwitchRole(Role.HOST);
                           } else {
                             navigate('/host/dashboard');
                           }
-                        } else {
-                          // New user, go to host onboarding
-                          navigate('/become-a-host');
-                        }
-                      }}
-                      className="w-full flex items-center gap-3 p-4 bg-white border border-gray-100 rounded-xl hover:bg-gray-50 transition-colors"
-                    >
-                      <div className="p-2 bg-brand-50 text-brand-600 rounded-lg">
-                        <Briefcase size={20} />
-                      </div>
-                      <span className="font-medium text-gray-900">
-                        {user.isHost ? 'Switch to Hosting' : 'Become a Host'}
-                      </span>
-                      <ChevronRight size={16} className="ml-auto text-gray-400" />
-                    </button>
-                  </div>
+                        }}
+                        className="w-full flex items-center gap-3 p-4 bg-white border border-gray-100 rounded-xl hover:bg-gray-50 transition-colors"
+                      >
+                        <div className="p-2 bg-brand-50 text-brand-600 rounded-lg">
+                          <Briefcase size={20} />
+                        </div>
+                        <span className="font-medium text-gray-900">Switch to Hosting</span>
+                        <ChevronRight size={16} className="ml-auto text-gray-400" />
+                      </button>
+                    </div>
+                  )}
 
                   <div className="space-y-2">
                     <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Settings & Support</h3>

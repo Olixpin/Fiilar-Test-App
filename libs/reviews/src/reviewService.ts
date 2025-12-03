@@ -1,10 +1,12 @@
 import { Review, User, Booking, Role } from '@fiilar/types';
 import { safeJSONParse } from '@fiilar/utils';
+import { addNotification } from '@fiilar/notifications';
 
 const STORAGE_KEYS = {
     REVIEWS: 'fiilar_reviews',
     USER: 'fiilar_user',
     BOOKINGS: 'fiilar_bookings',
+    LISTINGS: 'fiilar_listings',
 };
 
 // Helper to get data from localStorage
@@ -102,6 +104,32 @@ export const addReview = (review: Omit<Review, 'id' | 'createdAt'>): { success: 
 
     reviews.push(newReview);
     setStorageData(STORAGE_KEYS.REVIEWS, reviews);
+
+    // 🔔 Notify host: New review received
+    try {
+        const listings = getStorageData<{ id: string; hostId: string; title: string }[]>(STORAGE_KEYS.LISTINGS, []);
+        const listing = listings.find(l => l.id === review.listingId);
+        if (listing) {
+            addNotification({
+                userId: listing.hostId,
+                type: 'review',
+                title: 'New Review Received',
+                message: `You received a ${review.rating}-star review for ${listing.title}. ${review.rating >= 4 ? 'Great job!' : 'Check what you can improve.'}`,
+                severity: review.rating >= 4 ? 'info' : 'warning',
+                read: false,
+                actionRequired: false,
+                metadata: {
+                    reviewId: newReview.id,
+                    listingId: review.listingId,
+                    rating: review.rating,
+                    reviewerName: currentUser.name || 'A guest'
+                }
+            });
+        }
+    } catch (error) {
+        console.error('Failed to send review notification:', error);
+    }
+
     return { success: true, review: newReview };
 };
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Briefcase, FileText, ShieldCheck, TrendingUp, DollarSign, MessageSquare, Settings, AlertCircle, Plus, ChevronLeft, ChevronRight, LogOut } from 'lucide-react';
+import { Home, Briefcase, FileText, ShieldCheck, TrendingUp, DollarSign, MessageSquare, Settings, AlertCircle, Plus, ChevronLeft, ChevronRight, LogOut, Compass } from 'lucide-react';
 import { Button } from '@fiilar/ui';
 import { cn } from '@fiilar/utils';
 import { useNavigate } from 'react-router-dom';
@@ -35,6 +35,7 @@ const HostSidebar: React.FC<HostSidebarProps> = ({
         { id: 'earnings', label: 'Earnings', icon: TrendingUp },
         { id: 'payouts', label: 'Payouts', icon: DollarSign },
         { id: 'messages', label: 'Messages', icon: MessageSquare, badge: unreadMessages },
+        { id: 'explore', label: 'Explore', icon: Compass },
     ];
 
     const bottomItems = [

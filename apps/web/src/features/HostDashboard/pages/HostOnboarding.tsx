@@ -158,7 +158,7 @@ const HostOnboarding: React.FC<HostOnboardingProps> = ({ onLogin, onBack }) => {
                                     }
                                 }}
                                 onGoogleLogin={() => setShowGooglePicker(true)}
-                                title="Become a Host"
+                                title="Host Your Space"
                                 subtitle="Enter your email to start hosting."
                                 variant="glass-dark"
                             />

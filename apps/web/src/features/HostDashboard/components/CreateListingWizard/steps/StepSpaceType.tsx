@@ -228,7 +228,7 @@ const StepSpaceType: React.FC<StepSpaceTypeProps> = ({
 
             {/* Category tabs - horizontal scrollable */}
             <div className="mb-6">
-                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                <div className="flex gap-2 overflow-x-auto overscroll-x-contain pb-2 px-1 scrollbar-hide">
                     {CATEGORIES.map((category) => {
                         const CategoryIcon = category.icon;
                         const isActive = activeCategory === category.id;

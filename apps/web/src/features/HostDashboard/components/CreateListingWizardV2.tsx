@@ -63,6 +63,8 @@ const CreateListingWizardV2: React.FC<CreateListingWizardProps> = ({
 
     // Auto-save visibility state - show briefly after save, then fade
     const [showSaveStatus, setShowSaveStatus] = React.useState(false);
+    const mainContentRef = React.useRef<HTMLElement | null>(null);
+    
     React.useEffect(() => {
         if (lastSaved) {
             setShowSaveStatus(true);
@@ -71,9 +73,37 @@ const CreateListingWizardV2: React.FC<CreateListingWizardProps> = ({
         }
     }, [lastSaved]);
 
+    // Scroll to top when step changes
+    React.useLayoutEffect(() => {
+        const scrollToTop = () => {
+            const container = mainContentRef.current;
+            if (container) {
+                container.scrollTop = 0;
+                container.scrollTo({ top: 0, behavior: 'auto' });
+            }
+
+            window.scrollTo({ top: 0, behavior: 'auto' });
+            document.documentElement.scrollTop = 0;
+            document.body.scrollTop = 0;
+        };
+
+        // Run on next animation frame to ensure content has rendered
+        const frame = requestAnimationFrame(scrollToTop);
+        return () => cancelAnimationFrame(frame);
+    }, [step]);
+
     // Navigation handlers
     const goToStep = (targetStep: number) => {
         if (targetStep >= 1 && targetStep <= TOTAL_STEPS) {
+            const container = mainContentRef.current;
+            if (container) {
+                container.scrollTop = 0;
+                container.scrollTo({ top: 0, behavior: 'auto' });
+            }
+            window.scrollTo({ top: 0, behavior: 'auto' });
+            document.documentElement.scrollTop = 0;
+            document.body.scrollTop = 0;
+
             setStep(targetStep);
         }
     };
@@ -322,20 +352,20 @@ const CreateListingWizardV2: React.FC<CreateListingWizardProps> = ({
     const currentPhase = getCurrentPhase();
 
     return (
-        <div className="min-h-screen bg-white flex flex-col">
+        <div className="min-h-screen bg-white flex flex-col overflow-x-hidden">
             {/* Top Header with Phase Navigation */}
             <header className="h-14 border-b border-gray-100 px-4 sm:px-6 flex items-center justify-between bg-white">
                 {/* Left: Close Button */}
                 <button
                     onClick={() => setView('listings')}
-                    className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-900 transition-colors -ml-1"
+                    className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-900 transition-colors"
                     aria-label="Close"
                 >
                     <X size={22} />
                 </button>
 
                 {/* Center: Phase Navigation - Hidden on mobile */}
-                <div className="hidden sm:flex items-center gap-0.5 sm:gap-1 overflow-x-auto no-scrollbar">
+                <div className="hidden sm:flex items-center gap-0.5 sm:gap-1 overflow-x-auto overscroll-x-contain no-scrollbar">
                     {PHASES.map((phase, index) => {
                         const PhaseIcon = phase.icon;
                         const isActive = phase.id === currentPhase.id;
@@ -379,8 +409,10 @@ const CreateListingWizardV2: React.FC<CreateListingWizardProps> = ({
             <div className="flex-1 flex overflow-hidden">
                 {/* Left Side - Form */}
                 <div className="flex-1 flex flex-col lg:w-1/2 overflow-hidden">
-                    <main className="flex-1 overflow-y-auto pb-32 sm:pb-24">
-                        {renderStep()}
+                    <main ref={mainContentRef} className="flex-1 overflow-y-auto pb-32 sm:pb-24">
+                        <div key={step}>
+                            {renderStep()}
+                        </div>
                     </main>
                 </div>
 
@@ -392,15 +424,15 @@ const CreateListingWizardV2: React.FC<CreateListingWizardProps> = ({
                 </div>
             </div>
 
-            {/* Bottom Footer - Full Width */}
+            {/* Bottom Footer - Full Width, px-4 matches header close button padding */}
             <footer className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-4 sm:px-6 sm:py-4 z-10 pb-safe">
                 <div className="max-w-7xl mx-auto">
                     {/* Mobile: Full width button layout */}
                     <div className="flex sm:hidden flex-col gap-3">
                         {/* Progress indicator */}
-                        <div className="flex items-center justify-between text-xs text-gray-500">
-                            <span>Step {step} of {TOTAL_STEPS}</span>
-                            <div className="flex-1 mx-4 h-1 bg-gray-200 rounded-full overflow-hidden">
+                        <div className="flex items-center gap-3 text-xs text-gray-500">
+                            <span className="whitespace-nowrap">Step {step} of {TOTAL_STEPS}</span>
+                            <div className="flex-1 h-1 bg-gray-200 rounded-full overflow-hidden">
                                 <div
                                     className="h-full bg-brand-600 transition-all duration-500 rounded-full"
                                     style={{ width: `${(step / TOTAL_STEPS) * 100}%` }}
@@ -463,8 +495,7 @@ const CreateListingWizardV2: React.FC<CreateListingWizardProps> = ({
                             )}
 
                             {/* Auto-save indicator */}
-                            <div className={`flex items-center gap-1.5 text-xs transition-all duration-300 ${showSaveStatus ? 'opacity-100' : 'opacity-0'
-                                }`}>
+                            <div className={`flex items-center gap-1.5 text-xs transition-all duration-300 ${showSaveStatus ? 'opacity-100' : 'opacity-0'}`}>
                                 <Cloud size={14} className="text-green-500" />
                                 <span className="text-gray-500">Saved</span>
                             </div>

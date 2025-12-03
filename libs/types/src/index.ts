@@ -437,10 +437,20 @@ export interface Notification {
   metadata?: {
     bookingId?: string;
     reportId?: string;
+    reviewId?: string;
+    listingId?: string;
     amount?: number;
     images?: string[];
     link?: string;
     senderId?: string;
+    guestId?: string;
+    transactionId?: string;
+    rating?: number;
+    reviewerName?: string;
+    reviewType?: string;
+    reason?: string;
+    refunded?: boolean;
+    reportedBy?: string;
   };
   createdAt: string;
   expiresAt?: string;

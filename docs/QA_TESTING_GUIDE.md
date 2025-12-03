@@ -151,7 +151,7 @@ When clicking "Continue with Google", a mock account picker shows these users:
 ┌─────────────────────────────────────────────────────────────┐
 │                     HOST LISTING FLOW                        │
 ├─────────────────────────────────────────────────────────────┤
-│  1. Become a Host → /become-a-host                           │
+│  1. Host Your Space → /login-host                            │
 │  2. Complete KYC (if required)                               │
 │  3. Create Listing → Multi-step wizard                       │
 │     a. Space Type                                            │

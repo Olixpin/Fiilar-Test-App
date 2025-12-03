@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Listing } from '@fiilar/types';
 import StepWrapper from './StepWrapper';
 import { Upload, Plus, Trash2, GripVertical, ZoomIn, X, CheckCircle, AlertTriangle, Camera, Sparkles } from 'lucide-react';
+import { InfoBox } from '../../../../../components/common';
 
 interface StepPhotosProps {
     newListing: Partial<Listing>;
@@ -254,17 +255,16 @@ const StepPhotos: React.FC<StepPhotosProps> = ({
 
                 {/* Warning if not enough photos */}
                 {!hasEnoughPhotos && photoCount > 0 && (
-                    <div className="flex items-start gap-3 p-4 bg-amber-50 rounded-xl border border-amber-100">
-                        <AlertTriangle size={20} className="text-amber-600 shrink-0 mt-0.5" />
+                    <InfoBox variant="warning" icon={<AlertTriangle size={20} />}>
                         <div>
-                            <p className="text-sm font-medium text-amber-900">
+                            <p className="font-medium text-amber-900">
                                 Your listing will be saved as a draft
                             </p>
                             <p className="text-xs text-amber-700 mt-1">
                                 A minimum of {MIN_PHOTOS} photos is required to publish your listing.
                             </p>
                         </div>
-                    </div>
+                    </InfoBox>
                 )}
             </div>
 

@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowLeft, Shield, Eye, FileText, Lock, Server, Globe, UserCheck, Users, RefreshCw, Mail } from 'lucide-react';
+import { ArrowLeft, Shield, Eye, FileText, Lock, Server, Globe, UserCheck, Users, RefreshCw, Mail, ChevronDown, ChevronUp, List } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@fiilar/ui';
 
 const PrivacyPolicy: React.FC = () => {
     const navigate = useNavigate();
     const [activeSection, setActiveSection] = useState<string>('introduction');
+    const [isTocOpen, setIsTocOpen] = useState(false);
 
     // Handle scroll spy
     useEffect(() => {
@@ -42,6 +43,7 @@ const PrivacyPolicy: React.FC = () => {
                 behavior: 'smooth'
             });
             setActiveSection(id);
+            setIsTocOpen(false); // Close TOC on mobile after selection
         }
     };
 
@@ -201,10 +203,54 @@ const PrivacyPolicy: React.FC = () => {
                 </div>
             </div>
 
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-                <div className="flex flex-col lg:flex-row gap-12">
-                    {/* Sidebar Navigation - Sticky */}
-                    <div className="lg:w-80 shrink-0">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12 pb-24 md:pb-12">
+                {/* Mobile Back Button */}
+                <Button
+                    variant="ghost"
+                    onClick={() => navigate('/')}
+                    className="mb-4 lg:hidden pl-0 hover:bg-transparent hover:text-brand-700 text-gray-500"
+                    leftIcon={<ArrowLeft size={18} />}
+                >
+                    Back to Home
+                </Button>
+
+                {/* Mobile TOC - Collapsible */}
+                <div className="lg:hidden mb-6">
+                    <button
+                        onClick={() => setIsTocOpen(!isTocOpen)}
+                        className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-white rounded-xl border border-gray-200 shadow-sm"
+                    >
+                        <div className="flex items-center gap-3">
+                            <List size={18} className="text-gray-500" />
+                            <span className="font-medium text-gray-700">Jump to section</span>
+                        </div>
+                        {isTocOpen ? <ChevronUp size={18} className="text-gray-400" /> : <ChevronDown size={18} className="text-gray-400" />}
+                    </button>
+                    
+                    {isTocOpen && (
+                        <div className="mt-2 bg-white rounded-xl border border-gray-200 shadow-lg p-2 animate-in slide-in-from-top-2 duration-200">
+                            <nav className="space-y-0.5 max-h-[50vh] overflow-y-auto">
+                                {sections.map((section) => (
+                                    <button
+                                        key={section.id}
+                                        onClick={() => scrollToSection(section.id)}
+                                        className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 text-left ${activeSection === section.id
+                                            ? 'bg-brand-50 text-brand-700'
+                                            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                                            }`}
+                                    >
+                                        <section.icon size={16} className={activeSection === section.id ? 'text-brand-600' : 'text-gray-400'} />
+                                        {section.title.replace(/^\d+\.\s/, '')}
+                                    </button>
+                                ))}
+                            </nav>
+                        </div>
+                    )}
+                </div>
+
+                <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
+                    {/* Sidebar Navigation - Desktop Only */}
+                    <div className="hidden lg:block lg:w-80 shrink-0">
                         <div className="sticky top-24 space-y-1">
                             <Button
                                 variant="ghost"
@@ -230,7 +276,7 @@ const PrivacyPolicy: React.FC = () => {
                                                 }`}
                                         >
                                             <section.icon size={16} className={activeSection === section.id ? 'text-brand-600' : 'text-gray-400'} />
-                                            {section.title.replace(/^\d+\.\s/, '')} {/* Strip number for cleaner sidebar */}
+                                            {section.title.replace(/^\d+\.\s/, '')}
                                         </button>
                                     ))}
                                 </nav>
@@ -240,19 +286,19 @@ const PrivacyPolicy: React.FC = () => {
 
                     {/* Main Content */}
                     <div className="flex-1 min-w-0">
-                        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+                        <div className="bg-white rounded-2xl md:rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
                             <div className="divide-y divide-gray-100">
                                 {sections.map((section) => (
                                     <section
                                         key={section.id}
                                         id={section.id}
-                                        className="p-8 md:p-12 scroll-mt-24 transition-colors hover:bg-gray-50/30"
+                                        className="p-6 md:p-12 scroll-mt-24 transition-colors hover:bg-gray-50/30"
                                     >
-                                        <div className="flex items-start gap-4 mb-6">
-                                            <div className="p-2 bg-brand-50 rounded-lg shrink-0 mt-1">
-                                                <section.icon className="text-brand-600 w-5 h-5" />
+                                        <div className="flex items-start gap-3 md:gap-4 mb-4 md:mb-6">
+                                            <div className="p-2 bg-brand-50 rounded-lg shrink-0">
+                                                <section.icon className="text-brand-600 w-4 h-4 md:w-5 md:h-5" />
                                             </div>
-                                            <h2 className="text-2xl font-bold text-gray-900">
+                                            <h2 className="text-xl md:text-2xl font-bold text-gray-900">
                                                 {section.title}
                                             </h2>
                                         </div>

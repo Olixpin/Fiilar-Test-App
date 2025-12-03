@@ -1,7 +1,8 @@
 import React from 'react';
 import { Listing } from '@fiilar/types';
 import StepWrapper from './StepWrapper';
-import { Users, Minus, Plus, Info } from 'lucide-react';
+import { Users, Minus, Plus } from 'lucide-react';
+import { InfoBox } from '../../../../../components/common';
 
 interface StepCapacityProps {
     newListing: Partial<Listing>;
@@ -205,13 +206,12 @@ const StepCapacity: React.FC<StepCapacityProps> = ({
 
                 {/* Info Note */}
                 {includedGuests < capacity && (
-                    <div className="flex items-start gap-3 p-4 bg-brand-50 rounded-xl border border-brand-100">
-                        <Info size={20} className="text-brand-600 shrink-0 mt-0.5" />
-                        <p className="text-sm text-brand-800">
+                    <InfoBox variant="example">
+                        <p>
                             <strong>Example:</strong> If your base price is ₦10,000 and you set an extra guest fee of ₦2,000, 
                             a booking for {capacity} guests would cost ₦{(10000 + (capacity - includedGuests) * 2000).toLocaleString()}.
                         </p>
-                    </div>
+                    </InfoBox>
                 )}
             </div>
         </StepWrapper>

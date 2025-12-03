@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Upload, AlertTriangle, DollarSign } from 'lucide-react';
 import { createDamageReport } from '@fiilar/storage';
 import { DamageReport } from '@fiilar/types';
+import { addNotification } from '@fiilar/notifications';
 
 interface DamageReportModalProps {
     bookingId: string;
@@ -77,6 +78,23 @@ const DamageReportModal: React.FC<DamageReportModalProps> = ({
                 createdAt: new Date().toISOString()
             };
             createDamageReport(report);
+
+            // 🔔 Notify guest: Damage claim filed against them
+            addNotification({
+                userId: guestId,
+                type: 'damage_report',
+                title: 'Damage Claim Filed',
+                message: `A damage claim of ₦${Number(estimatedCost).toLocaleString()} has been filed for your recent booking. Please review and respond.`,
+                severity: 'warning',
+                read: false,
+                actionRequired: true,
+                metadata: {
+                    reportId: report.id,
+                    bookingId,
+                    amount: Number(estimatedCost),
+                    reportedBy: currentUser.id
+                }
+            });
 
             onSuccess();
             onClose();
