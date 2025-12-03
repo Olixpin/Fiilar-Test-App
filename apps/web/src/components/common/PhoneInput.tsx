@@ -77,24 +77,27 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
         let newValue = e.target.value;
         const code = countryCodes[country];
 
-        // Ensure it starts with code
-        if (!newValue.startsWith(code)) {
-            // If user deleted part of code, restore it
-            if (!newValue.includes(code)) {
-                newValue = code + " " + newValue.replace(/[^\d]/g, '');
-            }
+        // Extract just the number part (after the country code)
+        let numberPart = '';
+        
+        if (newValue.startsWith(code)) {
+            // Get everything after the country code
+            numberPart = newValue.substring(code.length);
+        } else {
+            // If country code is missing, treat entire input as the number part
+            numberPart = newValue;
         }
-
-        // Strip leading zero after code
-        const parts = newValue.split(code);
-        if (parts.length > 1) {
-            let numberPart = parts[1].trimStart();
-            if (numberPart.startsWith('0')) {
-                numberPart = numberPart.substring(1);
-            }
-            // Reassemble
-            newValue = code + " " + numberPart;
+        
+        // Remove all non-digit characters from the number part
+        numberPart = numberPart.replace(/\D/g, '');
+        
+        // Strip leading zero (common mistake when entering Nigerian numbers)
+        if (numberPart.startsWith('0')) {
+            numberPart = numberPart.substring(1);
         }
+        
+        // Reassemble with country code and a space
+        newValue = code + ' ' + numberPart;
 
         onChange(newValue);
     };

@@ -7,7 +7,7 @@ import { AreaChart, Area, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } fr
 import { cn } from '@fiilar/utils';
 
 import { getConversations } from '@fiilar/messaging';
-import ProfileCompletionWidget from './ProfileCompletionWidget';
+import ProfileCompletionWidget, { ProfileStepId } from './ProfileCompletionWidget';
 
 interface HostOverviewProps {
     user: User;
@@ -16,9 +16,10 @@ interface HostOverviewProps {
     setView: (view: any) => void;
     handleStartNewListing: () => void;
     onNavigateToBooking?: (booking: Booking) => void;
+    onCompleteProfileStep?: (stepId: ProfileStepId) => void;
 }
 
-const HostOverview: React.FC<HostOverviewProps> = ({ user, listings, hostBookings, setView, handleStartNewListing, onNavigateToBooking }) => {
+const HostOverview: React.FC<HostOverviewProps> = ({ user, listings, hostBookings, setView, handleStartNewListing, onNavigateToBooking, onCompleteProfileStep }) => {
     const { locale } = useLocale();
     const navigate = useNavigate();
 
@@ -100,6 +101,7 @@ const HostOverview: React.FC<HostOverviewProps> = ({ user, listings, hostBooking
             <ProfileCompletionWidget
                 user={user}
                 onCompleteProfile={() => navigate('/host/dashboard?view=settings&edit=true')}
+                onCompleteStep={onCompleteProfileStep}
             />
 
             {/* Hero Section: Earnings & Key Stats */}

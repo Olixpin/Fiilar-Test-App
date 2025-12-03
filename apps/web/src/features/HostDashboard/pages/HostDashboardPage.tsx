@@ -24,6 +24,8 @@ import HostBottomNav from '../components/HostBottomNav';
 
 import HostMessages from '../components/HostMessages';
 import HostPhoneCollectionModal from '../components/HostPhoneCollectionModal';
+import { AvatarUploadModal, BioEditModal, KYCPromptModal } from '../components/ProfileEditModals';
+import { ProfileStepId } from '../components/ProfileCompletionWidget';
 
 // Legacy Components (to be refactored later if needed)
 import HostEarnings from '../components/HostEarnings';
@@ -72,6 +74,9 @@ const HostDashboardPage: React.FC<HostDashboardPageProps> = ({ user, listings, r
 
     // Mobile menu state
     const [showPhoneModal, setShowPhoneModal] = useState(false);
+    const [showAvatarModal, setShowAvatarModal] = useState(false);
+    const [showBioModal, setShowBioModal] = useState(false);
+    const [showKYCModal, setShowKYCModal] = useState(false);
     const [sidebarExpanded, setSidebarExpanded] = useState(false);
     const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
@@ -239,6 +244,31 @@ const HostDashboardPage: React.FC<HostDashboardPageProps> = ({ user, listings, r
         navigate(`?view=bookings&bookingId=${booking.id}`);
     };
 
+    // Handler for profile completion steps
+    const handleCompleteProfileStep = (stepId: ProfileStepId) => {
+        switch (stepId) {
+            case 'avatar':
+                setShowAvatarModal(true);
+                break;
+            case 'bio':
+                setShowBioModal(true);
+                break;
+            case 'phone':
+                setShowPhoneModal(true);
+                break;
+            case 'kyc':
+                setShowKYCModal(true);
+                break;
+            case 'email':
+                // Email is typically verified via a link sent to user's email
+                // For now, navigate to settings where they can request verification
+                setView('settings');
+                break;
+            default:
+                setView('settings');
+        }
+    };
+
     const handleStartNewListing = () => {
         if (!user.phone) {
             setShowPhoneModal(true);
@@ -274,6 +304,37 @@ const HostDashboardPage: React.FC<HostDashboardPageProps> = ({ user, listings, r
                     setEditingListing(null);
                     setView('create');
                 }}
+            />
+
+            {/* Avatar Upload Modal */}
+            <AvatarUploadModal
+                user={user}
+                isOpen={showAvatarModal}
+                onClose={() => setShowAvatarModal(false)}
+                onUpdateUser={() => {
+                    refreshData();
+                    setShowAvatarModal(false);
+                }}
+            />
+
+            {/* Bio Edit Modal */}
+            <BioEditModal
+                user={user}
+                isOpen={showBioModal}
+                onClose={() => setShowBioModal(false)}
+                onUpdateUser={() => {
+                    refreshData();
+                    setShowBioModal(false);
+                }}
+            />
+
+            {/* KYC Prompt Modal */}
+            <KYCPromptModal
+                user={user}
+                isOpen={showKYCModal}
+                onClose={() => setShowKYCModal(false)}
+                onUpdateUser={() => refreshData()}
+                onNavigateToVerify={() => setView('verify')}
             />
 
             {/* Sidebar */}
@@ -498,6 +559,7 @@ const HostDashboardPage: React.FC<HostDashboardPageProps> = ({ user, listings, r
                                     setView={setView}
                                     handleStartNewListing={handleStartNewListing}
                                     onNavigateToBooking={handleNavigateToBooking}
+                                    onCompleteProfileStep={handleCompleteProfileStep}
                                 />
                             )}
 

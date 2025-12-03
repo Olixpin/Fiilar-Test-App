@@ -325,7 +325,7 @@ const HostSettings: React.FC<HostSettingsProps> = ({ user, onUpdateUser }) => {
                     {/* Account Settings */}
                     {activeTab === 'account' && (
                         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            <div className="flex justify-between items-start border-b border-gray-100 pb-6">
+                            <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-start border-b border-gray-100 pb-6">
                                 <div>
                                     <h2 className="text-2xl font-bold text-gray-900 mb-1">Host Profile</h2>
                                     <p className="text-gray-500">Manage your public profile and account details</p>
@@ -335,16 +335,18 @@ const HostSettings: React.FC<HostSettingsProps> = ({ user, onUpdateUser }) => {
                                         onClick={() => setIsEditing(true)}
                                         variant="outline"
                                         size="sm"
+                                        className="w-full sm:w-auto"
                                     >
                                         Edit Profile
                                     </Button>
                                 ) : (
-                                    <div className="flex gap-2">
+                                    <div className="flex gap-2 w-full sm:w-auto">
                                         <Button
                                             onClick={() => setIsEditing(false)}
                                             variant="ghost"
                                             size="sm"
                                             disabled={isSaving}
+                                            className="flex-1 sm:flex-none"
                                         >
                                             Cancel
                                         </Button>
@@ -353,6 +355,7 @@ const HostSettings: React.FC<HostSettingsProps> = ({ user, onUpdateUser }) => {
                                             disabled={isSaving}
                                             variant="primary"
                                             size="sm"
+                                            className="flex-1 sm:flex-none"
                                         >
                                             {isSaving ? 'Saving...' : 'Save Changes'}
                                         </Button>
@@ -584,10 +587,9 @@ const HostSettings: React.FC<HostSettingsProps> = ({ user, onUpdateUser }) => {
 
                                 {/* Bottom Save Button - shows when editing */}
                                 {isEditing && (
-                                    <div className="sticky bottom-0 bg-white border-t border-gray-200 -mx-8 px-8 py-4 mt-8 shadow-lg rounded-b-2xl">
-                                        <div className="flex items-center justify-between">
-                                            <p className="text-sm text-gray-500">You have unsaved changes</p>
-                                            <div className="flex gap-3">
+                                    <div className="sticky bottom-0 bg-white border-t border-gray-200 -mx-4 sm:-mx-8 px-4 sm:px-8 py-3 sm:py-4 mt-8 shadow-lg rounded-b-2xl">
+                                        <div className="flex items-center justify-start sm:justify-between gap-2 sm:gap-0">
+                                            <div className="flex gap-2 sm:gap-3">
                                                 <Button
                                                     onClick={() => {
                                                         setIsEditing(false);
@@ -610,9 +612,10 @@ const HostSettings: React.FC<HostSettingsProps> = ({ user, onUpdateUser }) => {
                                                     variant="primary"
                                                     size="sm"
                                                 >
-                                                    {isSaving ? 'Saving...' : 'Save Changes'}
+                                                    {isSaving ? 'Saving...' : 'Save'}
                                                 </Button>
                                             </div>
+                                            <p className="text-sm text-gray-500 hidden sm:block">You have unsaved changes</p>
                                         </div>
                                     </div>
                                 )}

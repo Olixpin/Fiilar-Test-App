@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Booking, EscrowTransaction, Listing } from '@fiilar/types';
 import { useLocale } from '@fiilar/ui';
-import { DollarSign, TrendingUp, Clock, Calendar, Download, Filter, ChevronDown, BarChart3, PieChart } from 'lucide-react';
+import { DollarSign, TrendingUp, Clock, Calendar, Download, Filter, ChevronDown, BarChart3, PieChart, Check } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart as RePieChart, Pie, Cell } from 'recharts';
 
 interface HostEarningsProps {
@@ -15,7 +15,28 @@ const HostEarnings: React.FC<HostEarningsProps> = ({ hostBookings, transactions,
     const { locale } = useLocale();
     const [timeFilter, setTimeFilter] = useState<'7d' | '30d' | '90d' | 'all'>('30d');
     const [viewMode, setViewMode] = useState<'overview' | 'breakdown'>('overview');
+    const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+    const filterDropdownRef = useRef<HTMLDivElement>(null);
     const now = new Date();
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (filterDropdownRef.current && !filterDropdownRef.current.contains(event.target as Node)) {
+                setShowFilterDropdown(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const timeFilterOptions = [
+        { key: '7d' as const, label: '7 Days' },
+        { key: '30d' as const, label: '30 Days' },
+        { key: '90d' as const, label: '90 Days' },
+        { key: 'all' as const, label: 'All Time' }
+    ];
+
     const getFilterDate = () => {
         if (timeFilter === '7d') return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
         if (timeFilter === '30d') return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
@@ -93,27 +114,54 @@ const HostEarnings: React.FC<HostEarningsProps> = ({ hostBookings, transactions,
     return (
         <div className="space-y-6">
             {/* Header with Filters */}
-            <div className="glass-card p-4">
+            <div className="glass-card p-4 overflow-visible relative z-10">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div>
                         <h2 className="text-xl font-bold text-gray-900">Earnings Analytics</h2>
                         <p className="text-sm text-gray-500 mt-1">Track your revenue and payouts</p>
                     </div>
                     <div className="flex items-center gap-2">
-                        <button className="flex items-center gap-2 px-3 py-2 glass-button text-xs font-semibold text-gray-600 hover:text-gray-900 transition">
-                            <Filter size={14} />
-                            <span>Filter</span>
-                            <ChevronDown size={14} />
-                        </button>
-                        <div className="flex items-center gap-1 bg-white/50 rounded-lg p-1 border border-white/20">
-                            {[{ key: '7d', label: '7D' }, { key: '30d', label: '30D' }, { key: '90d', label: '90D' }, { key: 'all', label: 'All' }].map(filter => (
+                        {/* Mobile: Filter dropdown with time options */}
+                        <div className="relative sm:hidden" ref={filterDropdownRef}>
+                            <button 
+                                onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+                                className="flex items-center gap-2 px-3 py-2 glass-button text-xs font-semibold text-gray-600 hover:text-gray-900 transition"
+                            >
+                                <Filter size={14} />
+                                <span>{timeFilterOptions.find(f => f.key === timeFilter)?.label || 'Filter'}</span>
+                                <ChevronDown size={14} className={`transition-transform ${showFilterDropdown ? 'rotate-180' : ''}`} />
+                            </button>
+                            {showFilterDropdown && (
+                                <div className="absolute left-0 top-full mt-2 bg-white rounded-xl shadow-2xl border border-gray-200 py-2 z-50 min-w-[160px]">
+                                    {timeFilterOptions.map(filter => (
+                                        <button
+                                            key={filter.key}
+                                            onClick={() => {
+                                                setTimeFilter(filter.key);
+                                                setShowFilterDropdown(false);
+                                            }}
+                                            className={`w-full flex items-center justify-between px-4 py-2.5 text-sm hover:bg-gray-50 ${
+                                                timeFilter === filter.key ? 'text-gray-900 font-medium' : 'text-gray-600'
+                                            }`}
+                                        >
+                                            <span>{filter.label}</span>
+                                            {timeFilter === filter.key && <Check size={16} className="text-brand-600" />}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Desktop: Inline time filter buttons */}
+                        <div className="hidden sm:flex items-center gap-1 bg-white/50 rounded-lg p-1 border border-white/20">
+                            {timeFilterOptions.map(filter => (
                                 <button
                                     key={filter.key}
-                                    onClick={() => setTimeFilter(filter.key as any)}
+                                    onClick={() => setTimeFilter(filter.key)}
                                     className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${timeFilter === filter.key ? 'bg-white shadow-sm text-gray-900' : 'text-gray-600 hover:text-gray-900'
                                         }`}
                                 >
-                                    {filter.label}
+                                    {filter.key === 'all' ? 'All' : filter.key.toUpperCase()}
                                 </button>
                             ))}
                         </div>
@@ -121,7 +169,7 @@ const HostEarnings: React.FC<HostEarningsProps> = ({ hostBookings, transactions,
                             onClick={exportCSV}
                             className="flex items-center gap-2 px-3 py-2 bg-gray-900 text-white rounded-lg text-xs font-semibold hover:bg-black transition shadow-lg shadow-gray-900/20"
                         >
-                            <Download size={14} /> Export
+                            <Download size={14} /> <span className="hidden sm:inline">Export</span>
                         </button>
                     </div>
                 </div>

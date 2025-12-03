@@ -3,16 +3,35 @@ import { User } from '@fiilar/types';
 import { ArrowRight, User as UserIcon, FileText, Mail, Phone, ShieldCheck, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@fiilar/ui';
 
+export type ProfileStepId = 'avatar' | 'bio' | 'email' | 'phone' | 'kyc';
+
 interface ProfileCompletionWidgetProps {
     user: User;
     onCompleteProfile: () => void;
+    onCompleteStep?: (stepId: ProfileStepId) => void;
 }
 
-const ProfileCompletionWidget: React.FC<ProfileCompletionWidgetProps> = ({ user, onCompleteProfile }) => {
+const ProfileCompletionWidget: React.FC<ProfileCompletionWidgetProps> = ({ user, onCompleteProfile, onCompleteStep }) => {
     const [showAllSteps, setShowAllSteps] = useState(false);
     
+    const handleStepClick = (stepId: ProfileStepId) => {
+        if (onCompleteStep) {
+            onCompleteStep(stepId);
+        } else {
+            // Fallback to generic handler
+            onCompleteProfile();
+        }
+    };
+    
     const completion = useMemo(() => {
-        const steps = [
+        const steps: Array<{
+            id: ProfileStepId;
+            label: string;
+            description: string;
+            isCompleted: boolean;
+            icon: typeof UserIcon;
+            weight: number;
+        }> = [
             {
                 id: 'avatar',
                 label: 'Profile Picture',
@@ -145,7 +164,7 @@ const ProfileCompletionWidget: React.FC<ProfileCompletionWidgetProps> = ({ user,
                             return (
                                 <div 
                                     key={step.id}
-                                    onClick={isClickable ? onCompleteProfile : undefined}
+                                    onClick={isClickable ? () => handleStepClick(step.id) : undefined}
                                     className={`flex items-center gap-3 p-3 rounded-lg transition-all ${
                                         step.isCompleted 
                                             ? 'bg-green-50 border border-green-100' 
@@ -181,7 +200,7 @@ const ProfileCompletionWidget: React.FC<ProfileCompletionWidgetProps> = ({ user,
 
             {/* Next Step Action - Only show when steps are collapsed */}
             {!showAllSteps && completion.nextStep && (
-                <div className="bg-brand-50 border border-brand-100 rounded-xl p-4 flex items-center justify-between group cursor-pointer hover:bg-brand-100 transition-colors" onClick={onCompleteProfile}>
+                <div className="bg-brand-50 border border-brand-100 rounded-xl p-4 flex items-center justify-between group cursor-pointer hover:bg-brand-100 transition-colors" onClick={() => handleStepClick(completion.nextStep!.id)}>
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-brand-600 shadow-sm">
                             <completion.nextStep.icon size={20} />

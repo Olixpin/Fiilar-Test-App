@@ -116,27 +116,32 @@ const HostPhoneCollectionModal: React.FC<HostPhoneCollectionModalProps> = ({ use
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md animate-in fade-in duration-300">
-            <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-300 relative border border-white/20">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-black/40 backdrop-blur-md animate-in fade-in duration-300">
+            <div className="bg-white rounded-t-[32px] sm:rounded-[32px] shadow-2xl w-full sm:max-w-lg h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom sm:zoom-in-95 duration-300 relative border border-white/20">
+                {/* Drag indicator for mobile */}
+                <div className="sm:hidden flex justify-center pt-3 pb-1">
+                    <div className="w-10 h-1 bg-gray-300 rounded-full" />
+                </div>
+                
                 <button
                     onClick={onClose}
                     aria-label="Close modal"
-                    className="absolute top-6 right-6 p-2 hover:bg-gray-50 rounded-full transition-colors text-gray-400 hover:text-gray-900 z-10"
+                    className="absolute top-4 sm:top-6 right-4 sm:right-6 p-2 hover:bg-gray-50 rounded-full transition-colors text-gray-400 hover:text-gray-900 z-10"
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
                 </button>
 
-                <div className="p-10 pt-12">
-                    <div className="flex flex-col items-start text-left mb-10">
-                        <div className="w-12 h-12 rounded-full bg-brand-50 flex items-center justify-center mb-6">
+                <div className="p-6 sm:p-10 pt-6 sm:pt-12 pb-safe">
+                    <div className="flex flex-col items-start text-left mb-6 sm:mb-10">
+                        <div className="w-12 h-12 rounded-full bg-brand-50 flex items-center justify-center mb-4 sm:mb-6">
                             <Phone className="text-brand-600" size={24} />
                         </div>
-                        <h2 className="text-3xl font-bold text-gray-900 tracking-tight mb-3">Add your phone number</h2>
-                        <p className="text-lg text-gray-500 leading-relaxed">To ensure safety and trust, we need to verify your phone number before you can submit a listing for approval.</p>
+                        <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight mb-2 sm:mb-3">Add your phone number</h2>
+                        <p className="text-base sm:text-lg text-gray-500 leading-relaxed">To ensure safety and trust, we need to verify your phone number before you can submit a listing for approval.</p>
                     </div>
 
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 sm:space-y-8">
                             <FormField
                                 control={form.control}
                                 name="phone"
@@ -160,15 +165,17 @@ const HostPhoneCollectionModal: React.FC<HostPhoneCollectionModalProps> = ({ use
                                 <p>This info is private and only shared with confirmed guests.</p>
                             </div>
 
-                            <Button
-                                type="submit"
-                                variant="primary"
-                                size="lg"
-                                className="w-full h-12 text-base shadow-lg shadow-brand-600/20 hover:shadow-brand-600/30 transition-all"
-                                isLoading={isSubmitting}
-                            >
-                                Save & Continue
-                            </Button>
+                            <div className="pb-6 sm:pb-0">
+                                <Button
+                                    type="submit"
+                                    variant="primary"
+                                    size="lg"
+                                    className="w-full h-12 text-base shadow-lg shadow-brand-600/20 hover:shadow-brand-600/30 transition-all"
+                                    isLoading={isSubmitting}
+                                >
+                                    Save & Continue
+                                </Button>
+                            </div>
                         </form>
                     </Form>
                 </div>
