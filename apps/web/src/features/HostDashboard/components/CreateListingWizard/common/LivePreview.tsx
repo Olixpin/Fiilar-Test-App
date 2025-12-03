@@ -247,11 +247,10 @@ const LivePreview: React.FC<LivePreviewProps> = ({ listing }) => {
                 <div className="mt-4 p-3 bg-white rounded-xl">
                     <p className="text-xs font-medium text-gray-500 mb-2">Completion</p>
                     <div className="space-y-1.5">
-                        <ProgressItem label="Basic info" done={!!listing.type && !!listing.location} />
-                        <ProgressItem label="Photos" done={hasImages} />
+                        <ProgressItem label="Basic info" done={!!listing.type && !!listing.location && listing.location.trim().length > 0 && !!listing.address && listing.address.trim().length > 0} />
+                        <ProgressItem label="Photos" done={hasImages && listing.images!.length >= 5} />
                         <ProgressItem label="Pricing" done={hasPricingModel && hasPrice} />
-                        <ProgressItem label="Description" done={!!listing.title && !!listing.description} />
-                        <ProgressItem label="Policies" done={hasCancellationPolicy || hasHouseRules} />
+                        <ProgressItem label="Description" done={!!listing.title && listing.title.trim().length >= 5 && !!listing.description && listing.description.trim().length >= 20} />
                     </div>
                 </div>
             </div>

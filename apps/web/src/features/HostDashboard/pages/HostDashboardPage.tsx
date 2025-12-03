@@ -480,14 +480,14 @@ const HostDashboardPage: React.FC<HostDashboardPageProps> = ({ user, listings, r
                     "flex-1 overflow-y-auto",
                     view === 'create' || view === 'edit'
                         ? "" // No extra padding for wizard
-                        : "px-4 lg:px-8 pb-24 lg:pb-8"
+                        : "px-0 lg:px-8 pb-24 lg:pb-8"
                 )}>
                     <div className="lg:max-w-[1600px] lg:mx-auto">
                         <div className={cn(
                             "mx-0 lg:mx-0",
                             view === 'create' || view === 'edit'
                                 ? "" // No box styling for wizard
-                                : "min-h-full bg-white rounded-t-[32px] lg:rounded-3xl shadow-xl shadow-gray-200/50 px-4 sm:px-6 lg:px-8 py-8"
+                                : "min-h-full bg-white rounded-t-0 lg:rounded-3xl shadow-xl shadow-gray-200/50 px-4 sm:px-6 lg:px-8 py-8"
                         )}>
 
                             {view === 'overview' && (
