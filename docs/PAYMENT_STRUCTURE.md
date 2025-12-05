@@ -429,8 +429,4 @@ const calculateHostPayout = (
 
 ---
 
-## Change Log
-
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0 | Dec 5, 2025 | Initial documentation |
+*For version history, see [CHANGELOG.md](/CHANGELOG.md)*
