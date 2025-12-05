@@ -64,7 +64,7 @@ const CreateListingWizardV2: React.FC<CreateListingWizardProps> = ({
 
     // Auto-save visibility state - show briefly after save, then fade
     const [showSaveStatus, setShowSaveStatus] = React.useState(false);
-    const mainContentRef = React.useRef<HTMLElement | null>(null);
+    const mainContentRef = React.useRef<HTMLDivElement>(null);
     
     React.useEffect(() => {
         if (lastSaved) {
@@ -75,36 +75,36 @@ const CreateListingWizardV2: React.FC<CreateListingWizardProps> = ({
     }, [lastSaved]);
 
     // Scroll to top when step changes
-    React.useLayoutEffect(() => {
+    React.useEffect(() => {
+        // Immediate scroll attempt
         const scrollToTop = () => {
-            const container = mainContentRef.current;
-            if (container) {
-                container.scrollTop = 0;
-                container.scrollTo({ top: 0, behavior: 'auto' });
+            // 1. Scroll the PARENT dashboard main container (this is the actual scrollable element)
+            const dashboardMain = document.getElementById('host-dashboard-main');
+            if (dashboardMain) {
+                dashboardMain.scrollTop = 0;
             }
-
-            window.scrollTo({ top: 0, behavior: 'auto' });
-            document.documentElement.scrollTop = 0;
-            document.body.scrollTop = 0;
+            
+            // 2. Using ref for wizard's own main
+            if (mainContentRef.current) {
+                mainContentRef.current.scrollTop = 0;
+            }
+            
+            // 3. Scroll window for mobile
+            window.scrollTo(0, 0);
         };
-
-        // Run on next animation frame to ensure content has rendered
-        const frame = requestAnimationFrame(scrollToTop);
-        return () => cancelAnimationFrame(frame);
+        
+        // Run immediately
+        scrollToTop();
+        
+        // Also run after a small delay to catch any async rendering
+        const timer = setTimeout(scrollToTop, 50);
+        
+        return () => clearTimeout(timer);
     }, [step]);
 
     // Navigation handlers
     const goToStep = (targetStep: number) => {
         if (targetStep >= 1 && targetStep <= TOTAL_STEPS) {
-            const container = mainContentRef.current;
-            if (container) {
-                container.scrollTop = 0;
-                container.scrollTo({ top: 0, behavior: 'auto' });
-            }
-            window.scrollTo({ top: 0, behavior: 'auto' });
-            document.documentElement.scrollTop = 0;
-            document.body.scrollTop = 0;
-
             setStep(targetStep);
         }
     };
@@ -442,7 +442,11 @@ const CreateListingWizardV2: React.FC<CreateListingWizardProps> = ({
             <div className="flex-1 flex overflow-hidden">
                 {/* Left Side - Form */}
                 <div className="flex-1 flex flex-col lg:w-1/2 overflow-hidden">
-                    <main ref={mainContentRef} className="flex-1 overflow-y-auto pb-32 sm:pb-24">
+                    <main 
+                        ref={mainContentRef} 
+                        id="wizard-main-content"
+                        className="flex-1 overflow-y-auto pb-32 sm:pb-24"
+                    >
                         <div key={step}>
                             {renderStep()}
                         </div>

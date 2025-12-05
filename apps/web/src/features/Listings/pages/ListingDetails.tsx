@@ -98,6 +98,8 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
   
   useEffect(() => {
     hideBottomNav();
+    // Scroll to top when listing page opens
+    window.scrollTo(0, 0);
     return () => showBottomNav();
   }, [hideBottomNav, showBottomNav]);
 
@@ -146,7 +148,8 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
       {/* Top Navigation (Floating) */}
       <div className={cn(
         "fixed top-0 left-0 w-full z-50 p-4 sm:p-6 flex justify-between items-start pointer-events-none transition-opacity duration-300",
-        (showTopNav && !showMobileBookingModal) ? "opacity-100" : "opacity-0"
+        (showTopNav && !showMobileBookingModal) ? "opacity-100" : "opacity-0",
+        showMobileBookingModal && "hidden"
       )}>
         <button
           onClick={onBack}
@@ -176,7 +179,8 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
       {/* Mobile Sticky Header (Appears on scroll) */}
       <div className={cn(
         "fixed top-0 left-0 w-full z-[60] bg-white/95 backdrop-blur-md border-b border-gray-200 px-4 py-3 flex items-center justify-between transition-all duration-300 lg:hidden shadow-sm",
-        (!showTopNav && !showMobileBookingModal) ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0"
+        (!showTopNav && !showMobileBookingModal) ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0 pointer-events-none",
+        showMobileBookingModal && "hidden"
       )}>
         <div className="flex items-center gap-3 overflow-hidden">
           <button
@@ -256,7 +260,7 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
             <div className="lg:col-span-8 space-y-12">
 
               {/* Title & Header moved here */}
-              <div id="overview" className="scroll-mt-32">
+              <div id="overview" className="scroll-mt-28 lg:scroll-mt-20">
                 <ListingHeader listing={listing} hasActiveBooking={showFullAddress} />
               </div>
 
@@ -269,21 +273,21 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
                 <HostProfileCard listing={listing} host={host} handleContactHost={handleContactHost} />
               </div>
 
-              <div id="amenities" className="border-b border-gray-100 pb-10 scroll-mt-32">
+              <div id="amenities" className="border-b border-gray-100 pb-10 scroll-mt-28 lg:scroll-mt-20">
                 <ListingAmenities listing={listing} />
                 <ListingAccessInfo listing={listing} isHost={isHost} hasConfirmedBooking={hasActiveBooking} />
               </div>
 
-              <div id="reviews" className="border-b border-gray-100 pb-10 scroll-mt-32">
+              <div id="reviews" className="border-b border-gray-100 pb-10 scroll-mt-28 lg:scroll-mt-20">
                 <ListingReviews listing={listing} onShowAllReviews={() => setShowReviewsModal(true)} />
               </div>
 
-              <div id="policies" className="scroll-mt-32">
+              <div id="policies" className="scroll-mt-28 lg:scroll-mt-20">
                 <ListingPolicies listing={listing} />
               </div>
 
               {/* Mobile Location Section - Bottom */}
-              <div id="location-mobile" className="lg:hidden pt-8 border-t border-gray-100">
+              <div id="location-mobile" className="lg:hidden pt-8 border-t border-gray-100 scroll-mt-28">
                 <LocationPreviewCard />
               </div>
             </div>

@@ -9,9 +9,9 @@ interface Section {
 const SECTIONS: Section[] = [
     { id: 'overview', label: 'Overview' },
     { id: 'amenities', label: 'Amenities' },
-    { id: 'access-info', label: 'Access Info' },
     { id: 'reviews', label: 'Reviews' },
-    { id: 'policies', label: 'Policies' }
+    { id: 'policies', label: 'Policies' },
+    { id: 'location-mobile', label: 'Location' }
 ];
 
 export const SectionNav: React.FC = () => {
@@ -49,13 +49,10 @@ export const SectionNav: React.FC = () => {
     const scrollToSection = (id: string) => {
         const element = document.getElementById(id);
         if (element) {
-            const offset = 120; // Height of nav + buffer (increased from 80)
-            const elementPosition = element.getBoundingClientRect().top;
-            const offsetPosition = elementPosition + window.pageYOffset - offset;
-
-            window.scrollTo({
-                top: offsetPosition,
-                behavior: 'smooth'
+            // Use scrollIntoView with scroll-margin-top handling via CSS
+            element.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'start'
             });
             setActiveSection(id);
         }

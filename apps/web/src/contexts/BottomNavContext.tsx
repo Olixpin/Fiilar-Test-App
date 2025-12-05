@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 
 interface BottomNavContextType {
     isBottomNavVisible: boolean;
@@ -11,8 +11,8 @@ const BottomNavContext = createContext<BottomNavContextType | undefined>(undefin
 export const BottomNavProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [isBottomNavVisible, setIsBottomNavVisible] = useState(true);
 
-    const hideBottomNav = () => setIsBottomNavVisible(false);
-    const showBottomNav = () => setIsBottomNavVisible(true);
+    const hideBottomNav = useCallback(() => setIsBottomNavVisible(false), []);
+    const showBottomNav = useCallback(() => setIsBottomNavVisible(true), []);
 
     return (
         <BottomNavContext.Provider value={{ isBottomNavVisible, hideBottomNav, showBottomNav }}>

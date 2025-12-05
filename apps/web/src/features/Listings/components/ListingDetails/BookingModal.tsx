@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Listing, User } from '@fiilar/types';
 import { Star, Minus, Plus, Calendar as CalendarIcon, CheckCircle, Repeat, X, Info } from 'lucide-react';
 import { formatCurrency } from '../../../../utils/currency';
@@ -6,7 +6,6 @@ import { getAverageRating, getReviews } from '@fiilar/reviews';
 import { ListingCalendar } from '@fiilar/calendar';
 import { Button } from '@fiilar/ui';
 import { useScrollLock } from '../../../../hooks/useScrollLock';
-import { useBottomNav } from '../../../../contexts/BottomNavContext';
 
 interface BookingModalProps {
     isOpen: boolean;
@@ -82,18 +81,6 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     setSelectedHours
 }) => {
     useScrollLock(isOpen);
-    const { hideBottomNav, showBottomNav } = useBottomNav();
-    
-    // Hide bottom nav when modal opens, show when it closes
-    useEffect(() => {
-        if (isOpen) {
-            hideBottomNav();
-        } else {
-            showBottomNav();
-        }
-        // Cleanup: ensure bottom nav is shown when component unmounts
-        return () => showBottomNav();
-    }, [isOpen, hideBottomNav, showBottomNav]);
     
     // Guest selection state - must be at component level, not inside IIFE
     const maxGuests = listing.maxGuests ?? listing.capacity ?? 10;
@@ -103,14 +90,14 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 md:flex md:items-center md:justify-center md:p-6">
+        <div className="fixed inset-0 z-[100] md:flex md:items-center md:justify-center md:p-6">
             <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose}></div>
             
             {/* Modal Container - Full screen on mobile, centered card on desktop */}
             <div className="absolute inset-0 md:relative md:inset-auto bg-white md:rounded-2xl shadow-2xl w-full md:max-w-4xl md:max-h-[90vh] flex flex-col animate-in slide-in-from-bottom md:fade-in md:zoom-in-95 duration-200 overflow-hidden">
 
                 {/* Mobile Header - Fixed */}
-                <div className="md:hidden shrink-0 bg-white border-b border-gray-100">
+                <div className="md:hidden shrink-0 bg-white border-b border-gray-100 relative z-10">
                     {/* Drag Handle */}
                     <div className="flex justify-center pt-3 pb-2">
                         <div className="w-12 h-1.5 bg-gray-300 rounded-full"></div>
@@ -119,10 +106,15 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                     <div className="flex items-center justify-between px-4 pb-3">
                         <h2 className="text-lg font-bold text-gray-900">Complete your booking</h2>
                         <button
-                            onClick={onClose}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                onClose();
+                            }}
+                            type="button"
                             title="Close modal"
                             aria-label="Close modal"
-                            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                            className="p-2 hover:bg-gray-100 rounded-full transition-colors active:bg-gray-200 touch-manipulation"
                         >
                             <X size={20} className="text-gray-500" />
                         </button>
@@ -748,20 +740,20 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                     </div>
                 </div>
 
-                {/* Mobile Sticky Footer - Always visible */}
-                <div className="md:hidden shrink-0 border-t border-gray-200 bg-white px-4 pt-4 pb-6" style={{ paddingBottom: 'max(24px, env(safe-area-inset-bottom))' }}>
-                    <div className="flex items-center justify-between mb-4">
-                        <div>
-                            <p className="text-[10px] text-gray-500 uppercase tracking-wide font-medium">TOTAL</p>
-                            <p className="text-2xl font-bold text-gray-900">{formatCurrency(fees.total)}</p>
+                {/* Mobile Sticky Footer - Matches listing page footer style */}
+                <div className="md:hidden shrink-0 border-t border-gray-200 bg-white p-4 flex justify-between items-center shadow-[0_-4px_20px_rgba(0,0,0,0.08)]" style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
+                    <div className="flex flex-col">
+                        <div className="flex items-baseline gap-1">
+                            <span className="text-xl font-bold text-gray-900">{formatCurrency(fees.total)}</span>
+                            <span className="text-sm text-gray-500">total</span>
                         </div>
                         <button
                             onClick={() => {
                                 document.getElementById('price-breakdown')?.scrollIntoView({ behavior: 'smooth' });
                             }}
-                            className="text-sm font-medium text-brand-600 hover:text-brand-700 underline underline-offset-2"
+                            className="text-xs text-gray-500 underline cursor-pointer hover:text-gray-900 transition-colors text-left"
                         >
-                            Price details
+                            Show price breakdown
                         </button>
                     </div>
                     <Button
@@ -769,7 +761,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                         disabled={isHost || (isHourly && hostOpenHours.length === 0) || isBookingLoading || bookingSeries.some(s => s.status !== 'AVAILABLE')}
                         variant="primary"
                         size="lg"
-                        className="w-full h-14 text-base font-bold rounded-2xl shadow-lg shadow-brand-500/25"
+                        className="px-6 py-3 rounded-xl font-bold text-base shadow-lg shadow-brand-500/30"
                         isLoading={isBookingLoading}
                     >
                         {!isBookingLoading && (
