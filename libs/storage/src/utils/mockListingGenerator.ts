@@ -113,8 +113,8 @@ const INTERNATIONAL_LOCATIONS = [
 
 const ALL_LOCATIONS = [...LAGOS_LOCATIONS, ...ABUJA_LOCATIONS, ...PH_LOCATIONS, ...INTERNATIONAL_LOCATIONS];
 
-// Title templates by space type
-const TITLE_TEMPLATES: Record<SpaceType, string[]> = {
+// Title templates by space type (only defining supported types)
+const TITLE_TEMPLATES: Partial<Record<SpaceType, string[]>> = {
   [SpaceType.STUDIO]: [
     'Daylight Photo Studio',
     'Creative Photography Space',
@@ -229,8 +229,8 @@ const DESCRIPTION_PARTS = {
   ],
 };
 
-// Amenities by type
-const AMENITIES_BY_TYPE: Record<SpaceType, Array<{ name: string; icon: string }>> = {
+// Amenities by type (only defining supported types)
+const AMENITIES_BY_TYPE: Partial<Record<SpaceType, Array<{ name: string; icon: string }>>> = {
   [SpaceType.STUDIO]: [
     { name: 'Wifi', icon: 'Wifi' },
     { name: 'Lighting Kit', icon: 'Sun' },
@@ -281,8 +281,8 @@ const AMENITIES_BY_TYPE: Record<SpaceType, Array<{ name: string; icon: string }>
   ],
 };
 
-// Add-ons by type
-const ADDONS_BY_TYPE: Record<SpaceType, Array<{ id: string; name: string; price: number; description: string }>> = {
+// Add-ons by type (only defining supported types)
+const ADDONS_BY_TYPE: Partial<Record<SpaceType, Array<{ id: string; name: string; price: number; description: string }>>> = {
   [SpaceType.STUDIO]: [
     { id: 'studio1', name: 'Lighting Kit', price: 5000, description: 'Professional lights' },
     { id: 'studio2', name: 'Backdrop Setup', price: 3000, description: 'Various colors available' },
@@ -316,7 +316,7 @@ const ADDONS_BY_TYPE: Record<SpaceType, Array<{ id: string; name: string; price:
 };
 
 // Price ranges by type (in local currency - Naira for Nigeria)
-const PRICE_RANGES: Record<SpaceType, { min: number; max: number; isHourly: boolean }> = {
+const PRICE_RANGES: Partial<Record<SpaceType, { min: number; max: number; isHourly: boolean }>> = {
   [SpaceType.STUDIO]: { min: 5000, max: 50000, isHourly: true },
   [SpaceType.APARTMENT]: { min: 30000, max: 300000, isHourly: false },
   [SpaceType.CONFERENCE]: { min: 10000, max: 80000, isHourly: true },
@@ -325,8 +325,8 @@ const PRICE_RANGES: Record<SpaceType, { min: number; max: number; isHourly: bool
   [SpaceType.OPEN_SPACE]: { min: 10000, max: 100000, isHourly: true },
 };
 
-// Capacity ranges by type
-const CAPACITY_RANGES: Record<SpaceType, { min: number; max: number }> = {
+// Capacity ranges by type (only defining supported types)
+const CAPACITY_RANGES: Partial<Record<SpaceType, { min: number; max: number }>> = {
   [SpaceType.STUDIO]: { min: 4, max: 20 },
   [SpaceType.APARTMENT]: { min: 2, max: 12 },
   [SpaceType.CONFERENCE]: { min: 6, max: 30 },
@@ -375,11 +375,11 @@ const generateAvailability = (): Record<string, number[]> => {
 };
 
 const generateDescription = (type: SpaceType): string => {
-  const intro = randomFromArray(DESCRIPTION_PARTS.intro);
-  const features = randomFromArray(DESCRIPTION_PARTS.features);
-  const closing = randomFromArray(DESCRIPTION_PARTS.closing);
+  const intro = randomFromArray(DESCRIPTION_PARTS.intro) || 'A stunning space perfect for';
+  const features = randomFromArray(DESCRIPTION_PARTS.features) || 'Features modern amenities.';
+  const closing = randomFromArray(DESCRIPTION_PARTS.closing) || 'Book now.';
   
-  const typeDescriptions: Record<SpaceType, string> = {
+  const typeDescriptions: Partial<Record<SpaceType, string>> = {
     [SpaceType.STUDIO]: 'photography, video production, and creative sessions',
     [SpaceType.APARTMENT]: 'lifestyle shoots, short stays, and content creation',
     [SpaceType.CONFERENCE]: 'meetings, presentations, and corporate events',
@@ -388,7 +388,8 @@ const generateDescription = (type: SpaceType): string => {
     [SpaceType.OPEN_SPACE]: 'outdoor events, yoga, and intimate gatherings',
   };
   
-  return `${intro} ${typeDescriptions[type]}. ${features} ${closing}`;
+  const typeDesc = typeDescriptions[type] || 'various activities';
+  return `${intro} ${typeDesc}. ${features} ${closing}`;
 };
 
 /**
@@ -406,17 +407,29 @@ const generateListing = (id: string, hostId: string): Listing => {
   ];
   const type = randomFromArray(supportedSpaceTypes) || SpaceType.STUDIO;
   const location = randomFromArray(ALL_LOCATIONS) || 'Lagos, Nigeria';
-  const titles = TITLE_TEMPLATES[type] || TITLE_TEMPLATES[SpaceType.STUDIO];
+  const titles = TITLE_TEMPLATES[type] || TITLE_TEMPLATES[SpaceType.STUDIO] || [];
   const title = `${randomFromArray(titles) || 'Premium Space'} - ${location.split(',')[0]}`;
   
-  const priceConfig = PRICE_RANGES[type] || PRICE_RANGES[SpaceType.STUDIO];
+  // Provide defaults for configs since Partial<Record> can return undefined
+  const defaultPriceConfig = { min: 5000, max: 50000, isHourly: true };
+  const defaultCapacityConfig = { min: 4, max: 20 };
+  
+  const priceConfig = PRICE_RANGES[type] || defaultPriceConfig;
   const price = randomInt(priceConfig.min, priceConfig.max);
   const priceUnit = priceConfig.isHourly ? BookingType.HOURLY : BookingType.DAILY;
   const pricingModel = priceConfig.isHourly ? PricingModel.HOURLY : PricingModel.NIGHTLY;
   
-  const capacityConfig = CAPACITY_RANGES[type] || CAPACITY_RANGES[SpaceType.STUDIO];
+  const capacityConfig = CAPACITY_RANGES[type] || defaultCapacityConfig;
   const capacity = randomInt(capacityConfig.min, capacityConfig.max);
-  const includedGuests = Math.max(1, Math.floor(capacity * randomFloat(0.3, 0.7)));
+  
+  // New "max is max" model: maxGuests = base capacity, all included in price
+  const maxGuests = capacity;
+  // ~60% of listings allow extra guests for variety
+  const allowExtraGuests = Math.random() > 0.4;
+  // Extra guest limit is up to 50% of maxGuests
+  const extraGuestLimit = allowExtraGuests ? Math.max(1, Math.ceil(maxGuests * randomFloat(0.2, 0.5))) : 0;
+  // Extra guest fee: ₦500 minimum, typically 5-15% of base price
+  const extraGuestFee = allowExtraGuests ? Math.max(500, Math.round(price * randomFloat(0.05, 0.15))) : 0;
   
   const allAmenities = AMENITIES_BY_TYPE[type] || AMENITIES_BY_TYPE[SpaceType.STUDIO] || [];
   const numAmenities = allAmenities.length > 0 ? randomInt(3, Math.min(6, allAmenities.length)) : 0;
@@ -466,12 +479,12 @@ const generateListing = (id: string, hostId: string): Listing => {
   const bookingConfig = priceConfig.isHourly
     ? {
         operatingHours: { start: '09:00', end: '18:00' },
-        bufferMinutes: randomFromArray([15, 30, 45, 60]),
-        minHoursBooking: randomFromArray([1, 2, 3, 4]),
+        bufferMinutes: randomFromArray([15, 30, 45, 60]) ?? 30,
+        minHoursBooking: randomFromArray([1, 2, 3, 4]) ?? 1,
       }
     : {
-        checkInTime: randomFromArray(['12:00', '14:00', '15:00', '16:00']),
-        checkOutTime: randomFromArray(['10:00', '11:00', '12:00']),
+        checkInTime: randomFromArray(['12:00', '14:00', '15:00', '16:00']) ?? '14:00',
+        checkOutTime: randomFromArray(['10:00', '11:00', '12:00']) ?? '11:00',
         allowLateCheckout: Math.random() > 0.7,
       };
   
@@ -498,13 +511,19 @@ const generateListing = (id: string, hostId: string): Listing => {
     availability: generateAvailability(),
     settings: {
       allowRecurring: Math.random() > 0.3,
-      minDuration: randomFromArray([1, 2, 3, 4]),
+      minDuration: randomFromArray([1, 2, 3, 4]) ?? 1,
       instantBook: isInstantBook,
     },
     approvalTime: isInstantBook ? undefined : randomFromArray(approvalTimes),
+    // New "max is max" guest model
+    maxGuests,
+    allowExtraGuests,
+    extraGuestLimit,
+    extraGuestFee,
+    // Legacy fields for backward compatibility
     capacity,
-    includedGuests,
-    pricePerExtraGuest: Math.round(price * randomFloat(0.05, 0.15)),
+    includedGuests: maxGuests, // In new model, all base guests are included
+    pricePerExtraGuest: extraGuestFee, // Legacy field name
     cautionFee: Math.round(price * randomFloat(0.1, 0.5)),
     addOns,
     amenities,
@@ -552,10 +571,10 @@ export const generateMockReviews = (listings: Listing[]): Review[] => {
       reviews.push({
         id: `review-${listing.id}-${i}`,
         listingId: listing.id,
-        userId: randomFromArray(userIds),
+        userId: randomFromArray(userIds) ?? 'user_123',
         bookingId: `booking-${listing.id}-${i}`,
         rating: randomInt(3, 5), // Mostly positive reviews
-        comment: randomFromArray(REVIEW_COMMENTS),
+        comment: randomFromArray(REVIEW_COMMENTS) ?? 'Great space!',
         createdAt: new Date(Date.now() - randomInt(0, 30) * 86400000).toISOString() // Past 30 days
       });
     }
@@ -575,7 +594,7 @@ export const generateMockListings = (count: number = 200, startId: number = 100)
   
   for (let i = 0; i < count; i++) {
     const id = `generated-${startId + i}`;
-    const hostId = randomFromArray(hostIds);
+    const hostId = randomFromArray(hostIds) ?? 'host_123';
     listings.push(generateListing(id, hostId));
   }
   

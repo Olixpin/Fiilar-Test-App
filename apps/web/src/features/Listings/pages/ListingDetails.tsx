@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { cn } from '@fiilar/utils';
 import { Listing, BookingType, Booking, User, PricingModel } from '@fiilar/types';
 import { ArrowLeft, Share, Heart } from 'lucide-react';
+import { useBottomNav } from '../../../contexts/BottomNavContext';
 import { PriceBreakdownModal } from '../components/ListingDetails/PriceBreakdownModal';
 import { SectionNav } from '../components/ListingDetails/SectionNav';
 import ShareModal from '../components/ShareModal';
@@ -91,6 +92,14 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
     handleDiscardBookingDraft,
     formatDraftAge
   } = useListingDetails({ listing, user, onBook, onVerify, onLogin, onRefreshUser });
+
+  // Hide bottom nav on mobile when viewing listing details
+  const { hideBottomNav, showBottomNav } = useBottomNav();
+  
+  useEffect(() => {
+    hideBottomNav();
+    return () => showBottomNav();
+  }, [hideBottomNav, showBottomNav]);
 
   // Host should always see the address
   const isHost = user?.id === listing.hostId;
@@ -287,7 +296,7 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
         </div>
 
         {/* Floating Action Bar (Mobile Only) */}
-        <div className={`fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 pb-safe lg:hidden z-40 flex justify-between items-center shadow-[0_-4px_20px_rgba(0,0,0,0.05)] transition-transform duration-300 ${showMobileBookingModal ? 'translate-y-full' : 'translate-y-0'}`}>
+        <div className={`fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 pb-safe lg:hidden z-50 flex justify-between items-center shadow-[0_-4px_20px_rgba(0,0,0,0.08)] transition-transform duration-300 ${showMobileBookingModal ? 'translate-y-full opacity-0' : 'translate-y-0 opacity-100'}`}>
           <div className="flex flex-col">
             <div className="flex items-baseline gap-1">
               <span className="text-xl font-bold text-gray-900">{formatCurrency(listing.price)}</span>

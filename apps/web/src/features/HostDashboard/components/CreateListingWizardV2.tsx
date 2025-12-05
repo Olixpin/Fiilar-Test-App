@@ -1,6 +1,6 @@
 import React from 'react';
 import { Listing, User, Booking } from '@fiilar/types';
-import { ConfirmDialog } from '@fiilar/ui';
+import { ConfirmDialog, useToast } from '@fiilar/ui';
 import { ArrowLeft, X, Home, Camera, DollarSign, Shield, Rocket, Check, Cloud } from 'lucide-react';
 import { useListingForm } from '../hooks/useListingForm';
 import LivePreview from './CreateListingWizard/common/LivePreview';
@@ -49,6 +49,7 @@ const TOTAL_STEPS = 17;
 const CreateListingWizardV2: React.FC<CreateListingWizardProps> = ({
     user, listings, activeBookings, editingListing, setView, refreshData, onCreateListing, onUpdateListing
 }) => {
+    const { showToast } = useToast();
     const {
         newListing, setNewListing, step, setStep,
         aiPrompt, setAiPrompt, isAiGenerating, handleAiAutoFill,
@@ -130,7 +131,11 @@ const CreateListingWizardV2: React.FC<CreateListingWizardProps> = ({
             case 8: // Pricing Model
                 return !!newListing.pricingModel;
             case 9: // Set Price
-                return (newListing.price ?? 0) > 0;
+                // Must have price AND if extra guests enabled, must have fee set
+                const hasPrice = (newListing.price ?? 0) >= 1000;
+                const needsExtraGuestFee = newListing.allowExtraGuests && 
+                    (newListing.extraGuestFee ?? newListing.pricePerExtraGuest ?? 0) < 500;
+                return hasPrice && !needsExtraGuestFee;
             case 10: // Schedule
                 return true; // Schedule has defaults
             case 11: // Booking Settings
@@ -152,9 +157,37 @@ const CreateListingWizardV2: React.FC<CreateListingWizardProps> = ({
         }
     }, [step, newListing]);
 
+    // Get the reason why user can't continue (for toast message)
+    const getBlockedReason = (): string | null => {
+        if (canContinue) return null;
+        
+        switch (step) {
+            case 1: return 'Please select a space type';
+            case 2: return 'Please enter your location and full address';
+            case 3: return 'Please set guest capacity (minimum 1)';
+            case 4: return 'Please add a title (5+ chars) and description (20+ chars)';
+            case 5: return 'Please upload at least 5 photos';
+            case 6: return 'Please select at least 1 amenity';
+            case 8: return 'Please select a pricing model';
+            case 9:
+                if ((newListing.price ?? 0) < 1000) return 'Please set a price (minimum ₦1,000)';
+                if (newListing.allowExtraGuests && (newListing.extraGuestFee ?? 0) < 500) {
+                    return 'Please set the extra guest fee in Advanced pricing options';
+                }
+                return 'Please complete pricing setup';
+            case 16: return 'Please upload proof of address';
+            default: return 'Please complete this step';
+        }
+    };
+
     const goNext = () => {
         if (canContinue) {
             goToStep(step + 1);
+        } else {
+            const reason = getBlockedReason();
+            if (reason) {
+                showToast({ message: reason, type: 'info' });
+            }
         }
     };
     const goBack = () => goToStep(step - 1);
@@ -471,8 +504,11 @@ const CreateListingWizardV2: React.FC<CreateListingWizardProps> = ({
                             ) : (
                                 <button
                                     onClick={goNext}
-                                    disabled={!canContinue}
-                                    className={`${step > 1 ? 'flex-1' : 'w-full'} py-3 bg-brand-600 rounded-xl text-sm font-semibold text-white hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
+                                    className={`${step > 1 ? 'flex-1' : 'w-full'} py-3 bg-brand-600 rounded-xl text-sm font-semibold text-white transition-colors ${
+                                        canContinue 
+                                            ? 'hover:bg-brand-700' 
+                                            : 'opacity-50 cursor-not-allowed'
+                                    }`}
                                 >
                                     Next
                                 </button>
@@ -533,8 +569,11 @@ const CreateListingWizardV2: React.FC<CreateListingWizardProps> = ({
                         ) : (
                             <button
                                 onClick={goNext}
-                                disabled={!canContinue}
-                                className="px-6 py-2.5 bg-brand-600 rounded-lg text-sm font-medium text-white hover:bg-brand-700 transition-colors shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed"
+                                className={`px-6 py-2.5 bg-brand-600 rounded-lg text-sm font-medium text-white transition-colors shadow-sm ${
+                                    canContinue 
+                                        ? 'hover:bg-brand-700 hover:shadow' 
+                                        : 'opacity-50 cursor-not-allowed'
+                                }`}
                             >
                                 Next
                             </button>
@@ -547,10 +586,10 @@ const CreateListingWizardV2: React.FC<CreateListingWizardProps> = ({
             <ConfirmDialog
                 isOpen={draftRestoreDialog.isOpen}
                 title="Continue where you left off?"
-                message={`You have an unsaved draft${draftRestoreDialog.draftData?.title ? ` for "${draftRestoreDialog.draftData.title}"` : ''}${draftRestoreDialog.draftData?.savedAt ? ` (saved ${new Date(draftRestoreDialog.draftData.savedAt).toLocaleString()})` : ''}. Would you like to restore it?`}
+                message={`You have an unsaved draft${draftRestoreDialog.draftData?.title ? ` for "${draftRestoreDialog.draftData.title}"` : ''}${draftRestoreDialog.draftData?.savedAt ? ` (saved ${new Date(draftRestoreDialog.draftData.savedAt).toLocaleString()})` : ''}.${!draftRestoreDialog.draftData?.images && draftRestoreDialog.draftData?.imageCount ? ` Note: ${draftRestoreDialog.draftData.imageCount} image(s) couldn't be saved and will need to be re-uploaded.` : ''} Would you like to restore it?`}
                 confirmText="Restore Draft"
                 cancelText="Start Fresh"
-                variant="info"
+                variant={!draftRestoreDialog.draftData?.images && draftRestoreDialog.draftData?.imageCount ? "warning" : "info"}
                 onConfirm={handleRestoreDraft}
                 onCancel={handleDiscardDraft}
             />

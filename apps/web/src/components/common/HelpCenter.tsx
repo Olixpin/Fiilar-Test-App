@@ -88,7 +88,8 @@ const HelpCenter: React.FC = () => {
                         <div className="bg-white/10 backdrop-blur rounded-3xl p-1.5 flex items-center gap-2">
                             <Input
                                 placeholder="Search articles, topics or questions"
-                                startIcon={<Search size={18} className="text-white/60" />}
+                                icon={Search}
+                                iconPosition="left"
                                 className="bg-transparent border-0 text-white placeholder:text-white/60"
                             />
                             <Button variant="secondary" className="bg-white text-brand-600 hover:bg-gray-100">

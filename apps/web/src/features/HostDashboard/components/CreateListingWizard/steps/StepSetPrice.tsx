@@ -1,13 +1,14 @@
 import React, { useState, useMemo } from 'react';
 import { Listing, PricingModel } from '@fiilar/types';
 import StepWrapper from './StepWrapper';
-import { Users, Shield, ChevronDown, ChevronUp, Info, AlertTriangle } from 'lucide-react';
+import { Shield, ChevronDown, ChevronUp, AlertTriangle, UserPlus } from 'lucide-react';
 
 // Validation limits - keep in sync with useListingForm.ts VALIDATION_RULES
 const PRICE_LIMITS = {
     MIN_PRICE: 1000,                         // Minimum ₦1,000
     MAX_PRICE_CAP: 50_000_000,               // Max ₦50 million
     CAUTION_FEE_MAX_RATIO: 1.5,              // Max 1.5x base price
+    EXTRA_GUEST_FEE_MIN: 500,                // Minimum ₦500 per extra guest
     EXTRA_GUEST_MAX_RATIO: 0.5,              // Max 0.5x base price
     CAUTION_FEE_MAX_CAP: 5_000_000,          // Absolute max ₦5 million
     EXTRA_GUEST_MAX_CAP: 50_000,             // Absolute max ₦50k
@@ -30,10 +31,22 @@ const StepSetPrice: React.FC<StepSetPriceProps> = ({
     onNext,
     onBack,
 }) => {
+    // Get key values first
+    const allowExtraGuests = newListing.allowExtraGuests || false;
+    const extraGuestFee = newListing.extraGuestFee || newListing.pricePerExtraGuest || 0;
+    
+    // Auto-open Advanced if: has caution fee OR (has extra guests enabled but no fee set yet)
+    const needsExtraGuestFee = allowExtraGuests && extraGuestFee < PRICE_LIMITS.EXTRA_GUEST_FEE_MIN;
     const [showAdvanced, setShowAdvanced] = useState(
-        Boolean((newListing.cautionFee && newListing.cautionFee > 0) ||
-        (newListing.pricePerExtraGuest && newListing.pricePerExtraGuest > 0))
+        Boolean((newListing.cautionFee && newListing.cautionFee > 0)) || needsExtraGuestFee
     );
+    
+    // Auto-expand when extra guests are enabled but fee not set
+    React.useEffect(() => {
+        if (needsExtraGuestFee && !showAdvanced) {
+            setShowAdvanced(true);
+        }
+    }, [needsExtraGuestFee, showAdvanced]);
 
     const pricingModel = newListing.pricingModel || PricingModel.DAILY;
     const priceLabel = pricingModel === PricingModel.HOURLY ? 'hour' : 
@@ -41,9 +54,8 @@ const StepSetPrice: React.FC<StepSetPriceProps> = ({
 
     const price = newListing.price || 0;
     const cautionFee = newListing.cautionFee || 0;
-    const pricePerExtraGuest = newListing.pricePerExtraGuest || 0;
-    const capacity = newListing.capacity || 1;
-    const includedGuests = newListing.includedGuests || 1;
+    const maxGuests = newListing.maxGuests || newListing.capacity || 1;
+    const extraGuestLimit = newListing.extraGuestLimit || 0;
 
     // Calculate validation warnings
     const validationWarnings = useMemo(() => {
@@ -84,30 +96,42 @@ const StepSetPrice: React.FC<StepSetPriceProps> = ({
             }
         }
         
-        // Extra guest fee validation
-        const maxExtraByRatio = price * PRICE_LIMITS.EXTRA_GUEST_MAX_RATIO;
-        const maxExtra = Math.min(maxExtraByRatio, PRICE_LIMITS.EXTRA_GUEST_MAX_CAP);
-        if (pricePerExtraGuest > maxExtra && price > 0) {
-            if (pricePerExtraGuest > PRICE_LIMITS.EXTRA_GUEST_MAX_CAP) {
+        // Extra guest fee validation (only if extra guests are allowed)
+        if (allowExtraGuests) {
+            if (extraGuestFee < PRICE_LIMITS.EXTRA_GUEST_FEE_MIN) {
                 warnings.push({
-                    field: 'pricePerExtraGuest',
-                    message: `Maximum extra guest fee is ₦${PRICE_LIMITS.EXTRA_GUEST_MAX_CAP.toLocaleString()}`,
+                    field: 'extraGuestFee',
+                    message: `Minimum extra guest fee is ₦${PRICE_LIMITS.EXTRA_GUEST_FEE_MIN.toLocaleString()}`,
                     severity: 'error'
                 });
-            } else {
-                warnings.push({
-                    field: 'pricePerExtraGuest',
-                    message: `Extra guest fee shouldn't exceed your base price (max ₦${maxExtraByRatio.toLocaleString()})`,
-                    severity: 'warning'
-                });
+            }
+            const maxExtraByRatio = price * PRICE_LIMITS.EXTRA_GUEST_MAX_RATIO;
+            const maxExtra = Math.min(maxExtraByRatio, PRICE_LIMITS.EXTRA_GUEST_MAX_CAP);
+            if (extraGuestFee > maxExtra && price > 0) {
+                if (extraGuestFee > PRICE_LIMITS.EXTRA_GUEST_MAX_CAP) {
+                    warnings.push({
+                        field: 'extraGuestFee',
+                        message: `Maximum extra guest fee is ₦${PRICE_LIMITS.EXTRA_GUEST_MAX_CAP.toLocaleString()}`,
+                        severity: 'error'
+                    });
+                } else {
+                    warnings.push({
+                        field: 'extraGuestFee',
+                        message: `Extra guest fee shouldn't exceed 50% of your base price (max ₦${maxExtraByRatio.toLocaleString()})`,
+                        severity: 'warning'
+                    });
+                }
             }
         }
         
         return warnings;
-    }, [price, cautionFee, pricePerExtraGuest]);
+    }, [price, cautionFee, extraGuestFee, allowExtraGuests]);
 
     const hasErrors = validationWarnings.some(w => w.severity === 'error');
-    const canContinue = price >= PRICE_LIMITS.MIN_PRICE && !hasErrors;
+    
+    // GUARD: Can't continue if extra guests enabled but no fee set
+    const extraGuestFeeRequired = allowExtraGuests && extraGuestFee < PRICE_LIMITS.EXTRA_GUEST_FEE_MIN;
+    const canContinue = price >= PRICE_LIMITS.MIN_PRICE && !hasErrors && !extraGuestFeeRequired;
     
     // Helper to get warnings for a specific field
     const getFieldWarning = (field: string) => validationWarnings.find(w => w.field === field);
@@ -166,10 +190,10 @@ const StepSetPrice: React.FC<StepSetPriceProps> = ({
                     )}
                 </div>
 
-                {/* Guest sees */}
+                {/* What guests will see - SINGLE UNIFIED PREVIEW */}
                 {price > 0 && (
                     <div className="p-4 bg-gray-50 rounded-xl">
-                        <p className="text-sm text-gray-600 mb-2">What guests will see:</p>
+                        <p className="text-sm text-gray-600 mb-3">What guests will see:</p>
                         <div className="space-y-1">
                             <div className="flex justify-between text-sm">
                                 <span>Your price</span>
@@ -184,21 +208,93 @@ const StepSetPrice: React.FC<StepSetPriceProps> = ({
                                 <span>₦{estimatedTotal.toLocaleString()}</span>
                             </div>
                         </div>
+                        
+                        {/* Extra guest note - subtle, inside the same box */}
+                        {allowExtraGuests && extraGuestFee >= PRICE_LIMITS.EXTRA_GUEST_FEE_MIN && (
+                            <div className="mt-3 pt-3 border-t border-gray-200">
+                                <div className="flex items-center justify-between text-sm">
+                                    <div className="flex items-center gap-2 text-gray-600">
+                                        <UserPlus size={14} className="text-gray-400" />
+                                        <span>+ ₦{extraGuestFee.toLocaleString()} per extra guest</span>
+                                    </div>
+                                    <span className="text-xs text-gray-400">(up to {extraGuestLimit} extra)</span>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
 
                 {/* Advanced Options Toggle */}
                 <button
                     onClick={() => setShowAdvanced(!showAdvanced)}
-                    className="w-full flex items-center justify-between p-4 border-2 border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+                    className={`w-full flex items-center justify-between p-4 border-2 rounded-xl hover:bg-gray-50 transition-colors ${
+                        extraGuestFeeRequired ? 'border-amber-300 bg-amber-50' : 'border-gray-200'
+                    }`}
                 >
-                    <span className="font-medium text-gray-700">Advanced pricing options</span>
+                    <div className="flex items-center gap-2">
+                        <span className="font-medium text-gray-700">Advanced pricing options</span>
+                        {/* Badge showing if extra guests need fee setup - REQUIRED */}
+                        {extraGuestFeeRequired && (
+                            <span className="px-2 py-0.5 bg-amber-500 text-white text-xs font-medium rounded-full flex items-center gap-1">
+                                <AlertTriangle size={12} />
+                                Required
+                            </span>
+                        )}
+                    </div>
                     {showAdvanced ? <ChevronUp size={20} className="text-gray-400" /> : <ChevronDown size={20} className="text-gray-400" />}
                 </button>
 
                 {/* Advanced Options */}
                 {showAdvanced && (
                     <div className="space-y-4 animate-in slide-in-from-top-2">
+                        
+                        {/* Extra Guest Fee - Inside Advanced Options */}
+                        {allowExtraGuests && (
+                            <div className={`p-4 border-2 rounded-xl ${
+                                getFieldWarning('extraGuestFee')?.severity === 'error' ? 'border-red-300' :
+                                extraGuestFee < PRICE_LIMITS.EXTRA_GUEST_FEE_MIN ? 'border-amber-300 bg-amber-50' : 'border-gray-200'
+                            }`}>
+                                <div className="flex items-center gap-2 mb-2">
+                                    <UserPlus size={18} className="text-gray-400" />
+                                    <label className="text-sm font-medium text-gray-700">
+                                        Extra Guest Fee
+                                    </label>
+                                </div>
+                                <p className="text-xs text-gray-500 mb-3">
+                                    You enabled {extraGuestLimit} extra guests beyond your base {maxGuests}
+                                </p>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xl text-gray-400">₦</span>
+                                    <input
+                                        type="number"
+                                        value={extraGuestFee || ''}
+                                        onChange={(e) => setNewListing(prev => ({ 
+                                            ...prev, 
+                                            extraGuestFee: Math.max(0, parseInt(e.target.value) || 0),
+                                            pricePerExtraGuest: Math.max(0, parseInt(e.target.value) || 0)
+                                        }))}
+                                        placeholder="500"
+                                        min="500"
+                                        className="text-xl font-semibold text-gray-900 w-full outline-none bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                    />
+                                    <span className="text-sm text-gray-500 whitespace-nowrap">per guest</span>
+                                </div>
+                                {getFieldWarning('extraGuestFee') && (
+                                    <div className={`flex items-center gap-2 mt-2 text-xs ${
+                                        getFieldWarning('extraGuestFee')?.severity === 'error' ? 'text-red-600' : 'text-amber-600'
+                                    }`}>
+                                        <AlertTriangle size={14} />
+                                        <span>{getFieldWarning('extraGuestFee')?.message}</span>
+                                    </div>
+                                )}
+                                {extraGuestFee >= PRICE_LIMITS.EXTRA_GUEST_FEE_MIN && !getFieldWarning('extraGuestFee') && (
+                                    <p className="text-xs text-green-600 mt-2">
+                                        ✓ Valid fee
+                                    </p>
+                                )}
+                            </div>
+                        )}
+                        
                         {/* Caution Fee */}
                         <div className={`p-4 border-2 rounded-xl ${
                             getFieldWarning('cautionFee')?.severity === 'error' ? 'border-red-300' :
@@ -238,60 +334,6 @@ const StepSetPrice: React.FC<StepSetPriceProps> = ({
                                     Suggested max: ₦{Math.min(price * PRICE_LIMITS.CAUTION_FEE_MAX_RATIO, PRICE_LIMITS.CAUTION_FEE_MAX_CAP).toLocaleString()}
                                 </p>
                             )}
-                        </div>
-
-                        {/* Extra Guest Fee */}
-                        {includedGuests < capacity && (
-                            <div className={`p-4 border-2 rounded-xl ${
-                                getFieldWarning('pricePerExtraGuest')?.severity === 'error' ? 'border-red-300' :
-                                getFieldWarning('pricePerExtraGuest')?.severity === 'warning' ? 'border-amber-300' : 'border-gray-200'
-                            }`}>
-                                <div className="flex items-center gap-2 mb-2">
-                                    <Users size={18} className="text-gray-400" />
-                                    <label className="text-sm font-medium text-gray-700">
-                                        Price per extra guest
-                                    </label>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <span className="text-lg text-gray-400">₦</span>
-                                    <input
-                                        type="number"
-                                        value={pricePerExtraGuest || ''}
-                                        onChange={(e) => setNewListing(prev => ({ 
-                                            ...prev, 
-                                            pricePerExtraGuest: Math.max(0, parseInt(e.target.value) || 0) 
-                                        }))}
-                                        placeholder="0"
-                                        min="0"
-                                        className="text-xl font-semibold text-gray-900 w-full outline-none bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                    />
-                                </div>
-                                <p className="text-xs text-gray-500 mt-2">
-                                    For guests beyond {includedGuests} (up to {capacity} total)
-                                </p>
-                                {getFieldWarning('pricePerExtraGuest') && (
-                                    <div className={`flex items-center gap-2 mt-2 text-xs ${
-                                        getFieldWarning('pricePerExtraGuest')?.severity === 'error' ? 'text-red-600' : 'text-amber-600'
-                                    }`}>
-                                        <AlertTriangle size={14} />
-                                        <span>{getFieldWarning('pricePerExtraGuest')?.message}</span>
-                                    </div>
-                                )}
-                                {!getFieldWarning('pricePerExtraGuest') && price > 0 && (
-                                    <p className="text-xs text-gray-400 mt-2">
-                                        Suggested max: ₦{Math.min(price * PRICE_LIMITS.EXTRA_GUEST_MAX_RATIO, PRICE_LIMITS.EXTRA_GUEST_MAX_CAP).toLocaleString()}
-                                    </p>
-                                )}
-                            </div>
-                        )}
-
-                        {/* Info Note */}
-                        <div className="flex items-start gap-3 p-4 bg-blue-50 rounded-xl">
-                            <Info size={18} className="text-blue-600 shrink-0 mt-0.5" />
-                            <p className="text-sm text-blue-800">
-                                Your base price includes {includedGuests} guest{includedGuests > 1 ? 's' : ''}. 
-                                You can adjust the number of included guests in the capacity settings.
-                            </p>
                         </div>
                     </div>
                 )}

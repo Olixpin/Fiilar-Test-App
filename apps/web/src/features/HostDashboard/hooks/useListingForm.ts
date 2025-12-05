@@ -127,6 +127,12 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
             minDuration: 1,
             instantBook: false
         },
+        // NEW guest capacity model (v1.1)
+        maxGuests: 1,
+        allowExtraGuests: false,
+        extraGuestLimit: 0,
+        extraGuestFee: 0,
+        // Legacy fields kept for compatibility
         capacity: 1,
         includedGuests: 1,
         pricePerExtraGuest: 0,
@@ -253,11 +259,12 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
                 step,
                 savedAt: new Date().toISOString()
             };
-            try {
-                localStorage.setItem(draftKey, JSON.stringify(draftData));
+            // Use safeLocalStorageSave to handle quota errors gracefully
+            const saved = safeLocalStorageSave(draftKey, draftData);
+            if (saved) {
                 setLastSaved(new Date());
-            } catch (e) {
-                console.error('Auto-save failed:', e);
+            } else {
+                console.error('Auto-save failed: could not save draft');
             }
         }, 2000);
 
@@ -640,6 +647,14 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
         MAX_PRICE: 50000000,                // Maximum ₦50M (reasonable for luxury venues)
         CAUTION_FEE_MAX_RATIO: 1.5,         // Security deposit up to 1.5x base price (was 2x)
         CAUTION_FEE_MAX_ABSOLUTE: 5000000,  // Maximum ₦5M caution fee regardless of price
+        
+        // NEW: Extra Guest Rules (v1.1)
+        EXTRA_GUEST_MAX_PERCENTAGE: 0.5,    // Extra guest limit max 50% of maxGuests
+        EXTRA_GUEST_MIN_FEE: 500,           // Minimum ₦500 per extra guest
+        EXTRA_GUEST_MAX_FEE_RATIO: 0.5,     // Extra guest fee max 50% of base price
+        EXTRA_GUEST_MAX_FEE_ABSOLUTE: 100000, // Maximum ₦100k per extra guest
+        
+        // DEPRECATED: Old extra guest validation (kept for reference)
         EXTRA_GUEST_MAX_RATIO: 0.5,         // Extra guest cost max 50% of base price (was 100%)
         EXTRA_GUEST_MAX_ABSOLUTE: 50000,    // Maximum ₦50k per extra guest
         
@@ -870,8 +885,53 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
             }
         }
 
-        // Validate extra guest cost - prevent gouging
-        if (newListing.pricePerExtraGuest && newListing.pricePerExtraGuest > 0) {
+        // NEW: Validate extra guest settings (v1.1 model)
+        const maxGuests = newListing.maxGuests ?? newListing.capacity ?? 1;
+        
+        if (newListing.allowExtraGuests) {
+            // Validate extra guest limit (max 50% of maxGuests)
+            const maxAllowedExtras = Math.ceil(maxGuests * VALIDATION_RULES.EXTRA_GUEST_MAX_PERCENTAGE);
+            if (newListing.extraGuestLimit && newListing.extraGuestLimit > maxAllowedExtras) {
+                toast.showToast({ 
+                    message: `Extra guest limit cannot exceed ${maxAllowedExtras} (50% of ${maxGuests} max guests).`, 
+                    type: "error" 
+                });
+                return;
+            }
+            
+            // Validate extra guest fee minimum
+            if (newListing.extraGuestFee !== undefined && newListing.extraGuestFee < VALIDATION_RULES.EXTRA_GUEST_MIN_FEE && newListing.extraGuestFee > 0) {
+                toast.showToast({ 
+                    message: `Extra guest fee must be at least ₦${VALIDATION_RULES.EXTRA_GUEST_MIN_FEE.toLocaleString()}.`, 
+                    type: "error" 
+                });
+                return;
+            }
+            
+            // Validate extra guest fee maximum
+            if (newListing.extraGuestFee && newListing.extraGuestFee > 0 && newListing.price) {
+                const maxExtraFeeByRatio = newListing.price * VALIDATION_RULES.EXTRA_GUEST_MAX_FEE_RATIO;
+                const maxExtraFee = Math.min(maxExtraFeeByRatio, VALIDATION_RULES.EXTRA_GUEST_MAX_FEE_ABSOLUTE);
+                
+                if (newListing.extraGuestFee > maxExtraFee) {
+                    if (newListing.extraGuestFee > VALIDATION_RULES.EXTRA_GUEST_MAX_FEE_ABSOLUTE) {
+                        toast.showToast({ 
+                            message: `Extra guest fee cannot exceed ₦${VALIDATION_RULES.EXTRA_GUEST_MAX_FEE_ABSOLUTE.toLocaleString()}.`, 
+                            type: "error" 
+                        });
+                    } else {
+                        toast.showToast({ 
+                            message: `Extra guest fee cannot exceed 50% of the base price (₦${maxExtraFeeByRatio.toLocaleString()}).`, 
+                            type: "error" 
+                        });
+                    }
+                    return;
+                }
+            }
+        }
+
+        // LEGACY: Validate extra guest cost (for backward compatibility)
+        if (newListing.pricePerExtraGuest && newListing.pricePerExtraGuest > 0 && !newListing.allowExtraGuests) {
             const maxExtraByRatio = (newListing.price || 0) * VALIDATION_RULES.EXTRA_GUEST_MAX_RATIO;
             const maxExtra = Math.min(maxExtraByRatio, VALIDATION_RULES.EXTRA_GUEST_MAX_ABSOLUTE);
             
@@ -885,21 +945,13 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
             }
         }
 
-        // Validate capacity
-        if (newListing.capacity !== undefined) {
-            if (newListing.capacity < VALIDATION_RULES.MIN_CAPACITY) {
-                toast.showToast({ message: "Capacity must be at least 1 guest.", type: "error" });
-                return;
-            }
-            if (newListing.capacity > VALIDATION_RULES.MAX_CAPACITY) {
-                toast.showToast({ message: `Capacity cannot exceed ${VALIDATION_RULES.MAX_CAPACITY} guests.`, type: "error" });
-                return;
-            }
+        // Validate maxGuests / capacity
+        if (maxGuests < VALIDATION_RULES.MIN_CAPACITY) {
+            toast.showToast({ message: "Maximum guests must be at least 1.", type: "error" });
+            return;
         }
-
-        // Validate included guests doesn't exceed capacity
-        if (newListing.includedGuests && newListing.capacity && newListing.includedGuests > newListing.capacity) {
-            toast.showToast({ message: "Included guests cannot exceed maximum capacity.", type: "error" });
+        if (maxGuests > VALIDATION_RULES.MAX_CAPACITY) {
+            toast.showToast({ message: `Maximum guests cannot exceed ${VALIDATION_RULES.MAX_CAPACITY}.`, type: "error" });
             return;
         }
 
@@ -1393,23 +1445,39 @@ export const useListingForm = (user: User | null, listings: Listing[], activeBoo
 
     const handleRestoreDraft = () => {
         if (draftRestoreDialog.draftData && user) {
+            const draftData = draftRestoreDialog.draftData;
+            
+            // Check if images were stripped due to storage quota
+            const hadImagesStripped = !draftData.images && draftData.imageCount && draftData.imageCount > 0;
+            
             // Ensure all required fields have defaults when restoring draft
             const restoredData = {
-                ...draftRestoreDialog.draftData,
+                ...draftData,
                 // Ensure pricingModel is set (for drafts saved before this field was added)
-                pricingModel: draftRestoreDialog.draftData.pricingModel || PricingModel.DAILY,
-                priceUnit: draftRestoreDialog.draftData.priceUnit || BookingType.DAILY,
-                images: draftRestoreDialog.draftData.images || [],
-                settings: draftRestoreDialog.draftData.settings || { allowRecurring: true, minDuration: 1, instantBook: false },
+                pricingModel: draftData.pricingModel || PricingModel.DAILY,
+                priceUnit: draftData.priceUnit || BookingType.DAILY,
+                images: draftData.images || [],
+                settings: draftData.settings || { allowRecurring: true, minDuration: 1, instantBook: false },
             };
             // Remove internal flags before setting
             delete restoredData.isEditDraft;
             delete restoredData.listingId;
             delete restoredData.savedAt;
             delete restoredData.step;
+            delete restoredData.imageCount; // Clean up the imageCount marker
             setNewListing(restoredData);
-            setStep(draftRestoreDialog.draftData.step || 1);
+            setStep(draftData.step || 1);
             setShowAiInput(false);
+            
+            // Notify user if images were lost due to storage limits
+            if (hadImagesStripped) {
+                setTimeout(() => {
+                    toast.showToast({
+                        message: `Draft restored, but ${draftData.imageCount} image(s) couldn't be saved due to storage limits. Please re-upload them.`,
+                        type: 'info'
+                    });
+                }, 500);
+            }
         }
         setDraftRestoreDialog({ isOpen: false, draftData: null });
     };

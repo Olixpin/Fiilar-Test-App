@@ -267,8 +267,10 @@ const generateListing = (index: number, hostId: string): Listing => {
   const [minPrice, maxPrice] = priceRanges[spaceType] || [10000, 100000];
   const basePrice = randomPrice(minPrice, maxPrice);
   
-  const capacity = randomNumber(2, 100);
-  const includedGuests = Math.min(randomNumber(1, 5), capacity);
+  const maxGuests = randomNumber(2, 100);
+  const allowExtraGuests = Math.random() > 0.5; // 50% chance of allowing extras
+  const extraGuestLimit = allowExtraGuests ? Math.max(1, Math.floor(maxGuests * 0.5)) : 0; // Up to 50% more, min 1
+  const extraGuestFee = allowExtraGuests ? Math.max(500, Math.round(basePrice * 0.1)) : 0; // Min ₦500
   
   // Generate trending/analytics data
   const popularity = Math.random(); // 0-1 factor
@@ -305,9 +307,14 @@ const generateListing = (index: number, hostId: string): Listing => {
     status: ListingStatus.LIVE,
     tags: [spaceType, location.name.split(',')[0], isHourly ? 'hourly' : 'daily'],
     availability: isHourly ? generateAvailability() : undefined,
-    capacity,
-    includedGuests,
-    pricePerExtraGuest: Math.round(basePrice * 0.1),
+    maxGuests,
+    allowExtraGuests,
+    extraGuestLimit,
+    extraGuestFee,
+    // Legacy fields for backward compatibility
+    capacity: maxGuests,
+    includedGuests: maxGuests,
+    pricePerExtraGuest: extraGuestFee,
     cautionFee: Math.round(basePrice * 0.2),
     addOns: Math.random() > 0.5 ? [
       { id: `addon_${index}_1`, name: 'Catering', price: randomPrice(5000, 30000), description: 'Full catering service' },
@@ -432,8 +439,10 @@ const generateListingWithType = (index: number, hostId: string, spaceType: Space
   const [minPrice, maxPrice] = priceRanges[spaceType] || [10000, 100000];
   const basePrice = randomPrice(minPrice, maxPrice);
   
-  const capacity = randomNumber(2, 100);
-  const includedGuests = Math.min(randomNumber(1, 5), capacity);
+  const maxGuests = randomNumber(2, 100);
+  const allowExtraGuests = Math.random() > 0.5; // 50% chance of allowing extras
+  const extraGuestLimit = allowExtraGuests ? Math.max(1, Math.floor(maxGuests * 0.5)) : 0; // Up to 50% more, min 1
+  const extraGuestFee = allowExtraGuests ? Math.max(500, Math.round(basePrice * 0.1)) : 0; // Min ₦500
   
   // Generate trending/analytics data
   const popularity = Math.random();
@@ -463,9 +472,14 @@ const generateListingWithType = (index: number, hostId: string, spaceType: Space
     address: `${randomNumber(1, 50)} Example Street, ${location.name}`,
     coordinates: { lat: location.lat + (Math.random() - 0.5) * 0.02, lng: location.lng + (Math.random() - 0.5) * 0.02 },
     images: randomItems(SAMPLE_IMAGES, 3, 6),
-    capacity,
-    includedGuests,
-    pricePerExtraGuest: Math.round(basePrice * 0.1),
+    maxGuests,
+    allowExtraGuests,
+    extraGuestLimit,
+    extraGuestFee,
+    // Legacy fields for backward compatibility
+    capacity: maxGuests,
+    includedGuests: maxGuests,
+    pricePerExtraGuest: extraGuestFee,
     cautionFee: Math.round(basePrice * 0.2),
     status: ListingStatus.LIVE,
     tags: [spaceType, location.name.split(',')[0], isHourly ? 'hourly' : 'daily'],
