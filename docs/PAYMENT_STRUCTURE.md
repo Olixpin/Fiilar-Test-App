@@ -31,6 +31,7 @@ Fiilar operates a **dual-fee model** where both guests (users) and hosts pay ser
 - ✅ **Transparent pricing** - All fees shown before booking confirmation
 - ✅ **Secure escrow** - Funds held until successful handshake verification
 - ✅ **Caution is fully refundable** - Returned after 48-hour damage claim window
+- ✅ **Service fee refunded on cancellation** - Platform only keeps fees on successful bookings
 
 ---
 
@@ -204,13 +205,13 @@ Platform Fee = User Service Fee + Host Service Fee
 |-----------|---------------|
 | **Base Price** | Based on cancellation policy (0%, 50%, 100%) |
 | **Extras** | Same as base price |
-| **User Service Fee** | **NOT refunded** - Platform keeps |
+| **User Service Fee** | **100% refunded** - Platform only keeps fee on successful bookings |
 | **Caution** | **Always 100% refunded** |
 
 ### Refund Calculation Formula
 
 ```
-Total Refund = (Base Price + Extras) × Policy% + Caution (100%)
+Total Refund = (Base Price + Extras) × Policy% + User Service Fee (100%) + Caution (100%)
 ```
 
 ### Example: Guest Cancels a Flexible Booking 48 Hours Before
@@ -227,11 +228,11 @@ Total Refund = (Base Price + Extras) × Policy% + Caution (100%)
 |------------------|--------|
 | Base Price (100%) | ₦150,000 |
 | Extras (100%) | ₦20,000 |
+| User Service Fee (100%) | ₦15,000 |
 | Caution (100%) | ₦50,000 |
-| User Service Fee | ₦0 (kept by platform) |
-| **Total Refund** | **₦220,000** |
+| **Total Refund** | **₦235,000** |
 
-**Platform keeps:** ₦15,000 (User Service Fee)
+**Platform keeps:** ₦0 (service fee only charged on successful bookings)
 
 ---
 
@@ -411,11 +412,12 @@ Checkout
 | Base Price | 50% | ₦50,000 |
 | Extra Guest Fees | 50% | ₦5,000 |
 | Optional Extras | 50% | ₦5,000 |
+| User Service Fee | 100% | ₦11,000 |
 | Caution | 100% | ₦30,000 |
-| User Service Fee | 0% | ₦0 |
-| **Total Refund** | | **₦90,000** |
+| **Total Refund** | | **₦101,000** |
 
-**Platform keeps:** ₦11,000 (User Service Fee) + ₦60,000 non-refunded = ₦71,000 retained
+**Platform keeps:** ₦0 (service fee only charged on successful bookings)
+**Host receives:** 50% of (Base + Extra Guests + Extras) = ₦60,000 (no host service fee deducted on cancelled bookings)
 
 ---
 

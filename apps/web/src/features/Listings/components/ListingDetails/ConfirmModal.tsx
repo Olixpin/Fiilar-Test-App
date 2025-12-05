@@ -72,39 +72,70 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   if (!isOpen || !pendingBooking) return null;
 
   return (
-    <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in duration-300">
-      <div className="bg-white rounded-3xl max-w-5xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[92vh] animate-in zoom-in-95 duration-300 border border-white/20">
+    <div className="fixed inset-0 z-[110] md:flex md:items-center md:justify-center md:p-6 bg-black/70 backdrop-blur-md animate-in fade-in duration-300">
+      {/* Backdrop for desktop */}
+      <div className="hidden md:block absolute inset-0" onClick={onClose}></div>
+      
+      {/* Modal Container - Full screen on mobile, centered card on desktop */}
+      <div className="absolute inset-0 md:relative md:inset-auto bg-white md:rounded-3xl md:max-w-5xl w-full shadow-2xl overflow-hidden flex flex-col md:max-h-[92vh] animate-in slide-in-from-bottom md:zoom-in-95 duration-300">
+
+        {/* Mobile Header - Fixed */}
+        <div className="md:hidden shrink-0 bg-white border-b border-gray-100 relative z-10">
+          {/* Drag Handle */}
+          <div className="flex justify-center pt-3 pb-2">
+            <div className="w-12 h-1.5 bg-gray-300 rounded-full"></div>
+          </div>
+          {/* Title Bar */}
+          <div className="flex items-center justify-between px-4 pb-3">
+            <h2 className="text-lg font-bold text-gray-900">Review and pay</h2>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                onClose();
+              }}
+              type="button"
+              title="Close modal"
+              aria-label="Close modal"
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors active:bg-gray-200 touch-manipulation"
+            >
+              <X size={20} className="text-gray-500" />
+            </button>
+          </div>
+        </div>
 
         {/* Scrollable Content Wrapper */}
-        <div className="flex-1 overflow-y-auto md:overflow-hidden flex flex-col md:flex-row-reverse" id="confirm-scroll-container">
+        <div className="flex-1 min-h-0 overflow-y-auto md:overflow-hidden flex flex-col md:flex-row-reverse" id="confirm-scroll-container">
 
           {/* Right Column: Review & Payment (Now First in DOM for Mobile Scroll Fix) */}
-          <div className="w-full md:w-3/5 p-6 md:p-8 md:overflow-y-auto relative bg-white pb-6 md:pb-8">
+          <div className="w-full md:w-3/5 p-4 md:p-8 md:overflow-y-auto relative bg-white pb-4 md:pb-8">
+            {/* Desktop Close Button */}
             <button
               type="button"
               onClick={onClose}
               aria-label="Close confirmation dialog"
               title="Close confirmation dialog"
-              className="absolute top-4 right-4 md:top-6 md:right-6 p-2 hover:bg-gray-100 rounded-full transition-all active:scale-95 z-10"
+              className="hidden md:flex absolute top-6 right-6 p-2 hover:bg-gray-100 rounded-full transition-all active:scale-95 z-10"
             >
               <X size={20} className="text-gray-500" />
             </button>
 
-            {/* Mobile Header (Listing Preview) */}
-            <div className="md:hidden mb-6 pr-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4 font-display">Review and pay</h2>
-              <div className="flex gap-4 items-start">
-                <div className="aspect-square w-20 rounded-lg overflow-hidden shrink-0">
+            {/* Mobile Listing Preview */}
+            <div className="md:hidden mb-6">
+              <div className="flex gap-3 items-start">
+                <div className="w-20 h-20 rounded-xl overflow-hidden shrink-0">
                   <img src={listing.images[0]} alt={listing.title} className="w-full h-full object-cover" />
                 </div>
-                <div>
-                  <div className="text-xs font-bold text-brand-600 uppercase tracking-wide mb-1">{listing.type}</div>
-                  <h3 className="font-bold text-sm text-gray-900 line-clamp-2">{listing.title}</h3>
-                  <div className="flex items-center gap-1 mt-1 text-xs text-gray-500">
-                    <Star size={12} className="fill-brand-500 text-brand-500" />
-                    <span className="font-medium text-gray-900">{getAverageRating(listing.id).toFixed(1)}</span>
-                    <span>({getReviews(listing.id).length})</span>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-gray-900 truncate">{listing.title}</h3>
+                  <div className="flex items-center gap-1 text-sm text-gray-600 mt-1">
+                    <Star size={14} className="fill-brand-500 text-brand-500" />
+                    <span>{getAverageRating(listing.id).toFixed(1)}</span>
+                    <span className="text-gray-400">({getReviews(listing.id).length})</span>
                   </div>
+                  <p className="text-sm font-semibold text-gray-900 mt-1">
+                    {formatCurrency(listing.price)}<span className="text-gray-500 font-normal">/{listing.pricingModel === 'HOURLY' ? 'hr' : 'night'}</span>
+                  </p>
                 </div>
               </div>
             </div>
@@ -476,20 +507,20 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
           </div>
         </div>
 
-        {/* Mobile Sticky Footer */}
-        <div className="md:hidden border-t border-gray-200 bg-white p-4 pb-safe shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-20">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <p className="text-xs text-gray-500 font-medium">Total to pay</p>
-              <p className="text-xl font-bold text-gray-900">{formatCurrency(pendingBooking.fees.total)}</p>
+        {/* Mobile Sticky Footer - Matches BookingModal footer style */}
+        <div className="md:hidden shrink-0 border-t border-gray-200 bg-white p-4 flex justify-between items-center shadow-[0_-4px_20px_rgba(0,0,0,0.08)]" style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
+          <div className="flex flex-col">
+            <div className="flex items-baseline gap-1">
+              <span className="text-xl font-bold text-gray-900">{formatCurrency(pendingBooking.fees.total)}</span>
+              <span className="text-sm text-gray-500">total</span>
             </div>
             <button
               onClick={() => {
                 document.getElementById('price-breakdown-confirm')?.scrollIntoView({ behavior: 'smooth' });
               }}
-              className="text-xs font-medium text-gray-500 underline"
+              className="text-xs text-gray-500 underline cursor-pointer hover:text-gray-900 transition-colors text-left"
             >
-              View details
+              Show price breakdown
             </button>
           </div>
           <Button
@@ -497,7 +528,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
             disabled={!agreedToTerms || isBookingLoading || (paymentMethod === 'WALLET' && walletBalance < pendingBooking.fees.total)}
             variant="primary"
             size="lg"
-            className="w-full py-3.5 text-lg shadow-lg shadow-brand-500/20"
+            className="px-6 py-3 rounded-xl font-bold text-base shadow-lg shadow-brand-500/30"
             isLoading={isBookingLoading}
           >
             {!isBookingLoading && 'Confirm & Pay'}
@@ -508,3 +539,4 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
     </div>
   );
 };
+

@@ -34,7 +34,7 @@ const StepCapacity: React.FC<StepCapacityProps> = ({
     const maxAllowedExtras = Math.ceil(maxGuests * EXTRA_GUEST_RULES.MAX_EXTRA_PERCENTAGE);
 
     const updateMaxGuests = (value: number) => {
-        const newMaxGuests = Math.max(1, Math.min(100, value));
+        const newMaxGuests = Math.max(1, value);
         setNewListing(prev => {
             // Also update legacy field for compatibility
             const currentExtraLimit = prev.extraGuestLimit ?? 0;
@@ -73,19 +73,37 @@ const StepCapacity: React.FC<StepCapacityProps> = ({
     };
 
     const handleMaxGuestsInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const value = e.target.value;
+        const value = e.target.value.replace(/[^0-9]/g, ''); // Only allow digits
+        // Allow empty input while typing
         if (value === '') {
             setNewListing(prev => ({
                 ...prev,
-                maxGuests: 1,
-                capacity: 1,
-                includedGuests: 1,
+                maxGuests: 0,
+                capacity: 0,
+                includedGuests: 0,
             }));
             return;
         }
         const num = parseInt(value, 10);
-        if (!isNaN(num)) {
-            updateMaxGuests(num);
+        if (!isNaN(num) && num >= 1) {
+            setNewListing(prev => {
+                const currentExtraLimit = prev.extraGuestLimit ?? 0;
+                const newMaxExtras = Math.ceil(num * EXTRA_GUEST_RULES.MAX_EXTRA_PERCENTAGE);
+                return {
+                    ...prev,
+                    maxGuests: num,
+                    capacity: num,
+                    includedGuests: num,
+                    extraGuestLimit: Math.min(currentExtraLimit, newMaxExtras)
+                };
+            });
+        }
+    };
+
+    const handleMaxGuestsBlur = () => {
+        // Ensure minimum of 1 when field is empty
+        if (maxGuests < 1) {
+            updateMaxGuests(1);
         }
     };
 
@@ -145,23 +163,19 @@ const StepCapacity: React.FC<StepCapacityProps> = ({
                                 <Minus size={18} />
                             </button>
                             <input
-                                type="number"
-                                min="1"
-                                max="100"
-                                value={maxGuests}
+                                type="text"
+                                inputMode="numeric"
+                                pattern="[0-9]*"
+                                value={maxGuests || ''}
                                 onChange={handleMaxGuestsInputChange}
+                                onBlur={handleMaxGuestsBlur}
                                 title="Maximum number of guests"
                                 aria-label="Maximum number of guests"
-                                className="w-16 h-11 text-center text-xl font-bold text-gray-900 border-2 border-gray-200 rounded-xl focus:border-gray-900 focus:ring-0 outline-none transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                className="w-20 h-11 text-center text-xl font-bold text-gray-900 border-2 border-gray-200 rounded-xl focus:border-gray-900 focus:ring-0 outline-none transition-colors"
                             />
                             <button
                                 onClick={() => updateMaxGuests(maxGuests + 1)}
-                                disabled={maxGuests >= 100}
-                                className={`w-11 h-11 rounded-full border-2 flex items-center justify-center transition-all ${
-                                    maxGuests >= 100
-                                        ? 'border-gray-200 text-gray-300 cursor-not-allowed'
-                                        : 'border-gray-300 text-gray-600 hover:border-gray-900 hover:text-gray-900'
-                                }`}
+                                className="w-11 h-11 rounded-full border-2 flex items-center justify-center transition-all border-gray-300 text-gray-600 hover:border-gray-900 hover:text-gray-900"
                                 title="Increase maximum guests"
                                 aria-label="Increase maximum guests"
                             >

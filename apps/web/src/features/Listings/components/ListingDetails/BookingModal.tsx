@@ -86,6 +86,15 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     const maxGuests = listing.maxGuests ?? listing.capacity ?? 10;
     const extraGuestCount = Math.max(0, guestCount - maxGuests);
     const [wantsExtra, setWantsExtra] = React.useState(extraGuestCount > 0);
+    const [guestInputValue, setGuestInputValue] = React.useState<string>(String(Math.min(guestCount, maxGuests)));
+    const [guestError, setGuestError] = React.useState<string>('');
+    const [extraInputValue, setExtraInputValue] = React.useState<string>(String(extraGuestCount));
+    
+    // Sync input value when guestCount changes externally
+    React.useEffect(() => {
+        setGuestInputValue(String(Math.min(guestCount, maxGuests)));
+        setExtraInputValue(String(Math.max(0, guestCount - maxGuests)));
+    }, [guestCount, maxGuests]);
 
     if (!isOpen) return null;
 
@@ -202,10 +211,13 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                                     </div>
                                                     <span className="text-xs font-medium text-gray-400 bg-gray-200 px-2 py-0.5 rounded">max {maxGuests}</span>
                                                 </div>
-                                                <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden bg-white">
+                                                <div className={`flex items-center border rounded-xl overflow-hidden bg-white ${guestError ? 'border-red-300' : 'border-gray-200'}`}>
                                                     <button
                                                         type="button"
-                                                        onClick={() => updateBaseGuests(baseGuestCount - 1)}
+                                                        onClick={() => {
+                                                            updateBaseGuests(baseGuestCount - 1);
+                                                            setGuestError('');
+                                                        }}
                                                         disabled={baseGuestCount <= 1}
                                                         title="Decrease guests"
                                                         aria-label="Decrease guests"
@@ -213,12 +225,58 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                                     >
                                                         <Minus size={18} />
                                                     </button>
-                                                    <div className="flex-1 text-center py-2">
-                                                        <span className="font-bold text-lg text-gray-900">{baseGuestCount}</span>
-                                                    </div>
+                                                    <input
+                                                        type="text"
+                                                        inputMode="numeric"
+                                                        pattern="[0-9]*"
+                                                        value={guestInputValue}
+                                                        onChange={(e) => {
+                                                            const value = e.target.value.replace(/[^0-9]/g, '');
+                                                            setGuestInputValue(value);
+                                                            
+                                                            if (value === '') {
+                                                                setGuestError('');
+                                                                return;
+                                                            }
+                                                            const num = parseInt(value, 10);
+                                                            if (!isNaN(num)) {
+                                                                if (num > maxGuests) {
+                                                                    setGuestError(`Maximum ${maxGuests} guests allowed`);
+                                                                    // Don't update actual count yet - let them see the error
+                                                                } else if (num >= 1) {
+                                                                    setGuestError('');
+                                                                    updateBaseGuests(num);
+                                                                } else {
+                                                                    setGuestError('Minimum 1 guest required');
+                                                                }
+                                                            }
+                                                        }}
+                                                        onBlur={() => {
+                                                            const num = parseInt(guestInputValue, 10);
+                                                            if (guestInputValue === '' || isNaN(num) || num < 1) {
+                                                                // Reset to current valid value
+                                                                setGuestInputValue(String(baseGuestCount));
+                                                                setGuestError('');
+                                                            } else if (num > maxGuests) {
+                                                                // Correct to max on blur
+                                                                updateBaseGuests(maxGuests);
+                                                                setGuestInputValue(String(maxGuests));
+                                                                setGuestError('');
+                                                            }
+                                                        }}
+                                                        className="flex-1 text-center py-2 font-bold text-lg text-gray-900 border-0 focus:ring-0 outline-none"
+                                                        aria-label="Number of guests"
+                                                    />
                                                     <button
                                                         type="button"
-                                                        onClick={() => updateBaseGuests(baseGuestCount + 1)}
+                                                        onClick={() => {
+                                                            if (baseGuestCount >= maxGuests) {
+                                                                setGuestError(`Maximum ${maxGuests} guests allowed`);
+                                                            } else {
+                                                                updateBaseGuests(baseGuestCount + 1);
+                                                                setGuestError('');
+                                                            }
+                                                        }}
                                                         disabled={baseGuestCount >= maxGuests}
                                                         title="Increase guests"
                                                         aria-label="Increase guests"
@@ -227,6 +285,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                                         <Plus size={18} />
                                                     </button>
                                                 </div>
+                                                {guestError && (
+                                                    <p className="text-xs text-red-500 mt-2">{guestError}</p>
+                                                )}
                                             </div>
                                             
                                             {/* Extra Guests - Only if host allows */}
@@ -269,9 +330,36 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                                                     >
                                                                         <Minus size={14} />
                                                                     </button>
-                                                                    <div className="w-12 text-center py-2 font-bold text-gray-900">
-                                                                        {extraGuestCount}
-                                                                    </div>
+                                                                    <input
+                                                                        type="text"
+                                                                        inputMode="numeric"
+                                                                        pattern="[0-9]*"
+                                                                        value={extraInputValue}
+                                                                        onChange={(e) => {
+                                                                            const value = e.target.value.replace(/[^0-9]/g, '');
+                                                                            setExtraInputValue(value);
+                                                                            
+                                                                            if (value === '') {
+                                                                                updateExtraGuests(0);
+                                                                                return;
+                                                                            }
+                                                                            const num = parseInt(value, 10);
+                                                                            if (!isNaN(num)) {
+                                                                                if (num > extraGuestLimit) {
+                                                                                    updateExtraGuests(extraGuestLimit);
+                                                                                } else {
+                                                                                    updateExtraGuests(num);
+                                                                                }
+                                                                            }
+                                                                        }}
+                                                                        onBlur={() => {
+                                                                            if (extraInputValue === '') {
+                                                                                setExtraInputValue('0');
+                                                                            }
+                                                                        }}
+                                                                        className="w-12 text-center py-2 font-bold text-gray-900 border-0 focus:ring-0 outline-none"
+                                                                        aria-label="Number of extra guests"
+                                                                    />
                                                                     <button
                                                                         type="button"
                                                                         onClick={() => updateExtraGuests(extraGuestCount + 1)}
