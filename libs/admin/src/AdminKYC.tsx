@@ -231,6 +231,8 @@ export const AdminKYC: React.FC<AdminKYCProps> = ({ unverifiedHosts, users, hand
                                             <select
                                                 value={u.badgeStatus || 'standard'}
                                                 onChange={(e) => handleUpdateBadgeStatus(u.id, e.target.value as any)}
+                                                title="Select badge status"
+                                                aria-label="Select badge status"
                                                 className="text-sm border-2 border-gray-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none bg-white hover:border-gray-300 transition-colors"
                                             >
                                                 <option value="standard">⚪ Standard</option>
@@ -281,8 +283,11 @@ export const AdminKYC: React.FC<AdminKYCProps> = ({ unverifiedHosts, users, hand
                                 <p className="text-sm text-gray-500 mt-0.5">{viewingDocument.userName}</p>
                             </div>
                             <button
+                                type="button"
                                 onClick={() => setViewingDocument(null)}
                                 className="p-2 hover:bg-gray-200 rounded-full transition-colors"
+                                title="Close document viewer"
+                                aria-label="Close document viewer"
                             >
                                 <X size={20} className="text-gray-500" />
                             </button>

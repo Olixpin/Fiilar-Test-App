@@ -537,12 +537,15 @@ const HostDashboardPage: React.FC<HostDashboardPageProps> = ({ user, listings, r
                 )}
 
                 {/* Content Area */}
-                <main className={cn(
-                    "flex-1 overflow-y-auto",
-                    view === 'create' || view === 'edit'
-                        ? "" // No extra padding for wizard
-                        : "px-0 lg:px-8 pb-24 lg:pb-8"
-                )}>
+                <main 
+                    id="host-dashboard-main"
+                    className={cn(
+                        "flex-1 overflow-y-auto",
+                        view === 'create' || view === 'edit'
+                            ? "" // No extra padding for wizard
+                            : "px-0 lg:px-8 pb-24 lg:pb-8"
+                    )}
+                >
                     <div className="lg:max-w-[1600px] lg:mx-auto">
                         <div className={cn(
                             "mx-0 lg:mx-0",

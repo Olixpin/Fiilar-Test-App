@@ -244,10 +244,17 @@ export interface Listing {
   rejectionReason?: string; // Reason if rejected by admin
   settings?: ListingSettings; // New configuration object
 
-  // Capacity & Pricing Fields
-  capacity?: number;
-  includedGuests?: number; // How many guests are covered by the base price
-  pricePerExtraGuest?: number; // Cost per guest above includedGuests
+  // Capacity & Pricing Fields (NEW MODEL - v1.1)
+  maxGuests?: number;              // Base max guests (all included in base price)
+  allowExtraGuests?: boolean;      // Toggle: allow overflow beyond maxGuests?
+  extraGuestLimit?: number;        // How many extra guests allowed (max 50% of maxGuests)
+  extraGuestFee?: number;          // Price per extra guest
+  
+  // DEPRECATED - kept for migration compatibility
+  capacity?: number;               // Use maxGuests instead
+  includedGuests?: number;         // No longer needed - maxGuests = included
+  pricePerExtraGuest?: number;     // Use extraGuestFee instead
+  
   cautionFee?: number; // Refundable security deposit
 
   // New: Optional Extras

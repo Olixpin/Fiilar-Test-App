@@ -269,10 +269,10 @@ const CreateListingWizard: React.FC<CreateListingWizardProps> = ({
             <ConfirmDialog
                 isOpen={draftRestoreDialog.isOpen}
                 title="Continue where you left off?"
-                message={`You have an unsaved draft${draftRestoreDialog.draftData?.title ? ` for "${draftRestoreDialog.draftData.title}"` : ''}${draftRestoreDialog.draftData?.savedAt ? ` (saved ${new Date(draftRestoreDialog.draftData.savedAt).toLocaleString()})` : ''}. Would you like to restore it?`}
+                message={`You have an unsaved draft${draftRestoreDialog.draftData?.title ? ` for "${draftRestoreDialog.draftData.title}"` : ''}${draftRestoreDialog.draftData?.savedAt ? ` (saved ${new Date(draftRestoreDialog.draftData.savedAt).toLocaleString()})` : ''}.${!draftRestoreDialog.draftData?.images && draftRestoreDialog.draftData?.imageCount ? ` Note: ${draftRestoreDialog.draftData.imageCount} image(s) couldn't be saved and will need to be re-uploaded.` : ''} Would you like to restore it?`}
                 confirmText="Restore Draft"
                 cancelText="Start Fresh"
-                variant="info"
+                variant={!draftRestoreDialog.draftData?.images && draftRestoreDialog.draftData?.imageCount ? "warning" : "info"}
                 onConfirm={handleRestoreDraft}
                 onCancel={handleDiscardDraft}
             />

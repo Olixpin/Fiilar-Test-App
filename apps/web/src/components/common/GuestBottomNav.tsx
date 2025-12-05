@@ -2,11 +2,13 @@ import React from 'react';
 import { Search, Heart, Briefcase, MessageSquare, User as UserIcon } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { cn } from '@fiilar/utils';
+import { useBottomNav } from '../../contexts/BottomNavContext';
 
 const GuestBottomNav: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const currentPath = location.pathname;
+    const { isBottomNavVisible } = useBottomNav();
 
     const navItems = [
         { id: 'explore', icon: Search, label: 'Explore', path: '/' },
@@ -15,6 +17,9 @@ const GuestBottomNav: React.FC = () => {
         { id: 'inbox', icon: MessageSquare, label: 'Inbox', path: '/dashboard?tab=messages' },
         { id: 'profile', icon: UserIcon, label: 'Profile', path: '/dashboard?tab=menu' }
     ];
+
+    // Don't render if hidden (e.g., when modal is open)
+    if (!isBottomNavVisible) return null;
 
     return (
         <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-2 z-50 pb-safe">

@@ -130,19 +130,22 @@ const ListingLivePreview: React.FC<ListingLivePreviewProps> = ({
                             </div>
                         )}
 
-                        {/* Guest & Fee Info - Only show if tiered pricing (extra guest fee > 0) or has caution fee */}
-                        {(Number(newListing.pricePerExtraGuest) > 0 || Number(newListing.cautionFee) > 0) && (
+                        {/* Guest & Fee Info */}
+                        {(newListing.allowExtraGuests || Number(newListing.cautionFee) > 0) && (
                             <div className="text-xs text-gray-600 mb-3 space-y-1">
-                                {/* Only show included guests when tiered pricing is active (has extra guest fee) */}
-                                {Number(newListing.pricePerExtraGuest) > 0 && Number(newListing.includedGuests) > 0 && (
-                                    <p>Base price includes {newListing.includedGuests} {newListing.includedGuests === 1 ? 'guest' : 'guests'}</p>
+                                {/* Show extra guest info when enabled */}
+                                {newListing.allowExtraGuests && newListing.extraGuestLimit && newListing.extraGuestLimit > 0 && (
+                                    <p className="flex items-center gap-1">
+                                        <Users size={10} /> 
+                                        Up to {newListing.extraGuestLimit} extra guests allowed
+                                    </p>
                                 )}
-                                {Number(newListing.pricePerExtraGuest) > 0 && (
-                                    <p>+{locale.currencySymbol}{newListing.pricePerExtraGuest} per extra guest</p>
+                                {newListing.allowExtraGuests && Number(newListing.extraGuestFee) > 0 && (
+                                    <p>+{locale.currencySymbol}{newListing.extraGuestFee?.toLocaleString()} per extra guest</p>
                                 )}
                                 {Number(newListing.cautionFee) > 0 && (
                                     <p className="flex items-center gap-1">
-                                        <Shield size={10} /> {locale.currencySymbol}{newListing.cautionFee} caution fee (refundable)
+                                        <Shield size={10} /> {locale.currencySymbol}{newListing.cautionFee?.toLocaleString()} caution fee (refundable)
                                     </p>
                                 )}
                             </div>
@@ -154,7 +157,11 @@ const ListingLivePreview: React.FC<ListingLivePreviewProps> = ({
                                 <Home size={10} /> {newListing.type}
                             </span>
                             <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full flex items-center gap-1">
-                                <Users size={10} /> Max {newListing.capacity || 1}
+                                <Users size={10} /> 
+                                {newListing.allowExtraGuests && newListing.extraGuestLimit 
+                                    ? `${newListing.maxGuests || newListing.capacity || 1}+${newListing.extraGuestLimit} guests`
+                                    : `Max ${newListing.maxGuests || newListing.capacity || 1}`
+                                }
                             </span>
                             {newListing.settings?.allowRecurring && (
                                 <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full flex items-center gap-1">

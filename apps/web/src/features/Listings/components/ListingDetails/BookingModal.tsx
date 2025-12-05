@@ -81,85 +81,229 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     setSelectedHours
 }) => {
     useScrollLock(isOpen);
+    
+    // Guest selection state - must be at component level, not inside IIFE
+    const maxGuests = listing.maxGuests ?? listing.capacity ?? 10;
+    const extraGuestCount = Math.max(0, guestCount - maxGuests);
+    const [wantsExtra, setWantsExtra] = React.useState(extraGuestCount > 0);
 
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+        <div className="fixed inset-0 z-[100] md:flex md:items-center md:justify-center md:p-6">
             <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose}></div>
-            <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
+            
+            {/* Modal Container - Full screen on mobile, centered card on desktop */}
+            <div className="absolute inset-0 md:relative md:inset-auto bg-white md:rounded-2xl shadow-2xl w-full md:max-w-4xl md:max-h-[90vh] flex flex-col animate-in slide-in-from-bottom md:fade-in md:zoom-in-95 duration-200 overflow-hidden">
 
-                {/* Close Button */}
+                {/* Mobile Header - Fixed */}
+                <div className="md:hidden shrink-0 bg-white border-b border-gray-100 relative z-10">
+                    {/* Drag Handle */}
+                    <div className="flex justify-center pt-3 pb-2">
+                        <div className="w-12 h-1.5 bg-gray-300 rounded-full"></div>
+                    </div>
+                    {/* Title Bar */}
+                    <div className="flex items-center justify-between px-4 pb-3">
+                        <h2 className="text-lg font-bold text-gray-900">Complete your booking</h2>
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                onClose();
+                            }}
+                            type="button"
+                            title="Close modal"
+                            aria-label="Close modal"
+                            className="p-2 hover:bg-gray-100 rounded-full transition-colors active:bg-gray-200 touch-manipulation"
+                        >
+                            <X size={20} className="text-gray-500" />
+                        </button>
+                    </div>
+                </div>
+
+                {/* Desktop Close Button */}
                 <button
                     onClick={onClose}
                     title="Close modal"
                     aria-label="Close modal"
-                    className="absolute top-4 right-4 z-10 p-2 bg-white/80 backdrop-blur rounded-full hover:bg-gray-100 transition-colors"
+                    className="hidden md:flex absolute top-4 right-4 z-10 p-2 bg-white/80 backdrop-blur rounded-full hover:bg-gray-100 transition-colors"
                 >
                     <X size={20} className="text-gray-500" />
                 </button>
 
                 {/* Scrollable Content Area */}
-                <div className="flex-1 overflow-y-auto md:overflow-hidden flex flex-col md:flex-row-reverse" id="booking-scroll-container">
+                <div className="flex-1 min-h-0 overflow-y-auto md:overflow-hidden flex flex-col md:flex-row-reverse" id="booking-scroll-container">
 
                     {/* Right Column: The Configurator (Now First in DOM for Mobile Scroll Fix) */}
-                    <div className="w-full md:w-3/5 p-6 md:p-10 md:overflow-y-auto custom-scrollbar pb-6 md:pb-10">
+                    <div className="w-full md:w-3/5 p-4 md:p-10 md:overflow-y-auto custom-scrollbar pb-4 md:pb-10">
 
-                        {/* Mobile Header (Image + Title) */}
-                        <div className="md:hidden mb-8">
-                            <div className="aspect-video rounded-xl overflow-hidden mb-4 shadow-sm">
-                                <img src={listing.images[0]} alt={listing.title} className="w-full h-full object-cover" />
-                            </div>
-                            <h2 className="text-xl font-bold text-gray-900 mb-2 font-display">{listing.title}</h2>
-                            <div className="flex items-center gap-2 text-sm text-gray-600">
-                                <Star size={16} className="fill-brand-500 text-brand-500" />
-                                <span className="font-medium text-gray-900">{getAverageRating(listing.id).toFixed(1)}</span>
-                                <span>({getReviews(listing.id).length} reviews)</span>
+                        {/* Mobile Listing Preview */}
+                        <div className="md:hidden mb-6">
+                            <div className="flex gap-3 items-start">
+                                <div className="w-20 h-20 rounded-xl overflow-hidden shrink-0">
+                                    <img src={listing.images[0]} alt={listing.title} className="w-full h-full object-cover" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <h3 className="font-semibold text-gray-900 truncate">{listing.title}</h3>
+                                    <div className="flex items-center gap-1 text-sm text-gray-600 mt-1">
+                                        <Star size={14} className="fill-brand-500 text-brand-500" />
+                                        <span>{getAverageRating(listing.id).toFixed(1)}</span>
+                                        <span className="text-gray-400">({getReviews(listing.id).length})</span>
+                                    </div>
+                                    <p className="text-sm font-semibold text-gray-900 mt-1">
+                                        {formatCurrency(listing.price)}<span className="text-gray-500 font-normal">/{listing.pricingModel === 'HOURLY' ? 'hr' : 'night'}</span>
+                                    </p>
+                                </div>
                             </div>
                         </div>
 
                         <h3 className="text-lg font-bold text-gray-900 mb-6 font-display hidden md:block">Booking Details</h3>
-                        <div className="space-y-10">
+                        <div className="space-y-6 md:space-y-10">
 
-                            {/* Guest Selection */}
+                            {/* Guest Selection - Clear "max is max" UX */}
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2">Guests</label>
-                                <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden p-1 bg-white hover:border-brand-500 hover:ring-1 hover:ring-brand-500 transition-all">
-                                    <button
-                                        type="button"
-                                        onClick={() => setGuestCount(Math.max(1, guestCount - 1))}
-                                        disabled={guestCount <= 1}
-                                        title="Decrease guests"
-                                        aria-label="Decrease guests"
-                                        className="p-3 hover:bg-gray-100 rounded-lg disabled:opacity-50 transition-all active:scale-95"
-                                    >
-                                        <Minus size={18} />
-                                    </button>
-                                    <div className="flex-1 text-center">
-                                        <div className="font-semibold text-gray-900">
-                                            {guestCount} {guestCount === 1 ? 'Guest' : 'Guests'}
-                                            {listing.capacity && (
-                                                <span className="text-gray-500 font-normal"> | max {listing.capacity}</span>
+                                <label className="block text-sm font-bold text-gray-700 mb-3">Guests</label>
+                                {(() => {
+                                    // maxGuests already computed at component level
+                                    const allowExtraGuests = listing.allowExtraGuests ?? false;
+                                    const extraGuestLimit = listing.extraGuestLimit ?? 0;
+                                    const extraGuestFee = listing.extraGuestFee ?? listing.pricePerExtraGuest ?? 0;
+                                    
+                                    // Separate base and extra counts
+                                    const baseGuestCount = Math.min(guestCount, maxGuests);
+                                    // extraGuestCount already computed at component level
+                                    
+                                    const updateBaseGuests = (newCount: number) => {
+                                        const base = Math.max(1, Math.min(maxGuests, newCount));
+                                        const extra = wantsExtra ? extraGuestCount : 0;
+                                        setGuestCount(base + extra);
+                                    };
+                                    
+                                    const updateExtraGuests = (newCount: number) => {
+                                        const extra = Math.max(0, Math.min(extraGuestLimit, newCount));
+                                        setGuestCount(baseGuestCount + extra);
+                                    };
+                                    
+                                    const handleExtraToggle = () => {
+                                        if (wantsExtra) {
+                                            setGuestCount(Math.min(guestCount, maxGuests));
+                                        }
+                                        setWantsExtra(!wantsExtra);
+                                    };
+                                    
+                                    return (
+                                        <div className="space-y-3">
+                                            {/* Standard Guests - All included in base price */}
+                                            <div className="p-4 bg-gray-50 rounded-xl">
+                                                <div className="flex items-center justify-between mb-3">
+                                                    <div>
+                                                        <span className="text-sm font-semibold text-gray-900">Standard guests</span>
+                                                        <p className="text-xs text-gray-500">All included in base price</p>
+                                                    </div>
+                                                    <span className="text-xs font-medium text-gray-400 bg-gray-200 px-2 py-0.5 rounded">max {maxGuests}</span>
+                                                </div>
+                                                <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden bg-white">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => updateBaseGuests(baseGuestCount - 1)}
+                                                        disabled={baseGuestCount <= 1}
+                                                        title="Decrease guests"
+                                                        aria-label="Decrease guests"
+                                                        className="p-3 hover:bg-gray-100 disabled:opacity-50 transition-all active:scale-95"
+                                                    >
+                                                        <Minus size={18} />
+                                                    </button>
+                                                    <div className="flex-1 text-center py-2">
+                                                        <span className="font-bold text-lg text-gray-900">{baseGuestCount}</span>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => updateBaseGuests(baseGuestCount + 1)}
+                                                        disabled={baseGuestCount >= maxGuests}
+                                                        title="Increase guests"
+                                                        aria-label="Increase guests"
+                                                        className="p-3 hover:bg-gray-100 disabled:opacity-50 transition-all active:scale-95"
+                                                    >
+                                                        <Plus size={18} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            
+                                            {/* Extra Guests - Only if host allows */}
+                                            {allowExtraGuests && extraGuestLimit > 0 && extraGuestFee > 0 && (
+                                                <div className={`p-4 rounded-xl border-2 transition-all ${wantsExtra ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-gray-200'}`}>
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex items-center gap-3">
+                                                            <button
+                                                                type="button"
+                                                                onClick={handleExtraToggle}
+                                                                className={`relative w-11 h-6 rounded-full transition-colors ${wantsExtra ? 'bg-emerald-500' : 'bg-gray-300'}`}
+                                                                role="switch"
+                                                                aria-checked={wantsExtra}
+                                                                title="Toggle extra guests"
+                                                            >
+                                                                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${wantsExtra ? 'translate-x-5' : ''}`} />
+                                                            </button>
+                                                            <div>
+                                                                <span className="text-sm font-semibold text-gray-900">Need more guests?</span>
+                                                                <p className="text-xs text-gray-500">
+                                                                    +{formatCurrency(extraGuestFee)}/guest • up to {extraGuestLimit} extra
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    {/* Extra guest counter */}
+                                                    {wantsExtra && (
+                                                        <div className="mt-4 pt-4 border-t border-emerald-200">
+                                                            <div className="flex items-center justify-between">
+                                                                <span className="text-sm font-medium text-gray-700">Extra guests</span>
+                                                                <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden bg-white">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => updateExtraGuests(extraGuestCount - 1)}
+                                                                        disabled={extraGuestCount <= 0}
+                                                                        aria-label="Decrease extra guests"
+                                                                        title="Decrease extra guests"
+                                                                        className="px-3 py-2 hover:bg-gray-50 disabled:opacity-40"
+                                                                    >
+                                                                        <Minus size={14} />
+                                                                    </button>
+                                                                    <div className="w-12 text-center py-2 font-bold text-gray-900">
+                                                                        {extraGuestCount}
+                                                                    </div>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => updateExtraGuests(extraGuestCount + 1)}
+                                                                        disabled={extraGuestCount >= extraGuestLimit}
+                                                                        aria-label="Increase extra guests"
+                                                                        title="Increase extra guests"
+                                                                        className="px-3 py-2 hover:bg-gray-50 disabled:opacity-40"
+                                                                    >
+                                                                        <Plus size={14} />
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                            {extraGuestCount > 0 && (
+                                                                <p className="text-xs text-emerald-600 font-medium mt-2">
+                                                                    +{formatCurrency(extraGuestFee * extraGuestCount)} for {extraGuestCount} extra guest{extraGuestCount > 1 ? 's' : ''}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                            
+                                            {/* Summary when extras selected */}
+                                            {wantsExtra && extraGuestCount > 0 && (
+                                                <div className="flex items-center justify-between text-sm bg-gray-100 rounded-lg px-3 py-2">
+                                                    <span className="text-gray-600">Total guests</span>
+                                                    <span className="font-bold text-gray-900">{baseGuestCount + extraGuestCount}</span>
+                                                </div>
                                             )}
                                         </div>
-                                    </div>
-                                    <button
-                                        type="button"
-                                        onClick={() => setGuestCount(Math.min(listing.capacity || 10, guestCount + 1))}
-                                        disabled={guestCount >= (listing.capacity || 10)}
-                                        title="Increase guests"
-                                        aria-label="Increase guests"
-                                        className="p-3 hover:bg-gray-100 rounded-lg disabled:opacity-50 transition-all active:scale-95"
-                                    >
-                                        <Plus size={18} />
-                                    </button>
-                                </div>
-                                {/* Pricing tier info - below field */}
-                                {typeof listing.includedGuests === 'number' && listing.includedGuests > 0 && typeof listing.pricePerExtraGuest === 'number' && listing.pricePerExtraGuest > 0 && (
-                                    <p className="text-xs text-gray-600 mt-2 font-medium">
-                                        First {listing.includedGuests} {listing.includedGuests === 1 ? 'guest' : 'guests'} included, then {formatCurrency(listing.pricePerExtraGuest)} per guest
-                                    </p>
-                                )}
+                                    );
+                                })()}
                             </div>
 
                             {/* Date Selection */}
@@ -484,35 +628,40 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                         </span>
                                     </div>
 
-                                    {/* Guest Pricing Breakdown */}
-                                    {typeof listing.includedGuests === 'number' && listing.includedGuests > 0 && typeof listing.pricePerExtraGuest === 'number' && listing.pricePerExtraGuest > 0 && guestCount > 0 && (
-                                        <div className="pl-2 space-y-1 border-l-2 border-gray-200">
-                                            {/* Base guests included */}
-                                            <div className="flex justify-between text-xs text-gray-500">
-                                                <span>Base ({Math.min(guestCount, listing.includedGuests)} {Math.min(guestCount, listing.includedGuests) === 1 ? 'guest' : 'guests'} included)</span>
-                                                <span>—</span>
-                                            </div>
-
-                                            {/* Additional guests charge */}
-                                            {guestCount > listing.includedGuests && (
-                                                <div className="flex justify-between text-xs">
-                                                    <span className="text-gray-600">
-                                                        + {guestCount - listing.includedGuests} extra {guestCount - listing.includedGuests === 1 ? 'guest' : 'guests'} × {formatCurrency(listing.pricePerExtraGuest)}
-                                                    </span>
-                                                    <span className="font-medium text-gray-900">
-                                                        {formatCurrency((guestCount - listing.includedGuests) * listing.pricePerExtraGuest)}
-                                                    </span>
+                                    {/* Guest Pricing Breakdown - New Model */}
+                                    {(() => {
+                                        const maxGuests = listing.maxGuests ?? listing.capacity ?? 10;
+                                        const allowExtraGuests = listing.allowExtraGuests ?? false;
+                                        const extraGuestFee = listing.extraGuestFee ?? listing.pricePerExtraGuest ?? 0;
+                                        const extraGuests = allowExtraGuests ? Math.max(0, guestCount - maxGuests) : 0;
+                                        const hasExtras = extraGuests > 0 && extraGuestFee > 0;
+                                        
+                                        if (hasExtras) {
+                                            return (
+                                                <div className="pl-2 space-y-1 border-l-2 border-brand-200">
+                                                    <div className="flex justify-between text-xs text-gray-500">
+                                                        <span>Base ({Math.min(guestCount, maxGuests)} {Math.min(guestCount, maxGuests) === 1 ? 'guest' : 'guests'} included)</span>
+                                                        <span>—</span>
+                                                    </div>
+                                                    <div className="flex justify-between text-xs">
+                                                        <span className="text-brand-600">
+                                                            + {extraGuests} extra {extraGuests === 1 ? 'guest' : 'guests'} × {formatCurrency(extraGuestFee)}
+                                                        </span>
+                                                        <span className="font-medium text-brand-700">
+                                                            {formatCurrency(extraGuests * extraGuestFee)}
+                                                        </span>
+                                                    </div>
                                                 </div>
-                                            )}
-                                        </div>
-                                    )}
-
-                                    {/* Simple guest count (when no tiered pricing) */}
-                                    {(!listing.includedGuests || !listing.pricePerExtraGuest) && guestCount > 1 && (
-                                        <div className="text-xs text-gray-500 pl-1">
-                                            For {guestCount} guests
-                                        </div>
-                                    )}
+                                            );
+                                        } else if (guestCount > 1) {
+                                            return (
+                                                <div className="text-xs text-gray-500 pl-1">
+                                                    For {guestCount} guests
+                                                </div>
+                                            );
+                                        }
+                                        return null;
+                                    })()}
                                 </div>
 
                                 {/* Add-ons Itemized */}
@@ -591,20 +740,20 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                     </div>
                 </div>
 
-                {/* Mobile Sticky Footer */}
-                <div className="md:hidden border-t border-gray-200 bg-white p-4 pb-safe shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-20">
-                    <div className="flex items-center justify-between mb-3">
-                        <div>
-                            <p className="text-xs text-gray-500 font-medium">Total Price</p>
-                            <p className="text-xl font-bold text-gray-900">{formatCurrency(fees.total)}</p>
+                {/* Mobile Sticky Footer - Matches listing page footer style */}
+                <div className="md:hidden shrink-0 border-t border-gray-200 bg-white p-4 flex justify-between items-center shadow-[0_-4px_20px_rgba(0,0,0,0.08)]" style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
+                    <div className="flex flex-col">
+                        <div className="flex items-baseline gap-1">
+                            <span className="text-xl font-bold text-gray-900">{formatCurrency(fees.total)}</span>
+                            <span className="text-sm text-gray-500">total</span>
                         </div>
                         <button
                             onClick={() => {
                                 document.getElementById('price-breakdown')?.scrollIntoView({ behavior: 'smooth' });
                             }}
-                            className="text-xs font-medium text-gray-500 underline"
+                            className="text-xs text-gray-500 underline cursor-pointer hover:text-gray-900 transition-colors text-left"
                         >
-                            View details
+                            Show price breakdown
                         </button>
                     </div>
                     <Button
@@ -612,7 +761,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                         disabled={isHost || (isHourly && hostOpenHours.length === 0) || isBookingLoading || bookingSeries.some(s => s.status !== 'AVAILABLE')}
                         variant="primary"
                         size="lg"
-                        className="w-full py-3.5 text-lg shadow-lg shadow-brand-500/20"
+                        className="px-6 py-3 rounded-xl font-bold text-base shadow-lg shadow-brand-500/30"
                         isLoading={isBookingLoading}
                     >
                         {!isBookingLoading && (

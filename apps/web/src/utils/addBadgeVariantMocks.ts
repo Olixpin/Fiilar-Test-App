@@ -23,8 +23,13 @@ export const addBadgeVariantMocks = () => {
         hostId: 'host-super-001',
         status: ListingStatus.LIVE,
         tags: ['Luxury', 'Penthouse', 'SuperHost'],
+        maxGuests: 4,
+        allowExtraGuests: true,
+        extraGuestLimit: 2,
+        extraGuestFee: 5000,
+        // Legacy fields
         capacity: 4,
-        includedGuests: 2,
+        includedGuests: 4,
         pricePerExtraGuest: 5000,
         amenities: [
             { name: 'WiFi', icon: 'wifi' },
@@ -63,8 +68,13 @@ export const addBadgeVariantMocks = () => {
         hostId: 'host-premium-001',
         status: ListingStatus.LIVE,
         tags: ['VIP', 'Executive', 'Premium'],
+        maxGuests: 6,
+        allowExtraGuests: true,
+        extraGuestLimit: 3,
+        extraGuestFee: 7500,
+        // Legacy fields
         capacity: 6,
-        includedGuests: 3,
+        includedGuests: 6,
         pricePerExtraGuest: 7500,
         amenities: [
             { name: 'WiFi', icon: 'wifi' },

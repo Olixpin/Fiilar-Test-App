@@ -111,10 +111,15 @@ const LivePreview: React.FC<LivePreviewProps> = ({ listing }) => {
                         </div>
 
                         {/* Capacity */}
-                        {listing.capacity && (
+                        {(listing.maxGuests || listing.capacity) && (
                             <div className="flex items-center gap-1 text-gray-500">
                                 <Users size={12} />
-                                <span className="text-xs">Up to {listing.capacity} guests</span>
+                                <span className="text-xs">
+                                    Up to {listing.maxGuests || listing.capacity} guests
+                                    {listing.allowExtraGuests && listing.extraGuestLimit && (
+                                        <span className="text-brand-600"> (+{listing.extraGuestLimit} extra available)</span>
+                                    )}
+                                </span>
                             </div>
                         )}
 
@@ -147,13 +152,20 @@ const LivePreview: React.FC<LivePreviewProps> = ({ listing }) => {
                         {/* Price */}
                         <div className="pt-2 border-t border-gray-100">
                             {hasPrice ? (
-                                <div className="flex items-baseline gap-1">
-                                    <span className="font-semibold text-gray-900">
-                                        ₦{listing.price?.toLocaleString()}
-                                    </span>
-                                    <span className="text-xs text-gray-500">
-                                        / {getPriceUnitLabel(listing.pricingModel)}
-                                    </span>
+                                <div>
+                                    <div className="flex items-baseline gap-1">
+                                        <span className="font-semibold text-gray-900">
+                                            ₦{listing.price?.toLocaleString()}
+                                        </span>
+                                        <span className="text-xs text-gray-500">
+                                            / {getPriceUnitLabel(listing.pricingModel)}
+                                        </span>
+                                    </div>
+                                    {listing.allowExtraGuests && listing.extraGuestFee && listing.extraGuestFee > 0 && (
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            +₦{listing.extraGuestFee.toLocaleString()} per extra guest
+                                        </p>
+                                    )}
                                 </div>
                             ) : hasPricingModel ? (
                                 <div className="flex items-baseline gap-1">

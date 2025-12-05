@@ -14,6 +14,7 @@ import { formatCurrency } from './utils/currency';
 import ScrollToTop from './components/common/ScrollToTop';
 import SupportModal from './components/common/SupportModal';
 import GuestBottomNav from './components/common/GuestBottomNav';
+import { BottomNavProvider } from './contexts/BottomNavContext';
 
 const HostDashboard = lazy(() => import('./features/HostDashboard/pages/HostDashboardPage'));
 const UserDashboard = lazy(() => import('./features/UserDashboard/pages/UserDashboard'));
@@ -613,6 +614,7 @@ const App: React.FC = () => {
 
   return (
     <LocaleProvider>
+      <BottomNavProvider>
       <ErrorBoundary>
         {loading ? (
           <div className="flex items-center justify-center min-h-screen bg-gray-50">
@@ -931,6 +933,7 @@ const App: React.FC = () => {
         )}
 
       </ErrorBoundary >
+      </BottomNavProvider>
     </LocaleProvider >
   );
 };
