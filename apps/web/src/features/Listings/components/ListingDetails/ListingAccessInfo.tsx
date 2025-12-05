@@ -1,15 +1,20 @@
 import React from 'react';
 import { Listing, PricingModel, NightlyConfig, DailyConfig, HourlyConfig } from '@fiilar/types';
-import { Clock, Calendar, Hourglass } from 'lucide-react';
+import { Clock, Calendar, Hourglass, Lock } from 'lucide-react';
 
 interface ListingAccessInfoProps {
     listing: Listing;
+    isHost?: boolean;
+    hasConfirmedBooking?: boolean;
 }
 
-export const ListingAccessInfo: React.FC<ListingAccessInfoProps> = ({ listing }) => {
+export const ListingAccessInfo: React.FC<ListingAccessInfoProps> = ({ listing, isHost = false, hasConfirmedBooking = false }) => {
     if (!listing.pricingModel || !listing.bookingConfig) {
         return null;
     }
+
+    // Only host or confirmed guests can see private access instructions
+    const canSeeAccessInstructions = isHost || hasConfirmedBooking;
 
     const formatTime = (time: string | undefined) => {
         if (!time) return 'Not specified';
@@ -175,7 +180,7 @@ export const ListingAccessInfo: React.FC<ListingAccessInfoProps> = ({ listing })
 
             {/* Private Access Instructions (Host or Confirmed Guest only) */}
             {
-                listing.accessInfo && (
+                listing.accessInfo && canSeeAccessInstructions && (
                     <div className="mt-8 p-6 bg-amber-50 rounded-2xl border border-amber-100">
                         <h3 className="text-lg font-bold text-amber-900 mb-2 flex items-center gap-2">
                             <span className="bg-amber-100 p-1.5 rounded-lg">🔑</span>
@@ -187,6 +192,23 @@ export const ListingAccessInfo: React.FC<ListingAccessInfoProps> = ({ listing })
                         <div className="bg-white/60 p-4 rounded-xl border border-amber-100 text-gray-800 whitespace-pre-wrap">
                             {listing.accessInfo}
                         </div>
+                    </div>
+                )
+            }
+
+            {/* Show locked message for non-authorized users */}
+            {
+                listing.accessInfo && !canSeeAccessInstructions && (
+                    <div className="mt-8 p-6 bg-gray-50 rounded-2xl border border-gray-200">
+                        <h3 className="text-lg font-bold text-gray-700 mb-2 flex items-center gap-2">
+                            <span className="bg-gray-200 p-1.5 rounded-lg">
+                                <Lock size={18} className="text-gray-500" />
+                            </span>
+                            Access Instructions
+                        </h3>
+                        <p className="text-sm text-gray-500">
+                            Access instructions will be shared after your booking is confirmed.
+                        </p>
                     </div>
                 )
             }

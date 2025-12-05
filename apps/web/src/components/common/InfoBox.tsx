@@ -37,10 +37,10 @@ const variantStyles: Record<InfoBoxVariant, { bg: string; border: string; text: 
         iconColor: 'text-red-600',
     },
     example: {
-        bg: 'bg-gray-50',
+        bg: 'bg-purple-100',
         border: 'border-gray-200',
-        text: 'text-gray-700',
-        iconColor: 'text-gray-500',
+        text: 'text-purple-700',
+        iconColor: 'text-purple-700',
     },
 };
 

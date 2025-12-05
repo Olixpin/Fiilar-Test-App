@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Listing, User } from '@fiilar/types';
 import StepWrapper from './StepWrapper';
-import { Upload, FileCheck, CheckCircle, X, Info, FileText, MapPin } from 'lucide-react';
+import { Upload, FileCheck, CheckCircle, X, Info, FileText, MapPin, Clock } from 'lucide-react';
 import { InfoBox } from '../../../../../components/common';
 
 interface StepVerificationProps {
@@ -96,11 +96,11 @@ const StepVerification: React.FC<StepVerificationProps> = ({
             <div className="space-y-6">
                 {/* Listing Verification Status */}
                 {hasProofOfAddress ? (
-                    <InfoBox variant="success" icon={<CheckCircle size={20} />}>
+                    <InfoBox variant="info" icon={<Clock size={20} />}>
                         <div>
-                            <p className="font-medium text-green-900">Property verified!</p>
-                            <p className="text-xs text-green-700 mt-1">
-                                Your proof of address has been uploaded for this listing.
+                            <p className="font-medium text-blue-900">Document submitted for review</p>
+                            <p className="text-xs text-blue-700 mt-1">
+                                Your proof of address has been uploaded and is pending admin verification.
                             </p>
                         </div>
                     </InfoBox>

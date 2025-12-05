@@ -1,0 +1,625 @@
+================================================================================
+                    DAILY BOOKING TEST SCENARIOS & EDGE CASES
+                              Fiilar Platform QA
+================================================================================
+
+================================================================================
+1. BASIC DAILY BOOKING FLOW
+================================================================================
+
+D-001 | Single day booking
+      Steps: Select 1 day, book
+      Expected: Booking confirmed for that day
+      Status: [ ]
+
+D-002 | Multiple consecutive days
+      Steps: Select 3 consecutive days
+      Expected: Total = daily rate × 3
+      Status: [ ]
+
+D-003 | Weekend booking
+      Steps: Book Saturday + Sunday
+      Expected: Prices apply correctly
+      Status: [ ]
+
+D-004 | Weekday booking
+      Steps: Book Monday-Friday
+      Expected: Standard daily rate applies
+      Status: [ ]
+
+
+================================================================================
+2. DATE SELECTION EDGE CASES
+================================================================================
+
+D-010 | Same-day booking
+      Steps: Try to book today
+      Expected: Should work if allowed by host settings
+      Status: [ ]
+
+D-011 | Past date selection
+      Steps: Try selecting yesterday
+      Expected: Should be disabled/blocked
+      Status: [ ]
+
+D-012 | Far future booking
+      Steps: Book 6+ months ahead
+      Expected: Should respect max advance booking setting
+      Status: [ ]
+
+D-013 | Date spanning month boundary
+      Steps: Book Dec 30 - Jan 3
+      Expected: Correct calculation across months
+      Status: [ ]
+
+D-014 | Date spanning year boundary
+      Steps: Book Dec 31 - Jan 2
+      Expected: Correct year handling
+      Status: [ ]
+
+D-015 | Leap year booking
+      Steps: Book Feb 28-Mar 1 (leap year)
+      Expected: Correct day count
+      Status: [ ]
+
+D-016 | Start date after end date
+      Steps: Select end before start
+      Expected: Should swap or show error
+      Status: [ ]
+
+
+================================================================================
+3. AVAILABILITY & CONFLICTS
+================================================================================
+
+D-020 | Fully booked day
+      Steps: Try booking already booked date
+      Expected: Should show unavailable
+      Status: [ ]
+
+D-021 | Partial overlap attempt
+      Steps: Book dates overlapping existing
+      Expected: Should block conflicting dates
+      Status: [ ]
+
+D-022 | Back-to-back bookings
+      Steps: Book day after existing booking ends
+      Expected: Should allow (no gap issue)
+      Status: [ ]
+
+D-023 | Buffer day enforcement
+      Steps: If host sets 1-day buffer
+      Expected: Day after checkout unavailable
+      Status: [ ]
+
+D-024 | Host blocked dates
+      Steps: Try booking host-blocked dates
+      Expected: Should show unavailable
+      Status: [ ]
+
+D-025 | Multiple guests same date (Race condition)
+      Steps: Two users book same date simultaneously
+      Expected: First succeeds, second fails
+      Status: [ ]
+
+
+================================================================================
+4. PRICING SCENARIOS
+================================================================================
+
+D-030 | Base daily rate
+      Steps: Book 1 day, standard
+      Expected: Shows correct daily price
+      Status: [ ]
+
+D-031 | Weekend premium
+      Steps: Book weekend (if premium set)
+      Expected: Higher rate applied
+      Status: [ ]
+
+D-032 | Weekly discount
+      Steps: Book 7+ days (if discount set)
+      Expected: Discount applied correctly
+      Status: [ ]
+
+D-033 | Monthly discount
+      Steps: Book 30+ days (if discount set)
+      Expected: Monthly discount applied
+      Status: [ ]
+
+D-034 | Custom date pricing
+      Steps: Book date with special price
+      Expected: Special price applies
+      Status: [ ]
+
+D-035 | Service fee calculation
+      Steps: Any booking
+      Expected: Service fee = correct % of subtotal
+      Status: [ ]
+
+D-036 | Caution fee display
+      Steps: Any booking
+      Expected: Caution fee shown separately
+      Status: [ ]
+
+D-037 | Total calculation
+      Steps: Multi-day booking
+      Expected: Total = (days × rate) + service fee + caution
+      Status: [ ]
+
+D-038 | Currency display
+      Steps: View prices
+      Expected: Correct currency symbol (₦)
+      Status: [ ]
+
+D-039 | Extra guest fee
+      Steps: Book with guests > base capacity
+      Expected: Extra fee per guest applied
+      Status: [ ]
+
+
+================================================================================
+5. GUEST CAPACITY
+================================================================================
+
+D-040 | Minimum guests
+      Steps: Book with 1 guest
+      Expected: Should allow
+      Status: [ ]
+
+D-041 | Maximum guests
+      Steps: Book at max capacity
+      Expected: Should allow
+      Status: [ ]
+
+D-042 | Over capacity attempt
+      Steps: Try booking max + 1 guests
+      Expected: Should block/show error
+      Status: [ ]
+
+D-043 | Zero guests
+      Steps: Try booking with 0 guests
+      Expected: Should require at least 1
+      Status: [ ]
+
+D-044 | Guest count change
+      Steps: Modify guest count after selecting
+      Expected: Price recalculates
+      Status: [ ]
+
+
+================================================================================
+6. BOOKING MODIFICATIONS
+================================================================================
+
+D-050 | Extend stay (add days)
+      Steps: Guest requests extra days
+      Expected: Price updated, dates extended
+      Status: [ ]
+
+D-051 | Shorten stay
+      Steps: Guest requests fewer days
+      Expected: Refund calculated if applicable
+      Status: [ ]
+
+D-052 | Change dates entirely
+      Steps: Move booking to different dates
+      Expected: Availability checked, price recalculated
+      Status: [ ]
+
+D-053 | Modify guest count
+      Steps: Increase/decrease guests
+      Expected: Price adjusted
+      Status: [ ]
+
+D-054 | Modification after cutoff
+      Steps: Try modifying close to check-in
+      Expected: Should respect modification policy
+      Status: [ ]
+
+
+================================================================================
+7. CANCELLATION SCENARIOS
+================================================================================
+
+D-060 | Guest cancels - flexible policy (24+ hrs)
+      Steps: Cancel 24+ hrs before
+      Expected: Full refund (minus service fee)
+      Status: [ ]
+
+D-061 | Guest cancels - moderate policy (5+ days)
+      Steps: Cancel 5+ days before
+      Expected: Full refund
+      Status: [ ]
+
+D-062 | Guest cancels - moderate policy (2 days)
+      Steps: Cancel 2 days before
+      Expected: 50% refund
+      Status: [ ]
+
+D-063 | Guest cancels - strict policy (7+ days)
+      Steps: Cancel 7+ days before
+      Expected: 50% refund
+      Status: [ ]
+
+D-064 | Guest cancels - strict policy (< 7 days)
+      Steps: Cancel < 7 days
+      Expected: No refund
+      Status: [ ]
+
+D-065 | Host cancels
+      Steps: Host initiates cancel
+      Expected: Guest gets full refund
+      Status: [ ]
+
+D-066 | Cancel mid-stay
+      Steps: Guest cancels during stay
+      Expected: Prorated refund per policy
+      Status: [ ]
+
+D-067 | Cancel with payment in escrow
+      Steps: Cancel before release
+      Expected: Funds returned from escrow
+      Status: [ ]
+
+
+================================================================================
+8. PAYMENT & ESCROW (DAILY)
+================================================================================
+
+D-070 | Payment processing
+      Steps: Complete booking
+      Expected: Payment goes to escrow
+      Status: [ ]
+
+D-071 | Escrow hold period
+      Steps: After checkout
+      Expected: Funds held 24-48hrs
+      Status: [ ]
+
+D-072 | Escrow release
+      Steps: After hold period
+      Expected: Funds released to host
+      Status: [ ]
+
+D-073 | Payment failure
+      Steps: Card declined
+      Expected: Booking not confirmed
+      Status: [ ]
+
+D-074 | Partial payment
+      Steps: If supported
+      Expected: Correct amount charged
+      Status: [ ]
+
+D-075 | Refund to original method
+      Steps: Guest cancels
+      Expected: Refund to same payment method
+      Status: [ ]
+
+
+================================================================================
+9. CHECK-IN/CHECK-OUT TIMES
+================================================================================
+
+D-080 | Standard check-in time
+      Steps: View booking
+      Expected: Shows correct check-in time
+      Status: [ ]
+
+D-081 | Standard check-out time
+      Steps: View booking
+      Expected: Shows correct check-out time
+      Status: [ ]
+
+D-082 | Early check-in request
+      Steps: Guest requests early
+      Expected: Host can approve/deny
+      Status: [ ]
+
+D-083 | Late check-out request
+      Steps: Guest requests late
+      Expected: Host can approve/deny
+      Status: [ ]
+
+D-084 | Same-day turnaround
+      Steps: Checkout at 11am, new guest at 3pm
+      Expected: Both bookings work
+      Status: [ ]
+
+
+================================================================================
+10. RECURRING/SERIES DAILY BOOKINGS
+================================================================================
+
+D-090 | Weekly recurring
+      Steps: Book every Monday for 4 weeks
+      Expected: 4 separate bookings created
+      Status: [ ]
+
+D-091 | Bi-weekly recurring
+      Steps: Book every other week
+      Expected: Correct dates calculated
+      Status: [ ]
+
+D-092 | Recurring with conflict
+      Steps: One date in series unavailable
+      Expected: Shows conflict, options to skip
+      Status: [ ]
+
+D-093 | Cancel one in series
+      Steps: Cancel middle booking
+      Expected: Others remain active
+      Status: [ ]
+
+D-094 | Cancel entire series
+      Steps: Cancel all
+      Expected: All bookings cancelled
+      Status: [ ]
+
+D-095 | Modify series
+      Steps: Change all future dates
+      Expected: All updated correctly
+      Status: [ ]
+
+
+================================================================================
+11. MULTI-DAY MINIMUM/MAXIMUM STAY
+================================================================================
+
+D-100 | Minimum stay enforced
+      Steps: Try booking 1 day (min is 2)
+      Expected: Should block with message
+      Status: [ ]
+
+D-101 | Maximum stay enforced
+      Steps: Try booking 60 days (max is 30)
+      Expected: Should block with message
+      Status: [ ]
+
+D-102 | Exact minimum
+      Steps: Book exactly minimum days
+      Expected: Should allow
+      Status: [ ]
+
+D-103 | Exact maximum
+      Steps: Book exactly maximum days
+      Expected: Should allow
+      Status: [ ]
+
+D-104 | Weekend minimum different
+      Steps: 2-night min on weekends only
+      Expected: Enforced correctly
+      Status: [ ]
+
+
+================================================================================
+12. HOST ACTIONS ON DAILY BOOKINGS
+================================================================================
+
+D-110 | Accept booking (instant off)
+      Steps: Guest requests, host accepts
+      Expected: Booking confirmed
+      Status: [ ]
+
+D-111 | Decline booking
+      Steps: Host declines request
+      Expected: Guest notified, no charge
+      Status: [ ]
+
+D-112 | Host no response (timeout)
+      Steps: Host doesn't respond in 24hrs
+      Expected: Auto-decline, guest refunded
+      Status: [ ]
+
+D-113 | Instant booking enabled
+      Steps: Guest books
+      Expected: Immediately confirmed
+      Status: [ ]
+
+D-114 | Block dates after booking
+      Steps: Try blocking booked dates
+      Expected: Should prevent/warn
+      Status: [ ]
+
+D-115 | View booking details
+      Steps: Open booking as host
+      Expected: All info visible
+      Status: [ ]
+
+
+================================================================================
+13. CALENDAR SYNC & DISPLAY
+================================================================================
+
+D-120 | Booked dates display
+      Steps: View calendar
+      Expected: Booked dates highlighted
+      Status: [ ]
+
+D-121 | Blocked dates display
+      Steps: View calendar
+      Expected: Blocked dates shown differently
+      Status: [ ]
+
+D-122 | Available dates
+      Steps: View calendar
+      Expected: Available dates selectable
+      Status: [ ]
+
+D-123 | Past dates
+      Steps: View calendar
+      Expected: Past dates greyed out
+      Status: [ ]
+
+D-124 | Calendar month navigation
+      Steps: Navigate months
+      Expected: Correct data loads
+      Status: [ ]
+
+
+================================================================================
+14. NOTIFICATIONS (DAILY BOOKINGS)
+================================================================================
+
+D-130 | Booking request notification
+      Steps: Guest requests
+      Expected: Host gets notification
+      Status: [ ]
+
+D-131 | Booking confirmed notification
+      Steps: Booking confirmed
+      Expected: Both parties notified
+      Status: [ ]
+
+D-132 | Check-in reminder
+      Steps: Day before check-in
+      Expected: Guest gets reminder
+      Status: [ ]
+
+D-133 | Check-out reminder
+      Steps: Day of check-out
+      Expected: Guest gets reminder
+      Status: [ ]
+
+D-134 | Review reminder
+      Steps: After checkout
+      Expected: Both get review request
+      Status: [ ]
+
+D-135 | Cancellation notification
+      Steps: Either party cancels
+      Expected: Other party notified
+      Status: [ ]
+
+
+================================================================================
+15. EDGE CASES & ERROR HANDLING
+================================================================================
+
+D-140 | Booking own listing
+      Steps: Host tries to book own space
+      Expected: Should block
+      Status: [ ]
+
+D-141 | Unverified user booking
+      Steps: Non-KYC user on verified listing
+      Expected: Should require verification
+      Status: [ ]
+
+D-142 | Network failure mid-booking
+      Steps: Connection drops during payment
+      Expected: Graceful error, no double charge
+      Status: [ ]
+
+D-143 | Session timeout
+      Steps: Session expires during booking
+      Expected: Redirect to login, preserve selection
+      Status: [ ]
+
+D-144 | Concurrent modification
+      Steps: Two tabs, same booking
+      Expected: Proper conflict handling
+      Status: [ ]
+
+D-145 | Listing unpublished mid-booking
+      Steps: Host unpublishes during book
+      Expected: Block new bookings
+      Status: [ ]
+
+D-146 | Price change during booking
+      Steps: Host changes price while guest is booking
+      Expected: Original price honored or notified
+      Status: [ ]
+
+
+================================================================================
+16. MOBILE-SPECIFIC DAILY BOOKING
+================================================================================
+
+D-150 | Mobile date picker
+      Steps: Select dates on mobile
+      Expected: Easy to use, no overflow
+      Status: [ ]
+
+D-151 | Mobile guest selector
+      Steps: Change guests on mobile
+      Expected: Works correctly
+      Status: [ ]
+
+D-152 | Mobile checkout flow
+      Steps: Complete booking on mobile
+      Expected: All steps fit screen
+      Status: [ ]
+
+D-153 | Mobile calendar scroll
+      Steps: Scroll through months
+      Expected: Smooth, no lag
+      Status: [ ]
+
+
+================================================================================
+17. SPECIAL LISTING TYPES (DAILY)
+================================================================================
+
+D-160 | Serviced apartment daily
+      Steps: Book serviced apt by day
+      Expected: Correct pricing model
+      Status: [ ]
+
+D-161 | Event space daily
+      Steps: Book event space for 3 days
+      Expected: Daily rate applies
+      Status: [ ]
+
+D-162 | Co-working daily
+      Steps: Book desk for the day
+      Expected: Day pass pricing
+      Status: [ ]
+
+
+================================================================================
+QUICK SMOKE TEST CHECKLIST (DAILY)
+================================================================================
+
+[ ] Can select start and end dates
+[ ] Price calculates correctly
+[ ] Can add/change guest count
+[ ] Payment processes successfully
+[ ] Booking appears in host dashboard
+[ ] Booking appears in guest bookings
+[ ] Both parties receive confirmation
+[ ] Calendar shows dates as booked
+[ ] Can view booking details
+[ ] Cancellation works per policy
+
+
+================================================================================
+TEST EXECUTION NOTES
+================================================================================
+
+Tester Name: ______________________________
+Test Date: ________________________________
+Environment: [ ] Staging  [ ] Production
+Browser/Device: ___________________________
+
+SUMMARY:
+--------
+Total Tests: 78
+Passed: ____
+Failed: ____
+Blocked: ____
+Not Tested: ____
+
+BUGS FOUND:
+-----------
+1. ________________________________________
+2. ________________________________________
+3. ________________________________________
+4. ________________________________________
+5. ________________________________________
+
+
+================================================================================
+                              END OF TEST CASES
+================================================================================

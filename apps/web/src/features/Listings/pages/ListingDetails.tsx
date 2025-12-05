@@ -262,7 +262,7 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
 
               <div id="amenities" className="border-b border-gray-100 pb-10 scroll-mt-32">
                 <ListingAmenities listing={listing} />
-                <ListingAccessInfo listing={listing} />
+                <ListingAccessInfo listing={listing} isHost={isHost} hasConfirmedBooking={hasActiveBooking} />
               </div>
 
               <div id="reviews" className="border-b border-gray-100 pb-10 scroll-mt-32">

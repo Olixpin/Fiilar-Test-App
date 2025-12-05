@@ -1,8 +1,9 @@
-import { User, KYCStatus, Role } from '@fiilar/types';
+import { User, KYCStatus, Role, Listing, ListingStatus } from '@fiilar/types';
 
 export const STORAGE_KEYS = {
     USERS_DB: 'fiilar_users',
     USER: 'fiilar_user',
+    LISTINGS: 'fiilar_listings',
 };
 
 // Development/Simulation mode flag - set to true to bypass security for testing
@@ -18,6 +19,15 @@ const getUsers = (): User[] => {
 
 const saveUsers = (users: User[]) => {
     localStorage.setItem(STORAGE_KEYS.USERS_DB, JSON.stringify(users));
+};
+
+const getListings = (): Listing[] => {
+    const l = localStorage.getItem(STORAGE_KEYS.LISTINGS);
+    return l ? JSON.parse(l) : [];
+};
+
+const saveListings = (listings: Listing[]) => {
+    localStorage.setItem(STORAGE_KEYS.LISTINGS, JSON.stringify(listings));
 };
 
 const getCurrentUser = (): User | null => {
@@ -80,6 +90,23 @@ export const updateKYC = (userId: string, status: KYCStatus, documentUrl?: strin
             users[idx].identityDocument = documentUrl; // Sync legacy field
         }
         saveUsers(users);
+
+        // When KYC is approved, update all PENDING_KYC listings to PENDING_APPROVAL
+        if (status === 'verified') {
+            const listings = getListings();
+            let updatedCount = 0;
+            const updatedListings = listings.map((listing: Listing) => {
+                if (listing.hostId === userId && listing.status === ListingStatus.PENDING_KYC) {
+                    updatedCount++;
+                    return { ...listing, status: ListingStatus.PENDING_APPROVAL };
+                }
+                return listing;
+            });
+            if (updatedCount > 0) {
+                saveListings(updatedListings);
+                console.log(`✅ Updated ${updatedCount} listing(s) from PENDING_KYC to PENDING_APPROVAL for user ${userId}`);
+            }
+        }
 
         // Update current user session if it matches
         const sessionUser = localStorage.getItem('fiilar_user');

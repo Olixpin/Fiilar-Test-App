@@ -1,6 +1,6 @@
 import React from 'react';
 import { Listing, PricingModel } from '@fiilar/types';
-import { MapPin, Users, Star, Heart, Share2, Gift, Shield, Ban, Zap, BadgeCheck, Repeat } from 'lucide-react';
+import { MapPin, Users, Star, Heart, Share2, Gift, Shield, Ban, Zap, BadgeCheck, Repeat, Eye } from 'lucide-react';
 
 interface LivePreviewProps {
     listing: Partial<Listing>;
@@ -49,25 +49,27 @@ const LivePreview: React.FC<LivePreviewProps> = ({ listing }) => {
                                 className="w-full h-full object-cover"
                             />
                         ) : (
-                            <div className="w-full h-full flex items-center justify-center">
+                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
                                 <div className="text-center text-gray-400">
-                                    <div className="w-10 h-10 mx-auto mb-1 rounded-full bg-gray-200 flex items-center justify-center">
-                                        <Camera className="w-5 h-5" />
+                                    <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-white/80 border border-gray-200 flex items-center justify-center">
+                                        <Eye className="w-5 h-5 text-gray-400" />
                                     </div>
-                                    <p className="text-xs">Photos will appear here</p>
+                                    <p className="text-xs text-gray-400">Preview will appear here</p>
                                 </div>
                             </div>
                         )}
                         
-                        {/* Image overlay actions */}
-                        <div className="absolute top-3 right-3 flex gap-2">
-                            <button className="p-2 bg-white/90 rounded-full shadow-sm hover:bg-brand-50 transition-colors" aria-label="Save to wishlist">
-                                <Heart size={16} className="text-gray-600 hover:text-brand-600" />
-                            </button>
-                            <button className="p-2 bg-white/90 rounded-full shadow-sm" aria-label="Share">
-                                <Share2 size={16} className="text-gray-600" />
-                            </button>
-                        </div>
+                        {/* Image overlay actions - only show when there are images */}
+                        {hasImages && (
+                            <div className="absolute top-3 right-3 flex gap-2">
+                                <button className="p-2 bg-white/90 rounded-full shadow-sm hover:bg-brand-50 transition-colors" aria-label="Save to wishlist">
+                                    <Heart size={16} className="text-gray-600 hover:text-brand-600" />
+                                </button>
+                                <button className="p-2 bg-white/90 rounded-full shadow-sm" aria-label="Share">
+                                    <Share2 size={16} className="text-gray-600" />
+                                </button>
+                            </div>
+                        )}
 
                         {/* Space type badge */}
                         {listing.type && (
@@ -270,14 +272,6 @@ const ProgressItem: React.FC<{ label: string; done: boolean }> = ({ label, done 
         </div>
         <span className={`text-xs ${done ? 'text-brand-700' : 'text-gray-400'}`}>{label}</span>
     </div>
-);
-
-// Camera icon for placeholder
-const Camera: React.FC<{ className?: string }> = ({ className }) => (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-    </svg>
 );
 
 export default LivePreview;
