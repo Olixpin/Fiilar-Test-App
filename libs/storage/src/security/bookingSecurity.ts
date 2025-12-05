@@ -156,20 +156,31 @@ export const calculateBookingPrice = (
     // Base price calculation
     let basePrice = listing.price;
 
-    // Extra guest fee
-    const includedGuests = listing.includedGuests || 1;
-    const pricePerExtraGuest = listing.pricePerExtraGuest || 0;
+    // NEW MODEL (v1.1): Extra guest fee calculation
+    const maxGuests = listing.maxGuests ?? listing.capacity ?? 1;
+    const allowExtraGuests = listing.allowExtraGuests ?? false;
+    const extraGuestFeePerGuest = listing.extraGuestFee ?? listing.pricePerExtraGuest ?? 0;
+    
     let extraGuestFee = 0;
-    if (guestCount > includedGuests && pricePerExtraGuest > 0) {
-        extraGuestFee = (guestCount - includedGuests) * pricePerExtraGuest;
+    if (allowExtraGuests && extraGuestFeePerGuest > 0 && guestCount > maxGuests) {
+        // New model: extras are guests beyond maxGuests
+        const extraGuestsCount = guestCount - maxGuests;
+        extraGuestFee = extraGuestsCount * extraGuestFeePerGuest;
+    } else {
+        // LEGACY: Fall back to old model for backward compatibility
+        const includedGuests = listing.includedGuests || maxGuests;
+        const pricePerExtraGuest = listing.pricePerExtraGuest || 0;
+        if (guestCount > includedGuests && pricePerExtraGuest > 0) {
+            extraGuestFee = (guestCount - includedGuests) * pricePerExtraGuest;
+        }
     }
 
     // Rental cost based on type
     let rentalCost: number;
     if (isHourly && selectedHours) {
-        rentalCost = selectedHours.length * (basePrice + extraGuestFee);
+        rentalCost = selectedHours.length * basePrice;
     } else {
-        rentalCost = duration * (basePrice + extraGuestFee);
+        rentalCost = duration * basePrice;
     }
 
     // Add-ons cost
@@ -183,11 +194,16 @@ export const calculateBookingPrice = (
         }
     }
 
-    // Subtotal (before fees, multiplied by number of dates for recurring)
-    const subtotal = (rentalCost + addOnsCost) * datesCount;
+    // Extra guest fees are per booking occurrence (not per hour)
+    const rentalSubtotal = rentalCost * datesCount;
+    const extraGuestTotal = extraGuestFee * datesCount;
+    
+    // Subtotal before service fee
+    const subtotal = rentalSubtotal + extraGuestTotal + (addOnsCost * datesCount);
 
-    // Service fee (10% of subtotal)
-    const serviceFee = Math.round(subtotal * BOOKING_SECURITY_CONFIG.SERVICE_FEE_PERCENTAGE * 100) / 100;
+    // Service fee (10% of rental + extra guest fees, NOT on add-ons per frontend logic)
+    const feeableAmount = rentalSubtotal + extraGuestTotal;
+    const serviceFee = Math.round(feeableAmount * BOOKING_SECURITY_CONFIG.SERVICE_FEE_PERCENTAGE * 100) / 100;
 
     // Caution fee (one-time, not multiplied by dates)
     const cautionFee = listing.cautionFee || 0;
