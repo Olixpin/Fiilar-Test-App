@@ -444,31 +444,50 @@ Checkout
 
 ```typescript
 interface Booking {
-  // ... existing fields
+  id: string;
+  listingId: string;
+  userId: string;
+  date: string;
+  duration: number;
+  bookingType: 'HOURLY' | 'DAILY';
+
+  // ============================================
+  // FINANCIAL BREAKDOWN (All amounts explicit)
+  // ============================================
   
-  // Pricing (stored separately for transparency)
+  // Base charges
   basePrice: number;           // Listing price × duration (includes maxGuests)
   extraGuestFees: number;      // extraGuestFee × number of extra guests
-  extrasTotal: number;         // Sum of optional add-ons
+  extrasTotal: number;         // Sum of selected add-ons (no platform fee)
   
-  // Fees (calculated on basePrice + extraGuestFees)
-  userServiceFee: number;      // 10% of (basePrice + extraGuestFees)
-  hostServiceFee: number;      // 3-5% of (basePrice + extraGuestFees)
-  
-  // Deposits
-  cautionFee: number;          // Security deposit (refundable)
+  // Fees
+  userServiceFee: number;      // 10% of (basePrice + extraGuestFees) - charged to guest
+  hostServiceFee: number;      // 3-5% of (basePrice + extraGuestFees) - deducted from host
+  cautionFee: number;          // Security deposit (fully refundable)
   
   // Totals
-  totalPrice: number;          // Guest pays: basePrice + extraGuestFees + userServiceFee + cautionFee + extrasTotal
+  subtotal: number;            // basePrice + extraGuestFees (fee-able amount)
+  totalPrice: number;          // What guest pays: subtotal + userServiceFee + cautionFee + extrasTotal
+  hostPayout: number;          // What host receives: subtotal - hostServiceFee + extrasTotal
+  platformFee: number;         // What platform keeps: userServiceFee + hostServiceFee
   
   // Guest info
   guestCount: number;          // Total guests (base + extra)
   extraGuestCount?: number;    // Number of guests beyond maxGuests
+  selectedAddOns?: string[];   // IDs of selected add-ons
   
   // Caution tracking
   cautionStatus?: 'HELD' | 'RELEASED' | 'CLAIMED' | 'PARTIAL_CLAIM';
   cautionReleasedAt?: string;  // ISO timestamp
   cautionClaimAmount?: number; // If partial claim
+
+  // Status
+  status: 'Pending' | 'Confirmed' | 'Started' | 'Completed' | 'Cancelled' | 'Reserved';
+  paymentStatus?: 'Pending' | 'Held' | 'Released' | 'Refunded';
+  
+  // Refund tracking
+  refundAmount?: number;
+  refundProcessed?: boolean;
 }
 
 interface Listing {
@@ -483,6 +502,51 @@ interface Listing {
   // includedGuests?: number;   // No longer needed - maxGuests = included
   // pricePerExtraGuest?: number; // Use extraGuestFee instead
 }
+```
+
+### Financial Breakdown Visual
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    WHAT GUEST PAYS (totalPrice)                 │
+├─────────────────────────────────────────────────────────────────┤
+│  basePrice          │ Listing price × duration                  │
+│  + extraGuestFees   │ Extra guests × fee per guest              │
+│  ─────────────────  │ ─────────────────────────────             │
+│  = subtotal         │ Fee-able amount                           │
+│  + userServiceFee   │ 10% of subtotal                           │
+│  + extrasTotal      │ Add-ons (no fee)                          │
+│  + cautionFee       │ Security deposit                          │
+│  ═══════════════════│═══════════════════════════════            │
+│  = totalPrice       │ Final amount charged to guest             │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│                    WHAT HOST RECEIVES (hostPayout)              │
+├─────────────────────────────────────────────────────────────────┤
+│  subtotal           │ basePrice + extraGuestFees                │
+│  - hostServiceFee   │ 3-5% of subtotal                          │
+│  + extrasTotal      │ Add-ons (100% to host)                    │
+│  ═══════════════════│═══════════════════════════════            │
+│  = hostPayout       │ Final amount released to host             │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│                    WHAT PLATFORM KEEPS (platformFee)            │
+├─────────────────────────────────────────────────────────────────┤
+│  userServiceFee     │ 10% from guest                            │
+│  + hostServiceFee   │ 3-5% from host                            │
+│  ═══════════════════│═══════════════════════════════            │
+│  = platformFee      │ Total platform revenue                    │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│                    CAUTION (cautionFee)                         │
+├─────────────────────────────────────────────────────────────────┤
+│  Held in escrow during booking                                  │
+│  Released to guest 48h after checkout (if no damage claim)      │
+│  Or released to host (partially/fully) if damage claim approved │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ### Fee Calculation Functions
@@ -568,19 +632,36 @@ const validateExtraGuestLimit = (maxGuests: number, extraGuestLimit: number): bo
 
 ## Summary Table
 
-| Who | Pays/Receives | Rate/Amount |
-|-----|---------------|-------------|
-| **Guest** | Base Price | 100% |
-| **Guest** | Extra Guest Fees | 100% (extraGuestFee × count) |
-| **Guest** | Optional Extras | 100% (add-ons) |
-| **Guest** | User Service Fee | +10% of (base + extra guests) |
-| **Guest** | Caution | +Fixed (refundable) |
-| **Host** | Base Price | 100% |
-| **Host** | Extra Guest Fees | 100% |
-| **Host** | Host Service Fee | -3% to -5% of (base + extra guests) |
-| **Host** | Optional Extras | +100% |
-| **Platform** | User Service Fee | 10% of (base + extra guests) |
-| **Platform** | Host Service Fee | 3-5% of (base + extra guests) |
+| Who | Pays/Receives | Rate/Amount | Booking Field |
+|-----|---------------|-------------|---------------|
+| **Guest** | Base Price | 100% | `basePrice` |
+| **Guest** | Extra Guest Fees | 100% (extraGuestFee × count) | `extraGuestFees` |
+| **Guest** | Optional Extras | 100% (add-ons) | `extrasTotal` |
+| **Guest** | User Service Fee | +10% of subtotal | `userServiceFee` |
+| **Guest** | Caution | +Fixed (refundable) | `cautionFee` |
+| **Guest** | **Total Paid** | Sum of above | `totalPrice` |
+| **Host** | Subtotal | basePrice + extraGuestFees | `subtotal` |
+| **Host** | Host Service Fee | -3% to -5% of subtotal | `hostServiceFee` |
+| **Host** | Optional Extras | +100% | `extrasTotal` |
+| **Host** | **Total Received** | subtotal - hostFee + extras | `hostPayout` |
+| **Platform** | User Service Fee | 10% of subtotal | `userServiceFee` |
+| **Platform** | Host Service Fee | 3-5% of subtotal | `hostServiceFee` |
+| **Platform** | **Total Revenue** | userFee + hostFee | `platformFee` |
+
+### Booking Fields Quick Reference
+
+| Field | Formula | Description |
+|-------|---------|-------------|
+| `basePrice` | listing.price × duration | Base rental cost |
+| `extraGuestFees` | extraGuestFee × extraGuestCount | Extra guest charges |
+| `extrasTotal` | Σ(add-on prices) | Sum of selected add-ons |
+| `subtotal` | basePrice + extraGuestFees | Amount fees are calculated on |
+| `userServiceFee` | subtotal × 0.10 | 10% guest fee |
+| `hostServiceFee` | subtotal × (0.03 to 0.05) | 3-5% host fee based on policy |
+| `cautionFee` | listing.cautionFee | Security deposit |
+| `totalPrice` | subtotal + userServiceFee + extrasTotal + cautionFee | Guest pays |
+| `hostPayout` | subtotal - hostServiceFee + extrasTotal | Host receives |
+| `platformFee` | userServiceFee + hostServiceFee | Platform revenue |
 
 ---
 
@@ -588,6 +669,7 @@ const validateExtraGuestLimit = (maxGuests: number, extraGuestLimit: number): bo
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.2 | Dec 5, 2025 | Explicit financial breakdown fields (subtotal, hostPayout, platformFee), service fee fully refunded on cancellation |
 | 1.1 | Dec 5, 2025 | New guest capacity model (maxGuests + optional extras), service fees now include extra guest fees |
 | 1.0 | Dec 5, 2025 | Initial payment structure documentation |
 

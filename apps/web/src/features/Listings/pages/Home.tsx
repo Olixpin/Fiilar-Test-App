@@ -413,15 +413,27 @@ const Home: React.FC<HomeProps> = ({
         let promoAdded = false;
 
         if (displayListings.length === 0) {
+            // Build a more specific message based on active filters
+            const getEmptyStateMessage = () => {
+                if (filters.location && filters.location.trim()) {
+                    return `No spaces found in "${filters.location}". Try searching a different location or clear filters to see all available spaces.`;
+                }
+                if (hasActiveFilters) {
+                    return "Try adjusting your filters or clearing them to see more results.";
+                }
+                return "There are no spaces available at the moment.";
+            };
+
             return (
                 <div className="col-span-full flex flex-col items-center justify-center py-20 text-center">
                     <Search size={48} className="text-gray-300 mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-900">No spaces found</h3>
-                    <p className="text-gray-500 mb-4">
-                        {hasActiveFilters 
-                            ? "Try adjusting your filters or clearing them to see more results."
-                            : "There are no spaces available at the moment."
-                        }
+                    <h3 className="text-lg font-semibold text-gray-900">
+                        {filters.location && filters.location.trim() 
+                            ? `No spaces in ${filters.location}` 
+                            : "No spaces found"}
+                    </h3>
+                    <p className="text-gray-500 mb-4 max-w-md">
+                        {getEmptyStateMessage()}
                     </p>
                     {hasActiveFilters && (
                         <Button 

@@ -309,16 +309,39 @@ export interface Booking {
   hours?: number[]; // Specific hours booked (e.g. [9, 10]) for collision detection
   bookingType: BookingType; // HOURLY or DAILY - determines pricing model
 
-  // Financials
-  totalPrice: number; // The final amount paid
-  serviceFee: number; // Platform fee
-  cautionFee: number; // Security deposit included in total
+  // ============================================
+  // FINANCIAL BREAKDOWN (All amounts explicit)
+  // ============================================
+  
+  // Base charges
+  basePrice: number;           // Listing price × duration (includes maxGuests)
+  extraGuestFees: number;      // extraGuestFee × number of extra guests
+  extrasTotal: number;         // Sum of selected add-ons (no platform fee)
+  
+  // Fees
+  userServiceFee: number;      // 10% of (basePrice + extraGuestFees) - charged to guest
+  hostServiceFee: number;      // 3-5% of (basePrice + extraGuestFees) - deducted from host
+  cautionFee: number;          // Security deposit (fully refundable)
+  
+  // Totals
+  subtotal: number;            // basePrice + extraGuestFees (fee-able amount)
+  totalPrice: number;          // What guest pays: subtotal + userServiceFee + cautionFee + extrasTotal
+  hostPayout: number;          // What host receives: subtotal - hostServiceFee + extrasTotal
+  platformFee: number;         // What platform keeps: userServiceFee + hostServiceFee
+
+  // Guest info
+  guestCount?: number;         // Total guests (base + extra)
+  extraGuestCount?: number;    // Number of guests beyond maxGuests
+  selectedAddOns?: string[];   // IDs of selected add-ons
+
+  // Caution tracking
+  cautionStatus?: 'HELD' | 'RELEASED' | 'CLAIMED' | 'PARTIAL_CLAIM';
+  cautionReleasedAt?: string;  // ISO timestamp
+  cautionClaimAmount?: number; // If partial claim
 
   status: 'Pending' | 'Confirmed' | 'Started' | 'Completed' | 'Cancelled' | 'Reserved';
   createdAt?: string; // ISO timestamp when booking was created
   groupId?: string; // ID to group recurring bookings together
-  guestCount?: number; // Number of guests for this booking
-  selectedAddOns?: string[]; // IDs of selected add-ons
   cancellationReason?: string;
   cancelledAt?: string;
   cancelledBy?: string;
@@ -355,34 +378,296 @@ export interface Transaction {
   status: 'PENDING' | 'COMPLETED' | 'FAILED';
 }
 
-// Escrow-specific transaction types
+// ============================================================================
+// FINANCIAL LEDGER SYSTEM - Enterprise-Grade Double-Entry Bookkeeping
+// ============================================================================
+
+/**
+ * General Ledger Account Codes (Chart of Accounts)
+ * Following standard accounting practices for marketplace platforms
+ */
+export enum GLAccountCode {
+  // ASSETS (1xxx)
+  CASH_PAYSTACK = '1001',           // Cash held at Paystack
+  ESCROW_HOLDINGS = '1010',         // Funds held in escrow for bookings
+  ACCOUNTS_RECEIVABLE = '1020',     // Money owed to platform
+  CAUTION_FEE_HOLDINGS = '1030',    // Refundable deposits held
+  
+  // LIABILITIES (2xxx)
+  HOST_PAYABLES = '2001',           // Amount owed to hosts
+  GUEST_REFUNDS_PAYABLE = '2010',   // Pending refunds to guests
+  CAUTION_FEE_LIABILITY = '2020',   // Obligation to return caution fees
+  
+  // REVENUE (4xxx)
+  GUEST_SERVICE_FEE_REVENUE = '4001',   // 10% guest fee
+  HOST_SERVICE_FEE_REVENUE = '4002',    // 5% host fee
+  CANCELLATION_FEE_REVENUE = '4010',    // Late cancellation fees retained
+  EXTRAS_COMMISSION = '4020',           // Commission on add-ons
+  
+  // EXPENSES (5xxx)
+  PAYMENT_PROCESSING_FEES = '5001',     // Paystack fees (1.5%)
+  REFUND_EXPENSES = '5010',             // Costs of processing refunds
+  CHARGEBACK_LOSSES = '5020',           // Disputed transactions lost
+}
+
+/**
+ * Transaction entry types for double-entry bookkeeping
+ */
+export type LedgerEntryType = 'DEBIT' | 'CREDIT';
+
+/**
+ * Transaction categories for reporting and filtering
+ */
+export enum TransactionCategory {
+  BOOKING_PAYMENT = 'BOOKING_PAYMENT',
+  SERVICE_FEE = 'SERVICE_FEE',
+  HOST_PAYOUT = 'HOST_PAYOUT',
+  GUEST_REFUND = 'GUEST_REFUND',
+  CAUTION_FEE = 'CAUTION_FEE',
+  CAUTION_REFUND = 'CAUTION_REFUND',
+  DISPUTE_RESOLUTION = 'DISPUTE_RESOLUTION',
+  ADJUSTMENT = 'ADJUSTMENT',
+  SETTLEMENT = 'SETTLEMENT',
+}
+
+/**
+ * Settlement batch status for bank reconciliation
+ */
+export enum SettlementStatus {
+  PENDING = 'PENDING',
+  PROCESSING = 'PROCESSING',
+  SETTLED = 'SETTLED',
+  FAILED = 'FAILED',
+  RECONCILED = 'RECONCILED',
+}
+
+/**
+ * Individual ledger entry (one side of double-entry)
+ */
+export interface LedgerEntry {
+  id: string;
+  transactionId: string;           // Links to parent transaction
+  accountCode: GLAccountCode;
+  entryType: LedgerEntryType;
+  amount: number;
+  runningBalance?: number;         // Balance after this entry
+  timestamp: string;
+}
+
+// Legacy escrow transaction type (kept for backward compatibility)
 export type EscrowTransactionType = 'GUEST_PAYMENT' | 'HOST_PAYOUT' | 'REFUND' | 'SERVICE_FEE';
 
+/**
+ * Enhanced Escrow Transaction with full audit trail
+ * Follows Stripe/Square patterns for financial record keeping
+ * Note: Many fields are optional for backward compatibility with mock service
+ */
 export interface EscrowTransaction {
+  // Core identification
   id: string;
   bookingId: string;
   type: EscrowTransactionType;
-  amount: number;
-  status: 'PENDING' | 'COMPLETED' | 'FAILED';
-  paystackReference?: string; // Mock Paystack transaction reference
-  timestamp: string; // ISO string
-  fromUserId?: string; // Guest for payments
-  toUserId?: string; // Host for payouts
+  category?: TransactionCategory;  // Optional for backward compatibility
+  
+  // Financial data
+  amount: number;                   // Gross amount
+  netAmount?: number;               // After fees (optional)
+  currency?: string;                // ISO currency code (NGN) - optional
+  exchangeRate?: number;            // For multi-currency support
+  
+  // Status tracking
+  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'REVERSED' | 'DISPUTED';
+  
+  // Payment gateway references
+  paystackReference?: string;
+  paystackTransferId?: string;      // For payouts
+  paystackSettlementId?: string;    // For reconciliation
+  
+  // Double-entry ledger entries (optional for mock service)
+  ledgerEntries?: LedgerEntry[];
+  
+  // Parties involved
+  fromUserId?: string;
+  fromUserName?: string;
+  fromUserEmail?: string;
+  toUserId?: string;
+  toUserName?: string;
+  toUserEmail?: string;
+  
+  // Timestamps
+  timestamp: string;
+  processedAt?: string;
+  settledAt?: string;
+  
+  // Audit trail (optional for mock service)
+  createdBy?: string;                // User or system that initiated
+  createdByType?: 'USER' | 'SYSTEM' | 'ADMIN' | 'SCHEDULER';
+  ipAddress?: string;
+  userAgent?: string;
+  
+  // Related transactions
+  parentTransactionId?: string;     // For refunds, adjustments
+  relatedTransactionIds?: string[]; // Linked transactions
+  
+  // Settlement batch
+  settlementBatchId?: string;
+  settlementStatus?: SettlementStatus;
+  
+  // Detailed breakdown (optional for mock service)
+  breakdown?: {
+    baseAmount: number;
+    guestServiceFee: number;
+    hostServiceFee: number;
+    cautionFee: number;
+    extraGuestFees: number;
+    extrasTotal: number;
+    processingFee: number;          // Paystack fee
+    netToHost: number;
+    platformRevenue: number;
+  };
+  
+  // Metadata for flexibility
   metadata?: {
     listingId?: string;
     listingTitle?: string;
-    hostName?: string;
-    guestName?: string;
+    bookingDate?: string;
+    bookingDuration?: number;
+    guestCount?: number;
+    cancellationReason?: string;
+    disputeId?: string;
+    adminNotes?: string;
     [key: string]: any;
+  };
+  
+  // Reconciliation (optional)
+  reconciled?: boolean;
+  reconciledAt?: string;
+  reconciledBy?: string;
+  bankReference?: string;
+  
+  // Compliance
+  taxInvoiceId?: string;
+  vatAmount?: number;
+}
+
+/**
+ * Settlement batch for bank reconciliation
+ * Groups transactions settled together
+ */
+export interface SettlementBatch {
+  id: string;
+  batchDate: string;
+  status: SettlementStatus;
+  
+  // Totals
+  totalTransactions: number;
+  grossAmount: number;
+  processingFees: number;
+  netAmount: number;
+  
+  // Transaction references
+  transactionIds: string[];
+  
+  // Bank details
+  bankReference?: string;
+  settledAt?: string;
+  
+  // Reconciliation
+  reconciled: boolean;
+  reconciledAt?: string;
+  reconciledBy?: string;
+  discrepancyAmount?: number;
+  discrepancyNotes?: string;
+}
+
+/**
+ * Enhanced Platform Financials with comprehensive metrics
+ * Note: Extended fields are optional for backward compatibility
+ */
+export interface PlatformFinancials {
+  // Summary balances (required - basic fields)
+  totalEscrow: number;
+  totalReleased: number;
+  totalRevenue: number;
+  pendingPayouts: number;
+  totalRefunded: number;
+  
+  // Detailed revenue breakdown (optional for backward compatibility)
+  revenue?: {
+    guestServiceFees: number;
+    hostServiceFees: number;
+    cancellationFees: number;
+    extrasCommission: number;
+    totalGross: number;
+    processingFees: number;         // Cost
+    netRevenue: number;
+  };
+  
+  // Cash flow (optional)
+  cashFlow?: {
+    inflows: number;                // Guest payments
+    outflows: number;               // Host payouts + refunds
+    netFlow: number;
+    processingCosts: number;
+  };
+  
+  // Escrow details (optional)
+  escrow?: {
+    heldForBookings: number;
+    heldCautionFees: number;
+    pendingRelease: number;
+    totalHeld: number;
+  };
+  
+  // Payables (optional)
+  payables?: {
+    dueToHosts: number;
+    pendingRefunds: number;
+    cautionFeesToReturn: number;
+    totalPayables: number;
+  };
+  
+  // Period metrics (optional)
+  period?: {
+    startDate: string;
+    endDate: string;
+    totalBookings: number;
+    completedBookings: number;
+    cancelledBookings: number;
+    disputedBookings: number;
+    averageBookingValue: number;
+    conversionRate: number;
+  };
+  
+  // Settlement summary (optional)
+  settlements?: {
+    pendingSettlement: number;
+    settledThisPeriod: number;
+    reconciledAmount: number;
+    unreconciledAmount: number;
   };
 }
 
-export interface PlatformFinancials {
-  totalEscrow: number; // Total funds currently held in escrow
-  totalReleased: number; // Total paid out to hosts
-  totalRevenue: number; // Total service fees collected
-  pendingPayouts: number; // Count of bookings awaiting release
-  totalRefunded: number; // Total refunded to guests
+/**
+ * Financial report for export/audit
+ */
+export interface FinancialReport {
+  id: string;
+  type: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'QUARTERLY' | 'ANNUAL' | 'CUSTOM';
+  periodStart: string;
+  periodEnd: string;
+  generatedAt: string;
+  generatedBy: string;
+  
+  // Summary data
+  summary: PlatformFinancials;
+  
+  // Transaction list
+  transactions: EscrowTransaction[];
+  
+  // Export info
+  exportFormat?: 'JSON' | 'CSV' | 'PDF' | 'XLSX';
+  fileUrl?: string;
 }
 
 export type PaymentMethodType = 'CARD' | 'PAYPAL';

@@ -150,6 +150,17 @@ export const saveListing = (listing: Listing): { success: boolean; error?: strin
                 imageCount: savedListing.images?.length || 0,
                 firstImage: savedListing.images?.[0]?.substring(0, 50) + '...'
             });
+            
+            // Dispatch event to notify app of listing update
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('fiilar:listings-updated', { 
+                    detail: { 
+                        listing: savedListing, 
+                        isUpdate,
+                        action: isUpdate ? 'updated' : 'created'
+                    } 
+                }));
+            }
         } else {
             console.error('❌ Listing not found in localStorage after save!');
         }

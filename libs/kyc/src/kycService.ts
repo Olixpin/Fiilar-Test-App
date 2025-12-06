@@ -122,6 +122,18 @@ export const updateKYC = (userId: string, status: KYCStatus, documentUrl?: strin
                 localStorage.setItem('fiilar_user', JSON.stringify(parsed));
             }
         }
+
+        // Dispatch event to notify admin of KYC update
+        if (typeof window !== 'undefined') {
+            const action = status === 'pending' ? 'kyc-submitted' : 'kyc-' + status;
+            window.dispatchEvent(new CustomEvent('fiilar:user-updated', { 
+                detail: { 
+                    user: users[idx],
+                    action
+                } 
+            }));
+        }
+
         return { success: true };
     }
     return { success: false, error: 'User not found' };

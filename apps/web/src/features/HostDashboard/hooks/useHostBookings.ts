@@ -125,14 +125,16 @@ export const useHostBookings = (user: User | null, listings: Listing[], refreshD
         toast.showToast({ message: `Funds released for booking`, type: 'success' });
     };
 
-    const handleVerifyGuest = (bookingId: string, code: string): boolean => {
-        const success = verifyHandshake(bookingId, code);
-        if (success) {
+    const handleVerifyGuest = (bookingId: string, code: string): boolean | { success: false; error: string } => {
+        const result = verifyHandshake(bookingId, code);
+        if (result === true) {
             refreshData();
             fetchBookings();
             return true;
+        } else if (typeof result === 'object' && result.error) {
+            return result;
         } else {
-            return false;
+            return { success: false, error: 'Verification failed' };
         }
     };
 

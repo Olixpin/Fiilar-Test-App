@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Listing } from '@fiilar/types';
-import { Wifi, Wind, Utensils, Car, Dumbbell, Waves, Briefcase, Tv, Shirt, Scissors, Zap, Coffee, Music, Video, Shield, Sun, Star, CheckCircle } from 'lucide-react';
+import { Wifi, Wind, Utensils, Car, Dumbbell, Waves, Briefcase, Tv, Shirt, Scissors, Zap, Coffee, Music, Video, Shield, Sun, Star, CheckCircle, Gamepad2, BatteryCharging, Circle } from 'lucide-react';
 
 interface ListingAmenitiesProps {
   listing: Listing;
@@ -28,6 +28,12 @@ export const ListingAmenities: React.FC<ListingAmenitiesProps> = ({ listing }) =
       case 'Shield': return <Shield size={size} />;
       case 'Sun': return <Sun size={size} />;
       case 'Star': return <Star size={size} />;
+      case 'Snooker':
+      case 'Circle': return <Circle size={size} />;
+      case 'Game Console':
+      case 'Gamepad2': return <Gamepad2 size={size} />;
+      case 'Inverter':
+      case 'BatteryCharging': return <BatteryCharging size={size} />;
       default: return <CheckCircle size={size} />;
     }
   };

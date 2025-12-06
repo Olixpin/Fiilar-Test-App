@@ -1,7 +1,7 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { User, Listing, ListingStatus, Booking, EscrowTransaction, PlatformFinancials } from '@fiilar/types';
-import { getBookings, saveListing, getAllUsers, saveUser, authorizeAdminOperation, deleteListing } from '@fiilar/storage';
+import { getBookings, saveListing, getAllUsers, saveUser, authorizeAdminOperation, deleteListing, getCurrentUser } from '@fiilar/storage';
 import { updateKYC } from '@fiilar/kyc';
 import { escrowService } from '@fiilar/escrow';
 import { useToast } from '@fiilar/ui';
@@ -32,32 +32,18 @@ export const useAdminData = ({ users, listings, refreshData }: UseAdminDataProps
     const [authError, setAuthError] = useState<string | null>(null);
     const [seriesCount, setSeriesCount] = useState(0);
 
-    // SECURITY: Verify admin access on mount
-    useEffect(() => {
-        const authCheck = authorizeAdminOperation('admin_panel_access');
-        if (!authCheck.authorized) {
-            setAuthError(authCheck.error || 'Not authorized');
-            console.error('🚨 SECURITY: Unauthorized admin panel access attempt');
-        }
+    // Load bookings - callable from multiple places
+    const loadBookings = useCallback(() => {
+        const allBookings = getBookings();
+        setBookings(allBookings);
+        // Count distinct groupIds for debug badge
+        const groupIds = new Set(allBookings.filter(b => b.groupId).map(b => b.groupId as string));
+        setSeriesCount(groupIds.size);
+        return allBookings;
     }, []);
 
-    // Derived Data - with null safety
-    const unverifiedHosts = (users || []).filter(u => !u.kycVerified && u.role === 'HOST');
-    const pendingListings = (listings || []).filter(l => l.status === ListingStatus.PENDING_APPROVAL).sort((a, b) => {
-        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-        return dateB - dateA;
-    });
-    const openDisputes = (bookings || []).filter(b => b.disputeStatus === 'OPEN');
-
-    // Load financial data when financials or escrow tab is active
-    useEffect(() => {
-        if (activeTab === 'financials' || activeTab === 'escrow' || activeTab === 'disputes' || activeTab === 'series-debug') {
-            loadFinancialData();
-        }
-    }, [activeTab]);
-
-    const loadFinancialData = async () => {
+    // Load financial data - callable from multiple places
+    const loadFinancialData = useCallback(async () => {
         // SECURITY CHECK
         const authCheck = authorizeAdminOperation('load_financial_data');
         if (!authCheck.authorized) {
@@ -82,7 +68,148 @@ export const useAdminData = ({ users, listings, refreshData }: UseAdminDataProps
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
+
+    // SECURITY: Verify admin access on mount
+    useEffect(() => {
+        const authCheck = authorizeAdminOperation('admin_panel_access');
+        if (!authCheck.authorized) {
+            setAuthError(authCheck.error || 'Not authorized');
+            console.error('🚨 SECURITY: Unauthorized admin panel access attempt');
+        }
+    }, []);
+
+    // Load bookings on mount and listen for real-time updates
+    useEffect(() => {
+        // Initial load
+        loadBookings();
+
+        // Listen for booking updates
+        const handleBookingUpdate = (event: CustomEvent) => {
+            console.log('📢 Admin received booking update:', event.detail);
+            loadBookings();
+            // Also reload financial data to update transactions
+            loadFinancialData();
+            
+            // Show toast notification for new bookings
+            if (event.detail?.booking && !event.detail?.deletedId) {
+                const booking = event.detail.booking as Booking;
+                if (booking.status === 'Pending') {
+                    showToast({ 
+                        message: `New booking request received!`, 
+                        type: 'info' 
+                    });
+                }
+            }
+        };
+
+        window.addEventListener('fiilar:bookings-updated', handleBookingUpdate as EventListener);
+        
+        // Also listen for listing updates
+        const handleListingUpdate = (event: CustomEvent) => {
+            console.log('📢 Admin received listing update:', event.detail);
+            refreshData();
+            if (event.detail?.listing && event.detail?.action === 'created') {
+                showToast({ 
+                    message: `New listing pending approval`, 
+                    type: 'info' 
+                });
+            }
+        };
+        window.addEventListener('fiilar:listings-updated', handleListingUpdate as EventListener);
+
+        // Also listen for user updates
+        const handleUserUpdate = (event: CustomEvent) => {
+            console.log('📢 Admin received user update:', event.detail);
+            refreshData();
+            if (event.detail?.user && event.detail?.action === 'kyc-submitted') {
+                showToast({ 
+                    message: `New KYC verification request`, 
+                    type: 'info' 
+                });
+            }
+        };
+        window.addEventListener('fiilar:user-updated', handleUserUpdate as EventListener);
+
+        // Listen for escrow/transaction updates
+        const handleEscrowUpdate = (event: CustomEvent) => {
+            console.log('📢 Admin received escrow update:', event.detail);
+            loadFinancialData();
+            
+            const action = event.detail?.action;
+            const transaction = event.detail?.transaction;
+            const currentUser = getCurrentUser();
+            
+            if (!currentUser) return;
+            
+            if (action === 'refund' || transaction?.type === 'REFUND') {
+                showToast({ 
+                    message: `Refund processed successfully!`, 
+                    type: 'info' 
+                });
+                // Add notification for refund
+                addNotification({
+                    userId: currentUser.id,
+                    type: 'platform_update',
+                    title: 'Refund Processed',
+                    message: `A refund of ${transaction?.amount ? `₦${transaction.amount.toLocaleString()}` : ''} has been processed`,
+                    severity: 'info',
+                    read: false,
+                    actionRequired: false,
+                    metadata: {
+                        transactionId: transaction?.id,
+                        amount: transaction?.amount
+                    }
+                });
+            } else {
+                showToast({ 
+                    message: `New payment transaction recorded!`, 
+                    type: 'success' 
+                });
+                // Add notification for payment
+                addNotification({
+                    userId: currentUser.id,
+                    type: 'platform_update',
+                    title: 'Payment Received',
+                    message: `A new payment of ${transaction?.amount ? `₦${transaction.amount.toLocaleString()}` : ''} has been recorded`,
+                    severity: 'info',
+                    read: false,
+                    actionRequired: false,
+                    metadata: {
+                        transactionId: transaction?.id,
+                        amount: transaction?.amount
+                    }
+                });
+            }
+        };
+        window.addEventListener('fiilar:escrow-updated', handleEscrowUpdate as EventListener);
+
+        return () => {
+            window.removeEventListener('fiilar:bookings-updated', handleBookingUpdate as EventListener);
+            window.removeEventListener('fiilar:listings-updated', handleListingUpdate as EventListener);
+            window.removeEventListener('fiilar:user-updated', handleUserUpdate as EventListener);
+            window.removeEventListener('fiilar:escrow-updated', handleEscrowUpdate as EventListener);
+        };
+    }, [loadBookings, loadFinancialData, refreshData, showToast]);
+
+    // Derived Data - with null safety
+    const unverifiedHosts = (users || []).filter(u => !u.kycVerified && u.role === 'HOST');
+    const pendingListings = (listings || []).filter(l => l.status === ListingStatus.PENDING_APPROVAL).sort((a, b) => {
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return dateB - dateA;
+    });
+    const openDisputes = (bookings || []).filter(b => b.disputeStatus === 'OPEN');
+
+    // Load financial data on mount - needed for Overview and all tabs
+    useEffect(() => {
+        loadFinancialData();
+    }, [loadFinancialData]);
+
+    // Also reload financial data when users/listings change (refreshData called)
+    useEffect(() => {
+        loadFinancialData();
+    }, [users.length, listings.length, loadFinancialData]);
 
     const handleVerifyUser = (userId: string, approve: boolean) => {
         // SECURITY CHECK

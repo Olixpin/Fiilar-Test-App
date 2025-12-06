@@ -134,7 +134,8 @@ const checkAndReleaseEligibleBookings = async (onRelease?: (bookingId: string, a
 
                         releasedCount++;
 
-                        const hostPayout = booking.totalPrice - booking.serviceFee - booking.cautionFee;
+                        // Use explicit hostPayout field if available
+                        const hostPayout = booking.hostPayout || (booking.totalPrice - booking.userServiceFee - booking.cautionFee);
 
                         // 🔔 Notify host: Funds released
                         addNotification({
@@ -517,7 +518,8 @@ const checkAndNotifyUpcomingPayouts = async () => {
                 const listing = listings.find(l => l.id === booking.listingId);
                 if (!listing) continue;
 
-                const hostPayout = booking.totalPrice - booking.serviceFee - booking.cautionFee;
+                // Use explicit hostPayout field if available
+                const hostPayout = booking.hostPayout || (booking.totalPrice - booking.userServiceFee - booking.cautionFee);
                 const hoursUntilRelease = Math.round((releaseDate.getTime() - now.getTime()) / (1000 * 60 * 60));
 
                 // 🔔 Notify host: Payout upcoming

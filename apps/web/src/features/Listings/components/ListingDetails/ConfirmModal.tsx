@@ -487,7 +487,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
                 </div>
                 <div className="flex justify-between text-gray-600">
                   <span>Service Fee</span>
-                  <span className="font-semibold text-gray-900">{formatCurrency(pendingBooking.fees.serviceFee)}</span>
+                  <span className="font-semibold text-gray-900">{formatCurrency(pendingBooking.fees.userServiceFee)}</span>
                 </div>
                 {pendingBooking.fees.cautionFee > 0 && (
                   <div className="flex justify-between items-center text-amber-700 bg-amber-50 -mx-2 px-2 py-2 rounded-lg">

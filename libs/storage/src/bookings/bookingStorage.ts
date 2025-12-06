@@ -45,8 +45,26 @@ export const getBookings = (): Booking[] => {
     console.log('📤 API CALL: GET /api/bookings');
     const b = localStorage.getItem(STORAGE_KEYS.BOOKINGS);
     const bookings = safeJSONParse(b, []);
-    console.log('✅ API RESPONSE: Retrieved', bookings.length, 'bookings');
-    return bookings;
+    
+    // Deduplicate bookings by ID (keep the first occurrence)
+    const seen = new Set<string>();
+    const uniqueBookings = bookings.filter((booking: Booking) => {
+        if (seen.has(booking.id)) {
+            console.warn('⚠️ Duplicate booking detected and removed:', booking.id);
+            return false;
+        }
+        seen.add(booking.id);
+        return true;
+    });
+    
+    // If duplicates were found, persist the cleaned data
+    if (uniqueBookings.length !== bookings.length) {
+        console.log('🧹 Cleaned up', bookings.length - uniqueBookings.length, 'duplicate bookings');
+        localStorage.setItem(STORAGE_KEYS.BOOKINGS, JSON.stringify(uniqueBookings));
+    }
+    
+    console.log('✅ API RESPONSE: Retrieved', uniqueBookings.length, 'bookings');
+    return uniqueBookings;
 };
 
 /**
@@ -79,6 +97,13 @@ export const createBooking = (booking: Booking): Booking => {
     });
 
     const bookings = getBookings();
+
+    // Check if booking with this ID already exists (prevent duplicates)
+    const existingIndex = bookings.findIndex(b => b.id === booking.id);
+    if (existingIndex !== -1) {
+        console.warn('⚠️ Booking already exists, returning existing booking:', booking.id);
+        return bookings[existingIndex];
+    }
 
     // Generate Handshake Codes using the robust utility
     const guestCode = generateVerificationCode();
@@ -137,7 +162,7 @@ export const createBooking = (booking: Booking): Booking => {
  */
 export const createSecureBooking = (
     booking: Booking,
-    listingData: SecureBookingListingData | { basePrice: number; serviceFee?: number; cautionFee?: number }
+    listingData: SecureBookingListingData | { basePrice: number; userServiceFee?: number; cautionFee?: number }
 ): BookingResult => {
     // Determine if we have full listing data or simplified data
     const hasFullListing = 'listing' in listingData;
@@ -151,7 +176,7 @@ export const createSecureBooking = (
             listing,
             {
                 total: booking.totalPrice * datesCount, // Scale back to full price for validation
-                service: booking.serviceFee * datesCount,
+                userServiceFee: booking.userServiceFee * datesCount,
                 caution: booking.cautionFee * datesCount
             },
             booking.duration || 1,
@@ -180,7 +205,7 @@ export const createSecureBooking = (
         // Log warning that full listing should be provided
         console.warn('createSecureBooking: Using simplified validation. Provide full listing for better security.');
 
-        const simpleData = listingData as { basePrice: number; serviceFee?: number; cautionFee?: number };
+        const simpleData = listingData as { basePrice: number; userServiceFee?: number; cautionFee?: number };
 
         // Basic sanity checks only
         if (booking.totalPrice <= 0) {
@@ -194,9 +219,9 @@ export const createSecureBooking = (
         // Check if service fee is roughly 10% of base price
         const expectedMinServiceFee = simpleData.basePrice * 0.08; // Allow 8-12%
         const expectedMaxServiceFee = simpleData.basePrice * 0.12;
-        if (booking.serviceFee < expectedMinServiceFee || booking.serviceFee > expectedMaxServiceFee) {
+        if (booking.userServiceFee < expectedMinServiceFee || booking.userServiceFee > expectedMaxServiceFee) {
             console.warn('Service fee outside expected range', {
-                serviceFee: booking.serviceFee,
+                userServiceFee: booking.userServiceFee,
                 expected: `${expectedMinServiceFee}-${expectedMaxServiceFee}`
             });
             // Don't fail, just warn - full validation should be used

@@ -50,7 +50,7 @@ const HostEarnings: React.FC<HostEarningsProps> = ({ hostBookings, transactions,
 
     const fundsInEscrow = hostBookings
         .filter(b => b.paymentStatus === 'Paid - Escrow')
-        .reduce((sum, b) => sum + (b.totalPrice - b.serviceFee - b.cautionFee), 0);
+        .reduce((sum, b) => sum + (b.hostPayout || (b.totalPrice - b.userServiceFee - b.cautionFee)), 0);
 
     const releasedEarnings = filteredTransactions
         .filter(tx => tx.type === 'HOST_PAYOUT' && tx.toUserId === hostId && tx.status === 'COMPLETED')
@@ -58,7 +58,7 @@ const HostEarnings: React.FC<HostEarningsProps> = ({ hostBookings, transactions,
 
     const totalRevenue = filteredBookings
         .filter(b => b.status === 'Confirmed' || b.status === 'Completed')
-        .reduce((sum, b) => sum + (b.totalPrice - b.serviceFee - b.cautionFee), 0);
+        .reduce((sum, b) => sum + (b.hostPayout || (b.totalPrice - b.userServiceFee - b.cautionFee)), 0);
 
     const pendingPayouts = hostBookings.filter(b => b.paymentStatus === 'Paid - Escrow');
     const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
@@ -72,7 +72,7 @@ const HostEarnings: React.FC<HostEarningsProps> = ({ hostBookings, transactions,
     const revenueByListing = listings.map(listing => {
         const revenue = filteredBookings
             .filter(b => b.listingId === listing.id && (b.status === 'Confirmed' || b.status === 'Completed'))
-            .reduce((sum, b) => sum + (b.totalPrice - b.serviceFee - b.cautionFee), 0);
+            .reduce((sum, b) => sum + (b.hostPayout || (b.totalPrice - b.userServiceFee - b.cautionFee)), 0);
         const bookings = filteredBookings.filter(b => b.listingId === listing.id).length;
         return { listing, revenue, bookings };
     }).filter(item => item.revenue > 0).sort((a, b) => b.revenue - a.revenue);
@@ -83,7 +83,7 @@ const HostEarnings: React.FC<HostEarningsProps> = ({ hostBookings, transactions,
         const dateStr = date.toISOString().split('T')[0];
         const dayRevenue = filteredBookings
             .filter(b => b.date === dateStr && (b.status === 'Confirmed' || b.status === 'Completed'))
-            .reduce((sum, b) => sum + (b.totalPrice - b.serviceFee - b.cautionFee), 0);
+            .reduce((sum, b) => sum + (b.hostPayout || (b.totalPrice - b.userServiceFee - b.cautionFee)), 0);
         return {
             date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
             revenue: dayRevenue
@@ -274,7 +274,7 @@ const HostEarnings: React.FC<HostEarningsProps> = ({ hostBookings, transactions,
                                     const releaseDate = new Date(booking.escrowReleaseDate!);
                                     const hoursUntil = Math.max(0, (releaseDate.getTime() - now.getTime()) / (1000 * 60 * 60));
                                     const daysUntil = Math.floor(hoursUntil / 24);
-                                    const payout = booking.totalPrice - booking.serviceFee - booking.cautionFee;
+                                    const payout = booking.hostPayout || (booking.totalPrice - booking.userServiceFee - booking.cautionFee);
 
                                     return (
                                         <div key={booking.id} className="p-4 hover:bg-gray-50/50 transition">

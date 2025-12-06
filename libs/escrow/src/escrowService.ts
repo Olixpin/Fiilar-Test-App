@@ -37,7 +37,7 @@ export const escrowService = {
      * Creates transaction records for payment and service fee
      * 
      * API: POST /api/escrow/payment
-     * Body: { bookingId, guestId, amount, serviceFee }
+     * Body: { bookingId, guestId, amount, userServiceFee }
      * Response: { success, transactionIds, paystackReference }
      */
     processGuestPayment: async (booking: Booking, guestId: string): Promise<{ success: boolean; transactionIds: string[] }> => {
@@ -45,16 +45,18 @@ export const escrowService = {
             bookingId: booking.id,
             guestId,
             amount: booking.totalPrice,
-            serviceFee: booking.serviceFee,
+            userServiceFee: booking.userServiceFee,
+            hostServiceFee: booking.hostServiceFee,
             cautionFee: booking.cautionFee
         });
 
         await delay(1000);
 
-        const transactions: EscrowTransaction[] = [];
         const transactionIds: string[] = [];
 
-        // 1. Guest Payment Transaction (goes to escrow)
+        // Single Guest Payment Transaction with full breakdown in metadata
+        // This represents ONE payment from the guest that goes to escrow
+        // The breakdown shows how the money will be distributed
         const paymentTx: EscrowTransaction = {
             id: `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_payment`,
             bookingId: booking.id,
@@ -67,36 +69,34 @@ export const escrowService = {
             metadata: {
                 listingId: booking.listingId,
                 guestCount: booking.guestCount,
+                // Payment breakdown (per PAYMENT_STRUCTURE.md)
+                breakdown: {
+                    basePrice: booking.basePrice || 0,
+                    extraGuestFees: booking.extraGuestFees || 0,
+                    subtotal: booking.subtotal || (booking.basePrice || 0) + (booking.extraGuestFees || 0),
+                    userServiceFee: booking.userServiceFee || 0,  // 10% of subtotal - goes to platform
+                    hostServiceFee: booking.hostServiceFee || 0,  // 3-5% of subtotal - deducted from host payout
+                    cautionFee: booking.cautionFee || 0,          // Security deposit - refundable
+                    extrasTotal: booking.extrasTotal || 0,        // Add-ons - no platform fee
+                    totalPrice: booking.totalPrice,               // What guest paid
+                    hostPayout: booking.hostPayout || 0,          // What host will receive
+                    platformFee: (booking.userServiceFee || 0) + (booking.hostServiceFee || 0), // Platform revenue
+                }
             }
         };
-        transactions.push(paymentTx);
         transactionIds.push(paymentTx.id);
 
-        // 2. Service Fee Transaction (platform revenue)
-        const serviceTx: EscrowTransaction = {
-            id: `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_service`,
-            bookingId: booking.id,
-            type: 'SERVICE_FEE',
-            amount: booking.serviceFee,
-            status: 'COMPLETED',
-            paystackReference: generatePaystackRef(),
-            timestamp: new Date().toISOString(),
-            fromUserId: guestId,
-            metadata: {
-                listingId: booking.listingId,
-            }
-        };
-        transactions.push(serviceTx);
-        transactionIds.push(serviceTx.id);
-
-        // Save transactions
+        // Save single transaction
         const existing = await escrowService.getEscrowTransactions();
-        localStorage.setItem(STORAGE_KEYS.ESCROW_TRANSACTIONS, JSON.stringify([...existing, ...transactions]));
+        localStorage.setItem(STORAGE_KEYS.ESCROW_TRANSACTIONS, JSON.stringify([...existing, paymentTx]));
+        
+        // Dispatch event for real-time updates
+        window.dispatchEvent(new CustomEvent('fiilar:escrow-updated', { detail: { transaction: paymentTx } }));
 
         console.log('✅ API RESPONSE: Payment processed', {
             success: true,
             transactionIds,
-            paystackReferences: transactions.map(t => t.paystackReference)
+            paystackReference: paymentTx.paystackReference
         });
 
         return { success: true, transactionIds };
@@ -183,7 +183,8 @@ export const escrowService = {
      * Response: { success, transactionId, paystackReference }
      */
     releaseFundsToHost: async (booking: Booking, hostId: string, notes?: string): Promise<{ success: boolean; transactionId: string }> => {
-        const hostPayout = booking.totalPrice - booking.serviceFee - booking.cautionFee;
+        // Use explicit hostPayout field if available, otherwise calculate
+        const hostPayout = booking.hostPayout || (booking.totalPrice - booking.userServiceFee - booking.cautionFee);
 
         console.log('📤 API CALL: POST /api/escrow/release', {
             bookingId: booking.id,
@@ -260,6 +261,14 @@ export const escrowService = {
         const existing = await escrowService.getEscrowTransactions();
         localStorage.setItem(STORAGE_KEYS.ESCROW_TRANSACTIONS, JSON.stringify([...existing, refundTx]));
 
+        // Dispatch event for real-time updates
+        window.dispatchEvent(new CustomEvent('fiilar:escrow-updated', { 
+            detail: { 
+                transaction: refundTx,
+                action: 'refund'
+            } 
+        }));
+
         console.log('✅ API RESPONSE: Refund processed', {
             success: true,
             transactionId: refundTx.id,
@@ -297,7 +306,7 @@ export const escrowService = {
         await delay(500);
         const transactions = await escrowService.getEscrowTransactions();
 
-        // Calculate totals
+        // Calculate totals from transactions
         const totalRevenue = transactions
             .filter(tx => tx.type === 'SERVICE_FEE' && tx.status === 'COMPLETED')
             .reduce((sum, tx) => sum + tx.amount, 0);
@@ -317,15 +326,70 @@ export const escrowService = {
 
         const totalEscrow = totalPayments - totalReleased - totalRefunded;
 
-        // Count pending payouts
+        // Count pending payouts from bookings
         const pendingPayouts = bookings.filter(b => b.paymentStatus === 'Paid - Escrow').length;
 
-        const financials = {
+        // Calculate caution fees from active bookings (in escrow, not yet released)
+        const activeEscrowBookings = bookings.filter(b => 
+            b.paymentStatus === 'Paid - Escrow' && 
+            b.status !== 'Cancelled'
+        );
+        
+        const heldCautionFees = activeEscrowBookings.reduce((sum, b) => sum + (b.cautionFee || 0), 0);
+        
+        // Calculate pending release - bookings that are ready for payout but not yet released
+        const pendingReleaseBookings = bookings.filter(b => 
+            b.paymentStatus === 'Paid - Escrow' &&
+            b.handshakeStatus === 'VERIFIED' &&
+            (b.status === 'Completed' || b.status === 'Confirmed')
+        );
+        const pendingRelease = pendingReleaseBookings.reduce((sum, b) => sum + (b.hostPayout || 0), 0);
+
+        // Calculate held for active bookings (excluding caution fees)
+        const heldForBookings = activeEscrowBookings.reduce((sum, b) => {
+            const bookingAmount = (b.totalPrice || 0) - (b.cautionFee || 0);
+            return sum + bookingAmount;
+        }, 0);
+
+        // Calculate revenue breakdown from booking data
+        const guestServiceFees = bookings
+            .filter(b => b.paymentStatus === 'Paid - Escrow' || b.paymentStatus === 'Released')
+            .reduce((sum, b) => sum + (b.userServiceFee || 0), 0);
+        
+        const hostServiceFees = bookings
+            .filter(b => b.paymentStatus === 'Released')
+            .reduce((sum, b) => sum + (b.hostServiceFee || 0), 0);
+
+        const financials: PlatformFinancials = {
             totalEscrow,
             totalReleased,
-            totalRevenue,
+            totalRevenue: totalRevenue || (guestServiceFees + hostServiceFees), // Use transaction total or calculated
             pendingPayouts,
             totalRefunded,
+            // Detailed escrow breakdown
+            escrow: {
+                heldForBookings,
+                heldCautionFees,
+                pendingRelease,
+                totalHeld: heldForBookings + heldCautionFees,
+            },
+            // Revenue breakdown
+            revenue: {
+                guestServiceFees,
+                hostServiceFees,
+                cancellationFees: 0,
+                extrasCommission: 0,
+                totalGross: guestServiceFees + hostServiceFees,
+                processingFees: 0,
+                netRevenue: guestServiceFees + hostServiceFees,
+            },
+            // Payables
+            payables: {
+                dueToHosts: pendingRelease,
+                pendingRefunds: 0,
+                cautionFeesToReturn: heldCautionFees,
+                totalPayables: pendingRelease + heldCautionFees,
+            },
         };
 
         console.log('✅ API RESPONSE: Platform financials', financials);

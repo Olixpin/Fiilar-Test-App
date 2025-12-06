@@ -17,6 +17,7 @@ export interface CancellationResult {
 
 /**
  * Calculate refund amount based on cancellation policy and time remaining
+ * NOTE: Service fee (userServiceFee) is ALWAYS 100% refunded regardless of cancellation policy
  */
 export const calculateRefund = (
     booking: Booking,
@@ -100,7 +101,17 @@ export const calculateRefund = (
             reason = 'Cancellation policy not specified';
     }
 
-    const refundAmount = booking.totalPrice * (refundPercentage / 100);
+    // Calculate base refund from booking price (excluding service fee)
+    // Service fee is ALWAYS 100% refunded regardless of cancellation policy
+    const serviceFeePaid = booking.userServiceFee || 0;
+    const bookingPriceWithoutServiceFee = booking.totalPrice - serviceFeePaid;
+    
+    // Base refund = price without service fee * refund percentage
+    const baseRefund = bookingPriceWithoutServiceFee * (refundPercentage / 100);
+    
+    // Per PAYMENT_STRUCTURE.md: "Service fee 100% refunded on any cancellation"
+    // This means even if the booking portion is not refundable, the service fee should be refunded
+    const refundAmount = baseRefund + serviceFeePaid;
     const cancellationFee = booking.totalPrice - refundAmount;
 
     return {

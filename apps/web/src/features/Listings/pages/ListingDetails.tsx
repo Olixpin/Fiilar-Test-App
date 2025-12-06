@@ -25,15 +25,23 @@ import { ReviewsModal } from '../components/ListingDetails/ReviewsModal';
 import { SuccessModal } from '../components/ListingDetails/SuccessModal';
 import { VerificationModal } from '../components/ListingDetails/VerificationModal';
 import { ConfirmModal } from '../components/ListingDetails/ConfirmModal';
+import { PolicyWarningModal } from '../components/ListingDetails/PolicyWarningModal';
 
 // Hook
-import { useListingDetails } from '../hooks/useListingDetails';
+import { useListingDetails, BookingBreakdown } from '../hooks/useListingDetails';
 
 interface ListingDetailsProps {
   listing: Listing;
   user: User | null;
   onBack: () => void;
-  onBook: (dates: string[], duration: number, breakdown: { total: number, service: number, caution: number }, selectedHours?: number[], guestCount?: number, selectedAddOns?: string[]) => Promise<Booking[]>;
+  onBook: (
+    dates: string[], 
+    duration: number, 
+    breakdown: BookingBreakdown, 
+    selectedHours?: number[], 
+    guestCount?: number, 
+    selectedAddOns?: string[]
+  ) => Promise<Booking[]>;
   onVerify?: () => void;
   onLogin: () => void;
   onRefreshUser?: () => void;
@@ -90,7 +98,11 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
     draftRestoreDialog,
     handleRestoreBookingDraft,
     handleDiscardBookingDraft,
-    formatDraftAge
+    formatDraftAge,
+    // Policy Warning
+    showPolicyWarningModal,
+    setShowPolicyWarningModal,
+    handlePolicyWarningAcknowledge
   } = useListingDetails({ listing, user, onBook, onVerify, onLogin, onRefreshUser });
 
   // Hide bottom nav on mobile when viewing listing details
@@ -392,6 +404,15 @@ const ListingDetails: React.FC<ListingDetailsProps> = ({ listing, user, onBack, 
           onClose={() => setShowVerificationModal(false)}
           isVerifying={isVerifying}
           handleVerificationComplete={handleVerificationComplete}
+        />
+
+        {/* Policy Warning Modal (for strict/non-refundable policies) */}
+        <PolicyWarningModal
+          isOpen={showPolicyWarningModal}
+          onClose={() => setShowPolicyWarningModal(false)}
+          onAcknowledge={handlePolicyWarningAcknowledge}
+          policy={listing.cancellationPolicy}
+          listingTitle={listing.title}
         />
 
         <ConfirmModal

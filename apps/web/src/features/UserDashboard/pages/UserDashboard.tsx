@@ -556,6 +556,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, listings, onRefresh
                   onMessageHost={handleMessageHost}
                   onCancelBooking={(booking, policy, group) => setCancellationModalBooking({ booking, policy, group })}
                   onReviewBooking={(bookingId, listingId, listingTitle) => setReviewModalBooking({ bookingId, listingId, listingTitle })}
+                  selectedBookingId={searchParams.get('bookingId') || undefined}
                   onModifyBooking={(booking) => {
                     console.log('onModifyBooking called in UserDashboard', booking);
                     const listing = listings.find(l => l.id === booking.listingId);

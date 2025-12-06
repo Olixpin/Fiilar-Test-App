@@ -23,7 +23,6 @@
     "@fiilar/types": "workspace:*",
     "@fiilar/ui": "workspace:*",
     "@fiilar/utils": "workspace:*",
-    "@google/genai": "^1.30.0",
     "@hookform/resolvers": "^5.2.2",
     "emoji-picker-react": "^4.16.1",
     "lucide-react": "^0.554.0",

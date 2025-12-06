@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { Listing, SpaceType, SpaceCategory, PricingModel, BookingType } from '@fiilar/types';
 import StepWrapper from './StepWrapper';
+import { CarouselDots } from '../../../../../components/CarouselDots';
 import { 
     Briefcase, 
     PartyPopper, 
@@ -259,6 +260,14 @@ const StepSpaceType: React.FC<StepSpaceTypeProps> = ({
                         );
                     })}
                 </div>
+                
+                {/* Carousel dots indicator */}
+                <CarouselDots
+                    items={CATEGORIES.map(c => ({ id: c.id, label: c.label }))}
+                    activeId={activeCategory}
+                    onDotClick={handleCategoryClick}
+                    className="mt-3"
+                />
             </div>
 
             {/* Space types grid for active category */}

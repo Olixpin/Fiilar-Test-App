@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Listing, ListingStatus } from '@fiilar/types';
-import { getSpaceRecommendations } from '../../../services/geminiService';
+import { getSpaceRecommendations } from '../../../services/aiService';
 import { getTrendingListings, getMostViewedListings, generateMockAnalytics, getAllListingAnalytics } from '@fiilar/storage';
 import ListingCard from '../../Listings/components/ListingCard';
 import { Sparkles, Search, ArrowRight, Briefcase, Camera, Music, Users, Coffee, Building2, X, TrendingUp, Eye, Flame } from 'lucide-react';
@@ -121,7 +121,7 @@ export const UserExploreTab: React.FC<UserExploreTabProps> = ({ listings, initia
         <div className="relative z-10 max-w-3xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/60 backdrop-blur-sm border border-brand-100 text-sm font-medium text-brand-700 mb-6">
             <Sparkles size={14} className="text-brand-500" />
-            Powered by Gemini AI
+            Powered by Claude Sonnet 4.5
           </div>
           <h2 className="text-3xl md:text-4xl font-bold mb-4 tracking-tight text-black">
             Find your perfect space instantly
