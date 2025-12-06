@@ -58,9 +58,20 @@ export const useHostFinancials = (user: User | null, listings: Listing[], onUser
 
         const all = getBookings();
         const myListingIds = listings.filter(l => l.hostId === user.id).map(l => l.id);
+        const myBookingIds = all.filter(b => myListingIds.includes(b.listingId)).map(b => b.id);
         setHostBookings(all.filter(b => myListingIds.includes(b.listingId)));
 
-        escrowService.getEscrowTransactions().then((txs: any[]) => setHostTransactions(txs));
+        // Filter transactions to only show host's own transactions
+        // Host should see: payouts to them, and payments for their bookings
+        escrowService.getEscrowTransactions().then((txs: any[]) => {
+            const hostTransactions = txs.filter(tx => 
+                // Host payouts to this user
+                (tx.type === 'HOST_PAYOUT' && tx.toUserId === user.id) ||
+                // Guest payments or refunds for this host's bookings
+                (myBookingIds.includes(tx.bookingId))
+            );
+            setHostTransactions(hostTransactions);
+        });
     }, [user, listings]);
 
     useEffect(() => {

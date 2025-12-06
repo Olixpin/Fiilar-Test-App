@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import {
   AlertTriangle,
@@ -23,12 +23,15 @@ import {
   Activity,
 } from 'lucide-react';
 import { User, Listing } from '@fiilar/types';
+import { saveUser, getAllUsers } from '@fiilar/storage';
 import FinancialsTab from './FinancialsTab';
 import EscrowManager from './EscrowManager';
 import DisputeCenter from './DisputeCenter';
 import { AdminSidebar } from './AdminSidebar';
 import { AdminKYC } from './AdminKYC';
 import { AdminHosts } from './AdminHosts';
+import { AdminUsers } from './AdminUsers';
+import { AdminRoles } from './AdminRoles';
 import { AdminListings } from './AdminListings';
 import { AdminSeriesDebug } from './AdminSeriesDebug';
 import { AdminTasks } from './AdminTasks';
@@ -63,6 +66,8 @@ const pageTitles: Record<string, { title: string; description: string; icon: Rea
   overview: { title: 'Overview', description: 'Platform analytics and key metrics', icon: Activity },
   kyc: { title: 'KYC Verification', description: 'Review and approve identity verification requests', icon: UserCheck },
   hosts: { title: 'Host Management', description: 'Manage host accounts, badges and permissions', icon: Users },
+  users: { title: 'User Management', description: 'View and manage platform users', icon: UserIcon },
+  roles: { title: 'Roles & Permissions', description: 'Manage admin users and access control', icon: Scale },
   listings: { title: 'Listings', description: 'Review, approve and manage property listings', icon: Home },
   financials: { title: 'Financials', description: 'Platform revenue, transactions and payouts', icon: DollarSign },
   escrow: { title: 'Escrow Manager', description: 'Monitor and manage payment holds', icon: Scale },
@@ -226,6 +231,34 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ users, listings, refreshData, c
     }
     return currentUser?.name || 'Admin';
   };
+
+  // Handle updating a user's admin role
+  const handleUpdateUserRole = useCallback(async (userId: string, roleId: string | null): Promise<boolean> => {
+    // Find the user
+    const allUsers = getAllUsers();
+    const user = allUsers.find(u => u.id === userId);
+    if (!user) {
+      showToast({ message: 'User not found', type: 'error' });
+      return false;
+    }
+
+    // Update the user's role
+    const updatedUser: User = {
+      ...user,
+      adminRoleId: roleId || undefined,
+      // If assigning a role, mark them as admin
+      role: roleId ? 'ADMIN' : user.role === 'ADMIN' ? 'USER' : user.role,
+    };
+
+    const result = saveUser(updatedUser);
+    if (result.success) {
+      refreshData(); // Refresh the users list
+      return true;
+    } else {
+      showToast({ message: result.error || 'Failed to update role', type: 'error' });
+      return false;
+    }
+  }, [refreshData, showToast]);
 
   // Show error state if authorization failed
   if (authError) {
@@ -522,6 +555,25 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ users, listings, refreshData, c
                   users={users}
                   listings={listings}
                   handleUpdateBadgeStatus={handleUpdateBadgeStatus}
+                />
+              }
+            />
+            <Route
+              path="users"
+              element={
+                <AdminUsers
+                  users={users}
+                  bookings={bookings}
+                />
+              }
+            />
+            <Route
+              path="roles"
+              element={
+                <AdminRoles
+                  users={users}
+                  currentUser={currentUser || null}
+                  onUpdateUserRole={handleUpdateUserRole}
                 />
               }
             />

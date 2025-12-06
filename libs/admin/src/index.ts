@@ -2,6 +2,8 @@ export { default as AdminPanel } from './AdminPanel';
 export * from './AdminSidebar';
 export * from './AdminKYC';
 export * from './AdminHosts';
+export * from './AdminUsers';
+export * from './AdminRoles';
 export * from './AdminListings';
 export * from './AdminTasks';
 export * from './AdminSettings';
@@ -14,3 +16,9 @@ export * from './useAdminData';
 export { default as TransactionHistory } from './TransactionHistory';
 export { default as AdminBroadcastPanel } from './AdminBroadcastPanel';
 export { default as SystemHealthCheck } from './SystemHealthCheck';
+
+// Hooks
+export * from './hooks/usePermissions';
+
+// Components
+export * from './components/PermissionGate';

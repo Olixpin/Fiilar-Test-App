@@ -192,6 +192,15 @@ export interface User {
   favorites?: string[]; // List of Listing IDs
   rating?: number;
   reviewCount?: number;
+  
+  // Admin-specific fields
+  adminRoleId?: string;              // Reference to AdminRole
+  adminPermissions?: string[];       // Additional individual permissions (overrides)
+  adminInvitedBy?: string;           // Who invited this admin
+  adminInvitedAt?: string;           // When they were invited
+  adminLastActiveAt?: string;        // Last admin panel activity
+  adminMfaEnabled?: boolean;         // 2FA status for admin
+  adminStatus?: 'active' | 'suspended' | 'pending'; // Admin account status
 }
 
 export interface BankDetails {
@@ -783,3 +792,302 @@ export interface DamageReport {
   createdAt: string;
   resolvedAt?: string;
 }
+
+// ============================================
+// PUBLIC HOST STOREFRONT TYPES
+// For shareable host listing pages
+// ============================================
+
+/**
+ * Short link for sharing host storefronts
+ * Uses non-sequential codes to prevent enumeration attacks
+ */
+export interface ShareableLink {
+  id: string;
+  shortCode: string;           // e.g., "abc123" - 6-8 chars, alphanumeric
+  hostId: string;              // The host this link belongs to
+  isActive: boolean;           // Can be deactivated by host or admin
+  createdAt: string;
+  expiresAt?: string;          // Optional expiry
+  clickCount: number;          // Analytics: total clicks
+  lastClickedAt?: string;      // Analytics: last click time
+  metadata?: {
+    campaign?: string;         // e.g., "instagram_bio", "business_card"
+    source?: string;           // Where the link was shared
+  };
+}
+
+/**
+ * Public host profile - ONLY contains safe-to-expose data
+ * This is what visitors see on the storefront
+ */
+export interface PublicHostProfile {
+  displayName: string;         // firstName + lastName initial or full name
+  avatar?: string;
+  bio?: string;
+  badgeStatus?: 'standard' | 'super_host' | 'premium';
+  memberSince: string;         // Year joined, e.g., "2024"
+  rating?: number;
+  reviewCount?: number;
+  responseRate?: number;       // e.g., 98 (percent)
+  responseTime?: string;       // e.g., "within an hour"
+  verifiedHost: boolean;       // KYC verified
+  totalListings: number;
+  totalBookings?: number;      // Only show if > 0
+}
+
+/**
+ * Public listing data - subset of Listing for public display
+ * Excludes sensitive data like exact address
+ */
+export interface PublicListing {
+  id: string;
+  title: string;
+  description: string;
+  type: SpaceType;
+  price: number;
+  priceUnit: BookingType;
+  images: string[];
+  location: string;            // Public location only (e.g., "Lekki Phase 1")
+  rating?: number;
+  reviewCount?: number;
+  maxGuests?: number;
+  amenities?: Amenity[];
+  instantBook?: boolean;
+  // Exclude: address, hostId, coordinates, internal IDs
+}
+
+/**
+ * Complete storefront data returned to visitors
+ */
+export interface HostStorefrontData {
+  host: PublicHostProfile;
+  listings: PublicListing[];
+  shortCode: string;           // For sharing
+  totalListings: number;
+  categories: SpaceType[];     // Unique space types this host offers
+}
+
+// ============================================
+// ADMIN ROLE & PERMISSION SYSTEM
+// ============================================
+
+/**
+ * Permission categories for organizing permissions in the UI
+ */
+export type PermissionCategory = 
+  | 'users'
+  | 'hosts' 
+  | 'listings'
+  | 'bookings'
+  | 'financials'
+  | 'disputes'
+  | 'system'
+  | 'reports';
+
+/**
+ * Individual permission definition
+ */
+export interface Permission {
+  id: string;                          // e.g., 'users.read', 'users.write'
+  name: string;                        // Display name
+  description: string;                 // What this permission allows
+  category: PermissionCategory;
+  riskLevel: 'low' | 'medium' | 'high' | 'critical';
+}
+
+/**
+ * Admin role with associated permissions
+ */
+export interface AdminRole {
+  id: string;
+  name: string;                        // Internal name: 'super_admin', 'support_admin'
+  displayName: string;                 // UI display: 'Super Admin', 'Support Admin'
+  description: string;
+  permissions: string[];               // Array of permission IDs
+  color: string;                       // Badge color for UI
+  isSystem: boolean;                   // System roles can't be deleted
+  priority: number;                    // Higher = more permissions (for inheritance)
+  createdAt: string;
+  createdBy?: string;
+}
+
+/**
+ * Admin user invitation
+ */
+export interface AdminInvite {
+  id: string;
+  email: string;
+  roleId: string;
+  invitedBy: string;
+  invitedAt: string;
+  expiresAt: string;
+  status: 'pending' | 'accepted' | 'expired' | 'revoked';
+  token: string;
+}
+
+/**
+ * Audit log entry for admin actions
+ */
+export interface AdminAuditLog {
+  id: string;
+  userId: string;
+  userName: string;
+  action: string;                      // e.g., 'user.verify', 'listing.approve'
+  resource: string;                    // e.g., 'user', 'listing', 'booking'
+  resourceId?: string;
+  details?: Record<string, unknown>;   // Additional context
+  ipAddress?: string;
+  userAgent?: string;
+  timestamp: string;
+  result: 'success' | 'failure' | 'denied';
+}
+
+/**
+ * Default permission definitions
+ */
+export const PERMISSIONS: Permission[] = [
+  // Users
+  { id: 'users.read', name: 'View Users', description: 'View user accounts and profiles', category: 'users', riskLevel: 'low' },
+  { id: 'users.write', name: 'Edit Users', description: 'Edit user account details', category: 'users', riskLevel: 'medium' },
+  { id: 'users.delete', name: 'Delete Users', description: 'Delete user accounts', category: 'users', riskLevel: 'critical' },
+  { id: 'users.verify', name: 'Verify Users', description: 'Approve KYC and verify users', category: 'users', riskLevel: 'medium' },
+  
+  // Hosts
+  { id: 'hosts.read', name: 'View Hosts', description: 'View host accounts and details', category: 'hosts', riskLevel: 'low' },
+  { id: 'hosts.write', name: 'Edit Hosts', description: 'Edit host details and badges', category: 'hosts', riskLevel: 'medium' },
+  { id: 'hosts.badge', name: 'Manage Badges', description: 'Assign and revoke host badges', category: 'hosts', riskLevel: 'medium' },
+  
+  // Listings
+  { id: 'listings.read', name: 'View Listings', description: 'View all listings', category: 'listings', riskLevel: 'low' },
+  { id: 'listings.write', name: 'Edit Listings', description: 'Edit listing details', category: 'listings', riskLevel: 'medium' },
+  { id: 'listings.approve', name: 'Approve Listings', description: 'Approve or reject listings', category: 'listings', riskLevel: 'medium' },
+  { id: 'listings.delete', name: 'Delete Listings', description: 'Delete listings', category: 'listings', riskLevel: 'high' },
+  
+  // Bookings
+  { id: 'bookings.read', name: 'View Bookings', description: 'View all bookings', category: 'bookings', riskLevel: 'low' },
+  { id: 'bookings.write', name: 'Manage Bookings', description: 'Modify booking status', category: 'bookings', riskLevel: 'medium' },
+  { id: 'bookings.cancel', name: 'Cancel Bookings', description: 'Force cancel bookings', category: 'bookings', riskLevel: 'high' },
+  
+  // Financials
+  { id: 'financials.read', name: 'View Financials', description: 'View financial reports and transactions', category: 'financials', riskLevel: 'medium' },
+  { id: 'financials.export', name: 'Export Financials', description: 'Export financial data', category: 'financials', riskLevel: 'high' },
+  { id: 'financials.refund', name: 'Process Refunds', description: 'Issue refunds to users', category: 'financials', riskLevel: 'critical' },
+  { id: 'financials.release', name: 'Release Payments', description: 'Release escrow payments to hosts', category: 'financials', riskLevel: 'critical' },
+  
+  // Disputes
+  { id: 'disputes.read', name: 'View Disputes', description: 'View dispute cases', category: 'disputes', riskLevel: 'low' },
+  { id: 'disputes.resolve', name: 'Resolve Disputes', description: 'Resolve and close disputes', category: 'disputes', riskLevel: 'high' },
+  
+  // System
+  { id: 'system.settings', name: 'System Settings', description: 'Modify platform settings', category: 'system', riskLevel: 'critical' },
+  { id: 'system.roles', name: 'Manage Roles', description: 'Create and modify admin roles', category: 'system', riskLevel: 'critical' },
+  { id: 'system.admins', name: 'Manage Admins', description: 'Invite and manage admin users', category: 'system', riskLevel: 'critical' },
+  { id: 'system.audit', name: 'View Audit Logs', description: 'View admin audit trail', category: 'system', riskLevel: 'medium' },
+  { id: 'system.broadcast', name: 'Send Broadcasts', description: 'Send platform-wide notifications', category: 'system', riskLevel: 'high' },
+  
+  // Reports
+  { id: 'reports.view', name: 'View Reports', description: 'Access analytics and reports', category: 'reports', riskLevel: 'low' },
+  { id: 'reports.export', name: 'Export Reports', description: 'Export reports and data', category: 'reports', riskLevel: 'medium' },
+];
+
+/**
+ * Default admin roles
+ */
+export const DEFAULT_ADMIN_ROLES: AdminRole[] = [
+  {
+    id: 'super_admin',
+    name: 'super_admin',
+    displayName: 'Super Admin',
+    description: 'Full platform access with all permissions',
+    permissions: PERMISSIONS.map(p => p.id), // All permissions
+    color: 'red',
+    isSystem: true,
+    priority: 100,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'admin',
+    name: 'admin',
+    displayName: 'Admin',
+    description: 'Full operational access except system settings',
+    permissions: PERMISSIONS.filter(p => p.category !== 'system' || p.id === 'system.audit').map(p => p.id),
+    color: 'purple',
+    isSystem: true,
+    priority: 80,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'finance_admin',
+    name: 'finance_admin',
+    displayName: 'Finance Admin',
+    description: 'Access to financial operations and reports',
+    permissions: [
+      'financials.read', 'financials.export', 'financials.refund', 'financials.release',
+      'bookings.read', 'reports.view', 'reports.export', 'disputes.read'
+    ],
+    color: 'green',
+    isSystem: true,
+    priority: 60,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'support_admin',
+    name: 'support_admin',
+    displayName: 'Support Admin',
+    description: 'Customer support and dispute resolution',
+    permissions: [
+      'users.read', 'users.verify', 'hosts.read', 'listings.read',
+      'bookings.read', 'bookings.write', 'disputes.read', 'disputes.resolve',
+      'reports.view'
+    ],
+    color: 'blue',
+    isSystem: true,
+    priority: 40,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'content_admin',
+    name: 'content_admin',
+    displayName: 'Content Admin',
+    description: 'Listing moderation and content management',
+    permissions: [
+      'listings.read', 'listings.write', 'listings.approve',
+      'hosts.read', 'reports.view'
+    ],
+    color: 'amber',
+    isSystem: true,
+    priority: 30,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'viewer',
+    name: 'viewer',
+    displayName: 'Viewer',
+    description: 'Read-only access to dashboard',
+    permissions: [
+      'users.read', 'hosts.read', 'listings.read', 'bookings.read',
+      'financials.read', 'disputes.read', 'reports.view'
+    ],
+    color: 'gray',
+    isSystem: true,
+    priority: 10,
+    createdAt: new Date().toISOString(),
+  },
+];
+
+/**
+ * Helper to get permissions for a role
+ */
+export const getRolePermissions = (roleId: string): string[] => {
+  const role = DEFAULT_ADMIN_ROLES.find(r => r.id === roleId);
+  return role?.permissions || [];
+};
+
+/**
+ * Check if a role has a specific permission
+ */
+export const hasPermission = (roleId: string, permissionId: string): boolean => {
+  const permissions = getRolePermissions(roleId);
+  return permissions.includes(permissionId);
+};

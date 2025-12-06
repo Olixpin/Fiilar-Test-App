@@ -41,6 +41,7 @@ const NotFound = lazy(() => import('./components/common/NotFound'));
 const SystemHealthCheck = lazy(() => import('@fiilar/admin').then(module => ({ default: module.SystemHealthCheck })));
 const FixWallet = lazy(() => import('./features/Admin/pages/FixWallet'));
 const GlassSliderDemo = lazy(() => import('./features/Demo/GlassSliderDemo'));
+const HostStorefrontPage = lazy(() => import('./features/HostStorefront/components/HostStorefrontPage'));
 
 const ListingDetailsRoute: React.FC<{
   listings: Listing[];
@@ -799,6 +800,8 @@ const App: React.FC = () => {
                     <Route path="/cookies" element={<CookiePolicy />} />
                     <Route path="/sitemap" element={<Sitemap />} />
                     <Route path="/demo/glass-slider" element={<GlassSliderDemo />} />
+                    {/* Shareable Host Storefront - Public, no auth required */}
+                    <Route path="/s/:shortCode" element={<HostStorefrontPage />} />
                     <Route path="/health" element={
                       !user ? <Navigate to="/login" replace /> :
                         user.role !== Role.ADMIN ? <Navigate to="/" replace /> :

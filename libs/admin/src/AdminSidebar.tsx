@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   UserCheck,
   Users,
+  User as UserIcon,
   Home,
   DollarSign,
   AlertTriangle,
@@ -15,6 +16,7 @@ import {
   ListChecks,
   Wrench,
   LayoutDashboard,
+  Shield,
 } from 'lucide-react';
 
 interface AdminSidebarProps {
@@ -94,6 +96,16 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
       id: 'hosts', 
       icon: Users, 
       label: 'Hosts',
+    },
+    { 
+      id: 'users', 
+      icon: UserIcon, 
+      label: 'Users',
+    },
+    { 
+      id: 'roles', 
+      icon: Shield, 
+      label: 'Roles & Access',
     },
     { 
       id: 'financials', 

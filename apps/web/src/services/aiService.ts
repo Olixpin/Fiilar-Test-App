@@ -1,4 +1,4 @@
-import { Listing, SpaceType, BookingType, PricingModel, CancellationPolicy } from '@fiilar/types';
+import { Listing, SpaceType, BookingType, PricingModel, CancellationPolicy, ListingStatus } from '@fiilar/types';
 
 // --- Mock Fallback Logic ---
 // Note: Anthropic SDK is not compatible with browser environments, so we use mocks only
