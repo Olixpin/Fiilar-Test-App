@@ -487,7 +487,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ users, listings, refreshData, c
         {/* Page Content */}
         <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 lg:p-6 min-h-0">
           <Routes>
-            <Route path="/" element={<Navigate to="overview" replace />} />
+            <Route index element={<Navigate to="overview" replace />} />
             <Route
               path="overview"
               element={

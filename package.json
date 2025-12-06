@@ -7,9 +7,10 @@
     ],
     "scripts": {
         "dev": "npm run dev -w @fiilar/web",
-        "build": "npm run build -w @fiilar/web",
+        "build": "node scripts/check-deps.js && npm run build -w @fiilar/web",
         "lint": "npm run lint -w @fiilar/web",
-        "test": "npm run test -w @fiilar/web"
+        "test": "npm run test -w @fiilar/web",
+        "check-deps": "node scripts/check-deps.js"
     },
     "devDependencies": {
         "@types/react": "^19.2.6",
