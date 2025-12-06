@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User } from '@fiilar/types';
-import { Search, Clock, CheckCircle, Users, UserCheck, FileText, X, Check, Eye, CheckSquare, Square } from 'lucide-react';
-import { Button } from '@fiilar/ui';
+import { Search, Clock, CheckCircle, UserCheck, FileText, X, Check, Mail, Phone, MoreHorizontal, Shield, AlertCircle } from 'lucide-react';
+import { Button, useToast } from '@fiilar/ui';
+import { cn } from '@fiilar/utils';
 
 interface AdminKYCProps {
     unverifiedHosts: User[];
@@ -10,310 +11,560 @@ interface AdminKYCProps {
     handleUpdateBadgeStatus: (userId: string, badgeStatus: 'standard' | 'super_host' | 'premium') => void;
 }
 
+type TabType = 'pending' | 'verified' | 'all';
+
+// Avatar component that uses user's avatar or shows initial
+const UserAvatar: React.FC<{ user: User; size?: 'sm' | 'md' | 'lg' }> = ({ user, size = 'md' }) => {
+    const sizeClasses = {
+        sm: 'w-8 h-8 text-xs',
+        md: 'w-10 h-10 text-sm',
+        lg: 'w-14 h-14 text-xl',
+    };
+
+    if (user.avatar) {
+        return (
+            <img 
+                src={user.avatar} 
+                alt={user.name} 
+                className={cn(sizeClasses[size], "rounded-full object-cover flex-shrink-0")}
+            />
+        );
+    }
+
+    return (
+        <div className={cn(
+            sizeClasses[size],
+            "rounded-full flex items-center justify-center text-white font-semibold flex-shrink-0",
+            "bg-gray-500"
+        )}>
+            {user.name.charAt(0).toUpperCase()}
+        </div>
+    );
+};
+
 export const AdminKYC: React.FC<AdminKYCProps> = ({ unverifiedHosts, users, handleVerifyUser, handleUpdateBadgeStatus }) => {
+    const { showToast } = useToast();
     const [searchTerm, setSearchTerm] = useState('');
-    const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
-    const [viewingDocument, setViewingDocument] = useState<{ url: string; userName: string } | null>(null);
+    const [activeTab, setActiveTab] = useState<TabType>('pending');
+    const [selectedUser, setSelectedUser] = useState<User | null>(null);
+    const [detailTab, setDetailTab] = useState('details');
+
+    // Wrapper to add toast notifications
+    const handleVerifyWithToast = (userId: string, approve: boolean) => {
+        const user = users.find(u => u.id === userId);
+        handleVerifyUser(userId, approve);
+        if (approve) {
+            showToast({ message: `${user?.name || 'User'} has been verified successfully`, type: 'success' });
+        } else {
+            showToast({ message: `${user?.name || 'User'} verification has been rejected`, type: 'info' });
+        }
+        setSelectedUser(null);
+    };
+
+    const handleBadgeUpdateWithToast = (userId: string, badgeStatus: 'standard' | 'super_host' | 'premium') => {
+        const user = users.find(u => u.id === userId);
+        handleUpdateBadgeStatus(userId, badgeStatus);
+        const badgeLabel = badgeStatus === 'super_host' ? 'Super Host' : badgeStatus === 'premium' ? 'Premium' : 'Standard';
+        showToast({ message: `${user?.name || 'User'} badge updated to ${badgeLabel}`, type: 'success' });
+    };
+
+    const verifiedUsers = users.filter(u => u.kycVerified);
+    
+    // Get users based on active tab
+    const getTabUsers = () => {
+        switch (activeTab) {
+            case 'pending':
+                return unverifiedHosts;
+            case 'verified':
+                return verifiedUsers;
+            case 'all':
+                return users;
+            default:
+                return unverifiedHosts;
+        }
+    };
 
     // Filter users based on search
-    const filteredHosts = unverifiedHosts.filter(u =>
+    const filteredUsers = getTabUsers().filter(u =>
         u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         u.email.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    // Bulk selection handlers
-    const toggleSelectAll = () => {
-        if (selectedUsers.size === filteredHosts.length) {
-            setSelectedUsers(new Set());
-        } else {
-            setSelectedUsers(new Set(filteredHosts.map(u => u.id)));
+    useEffect(() => {
+        if (filteredUsers.length > 0 && !selectedUser) {
+            setSelectedUser(filteredUsers[0]);
         }
-    };
+    }, [filteredUsers, selectedUser]);
 
-    const toggleSelectUser = (userId: string) => {
-        const newSelected = new Set(selectedUsers);
-        if (newSelected.has(userId)) {
-            newSelected.delete(userId);
-        } else {
-            newSelected.add(userId);
-        }
-        setSelectedUsers(newSelected);
-    };
+    const tabs = [
+        { id: 'pending' as TabType, label: 'Pending', count: unverifiedHosts.length },
+        { id: 'verified' as TabType, label: 'Verified', count: verifiedUsers.length },
+        { id: 'all' as TabType, label: 'All Users', count: users.length },
+    ];
 
-    // Bulk actions
-    const handleBulkApprove = () => {
-        selectedUsers.forEach(userId => handleVerifyUser(userId, true));
-        setSelectedUsers(new Set());
-    };
+    const detailTabs = ['Details', 'Activity', 'Notes'];
 
-    const handleBulkReject = () => {
-        selectedUsers.forEach(userId => handleVerifyUser(userId, false));
-        setSelectedUsers(new Set());
+    const formatDate = (dateStr?: string) => {
+        if (!dateStr) return 'N/A';
+        return new Date(dateStr).toLocaleDateString('en-US', { 
+            day: 'numeric', 
+            month: 'short', 
+            year: 'numeric' 
+        });
     };
 
     return (
-        <div className="space-y-6 animate-in fade-in">
-            {/* Header */}
-            <div className="glass-card p-6">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                    <div>
-                        <h2 className="text-2xl font-bold text-gray-900">KYC Verification</h2>
-                        <p className="text-sm text-gray-500 mt-1">Review and approve host identity documents</p>
-                    </div>
-                    <div className="flex items-center gap-2 w-full sm:w-auto">
-                        <div className="relative flex-1 sm:flex-none sm:w-64">
-                            <input
-                                type="text"
-                                placeholder="Search users..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500 outline-none"
-                            />
-                            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Stats */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="glass-card p-5 hover:shadow-lg transition-all duration-300 group">
-                    <div className="flex items-center justify-between mb-3">
-                        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Pending</h3>
-                        <div className="bg-orange-100 p-2 rounded-lg text-orange-700 group-hover:scale-110 transition-transform">
-                            <Clock size={18} />
-                        </div>
-                    </div>
-                    <p className="text-3xl font-bold text-gray-900">{unverifiedHosts.length}</p>
-                    <p className="text-xs text-gray-500 mt-1">Awaiting review</p>
-                </div>
-                <div className="glass-card p-5 hover:shadow-lg transition-all duration-300 group">
-                    <div className="flex items-center justify-between mb-3">
-                        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Verified</h3>
-                        <div className="bg-green-100 p-2 rounded-lg text-green-700 group-hover:scale-110 transition-transform">
-                            <CheckCircle size={18} />
-                        </div>
-                    </div>
-                    <p className="text-3xl font-bold text-gray-900">{users.filter(u => u.kycVerified).length}</p>
-                    <p className="text-xs text-gray-500 mt-1">Total approved</p>
-                </div>
-                <div className="glass-card p-5 hover:shadow-lg transition-all duration-300 group">
-                    <div className="flex items-center justify-between mb-3">
-                        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Users</h3>
-                        <div className="bg-blue-100 p-2 rounded-lg text-blue-700 group-hover:scale-110 transition-transform">
-                            <Users size={18} />
-                        </div>
-                    </div>
-                    <p className="text-3xl font-bold text-gray-900">{users.length}</p>
-                    <p className="text-xs text-gray-500 mt-1">Platform users</p>
-                </div>
-            </div>
-
-            {/* Bulk Actions Bar */}
-            {selectedUsers.size > 0 && (
-                <div className="glass-card p-4 border-2 border-brand-500 animate-in slide-in-from-top">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <CheckSquare size={20} className="text-brand-600" />
-                            <span className="font-medium text-gray-900">{selectedUsers.size} user{selectedUsers.size > 1 ? 's' : ''} selected</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <Button
-                                size="sm"
-                                variant="danger"
-                                onClick={handleBulkReject}
-                                leftIcon={<X size={14} />}
+        <div className="flex gap-6 h-[calc(100vh-180px)] animate-in fade-in">
+            {/* Left Panel - User List */}
+            <div className="w-[340px] flex-shrink-0 flex flex-col">
+                {/* Tabs */}
+                <div className="border-b border-gray-200 mb-4 flex-shrink-0">
+                    <div className="flex gap-6">
+                        {tabs.map((tab) => (
+                            <button
+                                key={tab.id}
+                                onClick={() => { setActiveTab(tab.id); setSelectedUser(null); }}
+                                className={cn(
+                                    "pb-3 text-sm font-medium border-b-2 transition-colors",
+                                    activeTab === tab.id
+                                        ? "border-gray-900 text-gray-900"
+                                        : "border-transparent text-gray-500 hover:text-gray-700"
+                                )}
                             >
-                                Reject All
-                            </Button>
-                            <Button
-                                size="sm"
-                                variant="primary"
-                                className="bg-green-600 hover:bg-green-700 focus:ring-green-500"
-                                onClick={handleBulkApprove}
-                                leftIcon={<Check size={14} />}
-                            >
-                                Approve All
-                            </Button>
-                        </div>
+                                {tab.label}
+                                {tab.count > 0 && (
+                                    <span className={cn(
+                                        "ml-2 px-1.5 py-0.5 text-xs rounded-full",
+                                        activeTab === tab.id
+                                            ? "bg-gray-900 text-white"
+                                            : "bg-gray-100 text-gray-600"
+                                    )}>
+                                        {tab.count}
+                                    </span>
+                                )}
+                            </button>
+                        ))}
                     </div>
                 </div>
-            )}
 
-            {/* KYC List */}
-            <div className="glass-card overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="w-full">
-                        <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
-                            <tr>
-                                <th className="px-6 py-4 text-left">
-                                    <button
-                                        onClick={toggleSelectAll}
-                                        className="hover:scale-110 transition-transform"
-                                    >
-                                        {selectedUsers.size === filteredHosts.length && filteredHosts.length > 0 ? (
-                                            <CheckSquare size={18} className="text-brand-600" />
-                                        ) : (
-                                            <Square size={18} className="text-gray-400" />
-                                        )}
-                                    </button>
-                                </th>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">User</th>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Email</th>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Document</th>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Liveness</th>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Badge</th>
-                                <th className="px-6 py-4 text-right text-xs font-bold text-gray-600 uppercase tracking-wider">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                            {filteredHosts.length === 0 ? (
-                                <tr>
-                                    <td colSpan={7} className="px-6 py-12 text-center">
-                                        <div className="flex flex-col items-center">
-                                            <div className="w-16 h-16 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mb-4">
-                                                <UserCheck size={28} className="text-gray-400" />
+                {/* Search */}
+                <div className="relative mb-4 flex-shrink-0">
+                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input
+                        type="text"
+                        placeholder="Search users..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-gray-200 focus:border-gray-300 outline-none transition-all"
+                    />
+                </div>
+
+                {/* Recent Activity */}
+                <div className="flex-1 overflow-y-auto pr-1">
+                    <h3 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-3 sticky top-0 bg-white pb-2">Recent Activity</h3>
+                    <div className="space-y-2">
+                        {filteredUsers.length === 0 ? (
+                            <div className="text-center py-8">
+                                <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <UserCheck size={20} className="text-gray-400" />
+                                </div>
+                                <p className="text-sm text-gray-500">No users found</p>
+                            </div>
+                        ) : (
+                            filteredUsers.map((user) => (
+                                <div
+                                    key={user.id}
+                                    onClick={() => setSelectedUser(user)}
+                                    className={cn(
+                                        "p-3 rounded-lg cursor-pointer transition-all border-l-2",
+                                        selectedUser?.id === user.id
+                                            ? "bg-gray-100 border-l-gray-400"
+                                            : "border-l-transparent hover:bg-gray-50"
+                                    )}
+                                >
+                                    <div className="flex items-start gap-3">
+                                        <UserAvatar user={user} size="md" />
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-medium text-gray-900 text-sm truncate">{user.name}</span>
                                             </div>
-                                            <p className="text-gray-900 font-semibold text-lg">No pending KYC requests</p>
-                                            <p className="text-sm text-gray-500 mt-2">All users are verified ✓</p>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ) : (
-                                filteredHosts.map(u => (
-                                    <tr key={u.id} className="hover:bg-gray-50/50 transition-colors group">
-                                        <td className="px-6 py-4">
-                                            <button
-                                                onClick={() => toggleSelectUser(u.id)}
-                                                className="hover:scale-110 transition-transform"
-                                            >
-                                                {selectedUsers.has(u.id) ? (
-                                                    <CheckSquare size={18} className="text-brand-600" />
+                                            <div className="text-xs text-gray-500 mt-0.5 truncate">{user.email}</div>
+                                            <div className="flex items-center gap-2 mt-2">
+                                                {user.kycVerified ? (
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-green-100 text-green-700 text-xs font-medium">
+                                                        <CheckCircle size={10} /> Verified
+                                                    </span>
                                                 ) : (
-                                                    <Square size={18} className="text-gray-400" />
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-100 text-amber-700 text-xs font-medium">
+                                                        <Clock size={10} /> Pending
+                                                    </span>
                                                 )}
-                                            </button>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 bg-gradient-to-br from-brand-400 to-brand-600 rounded-full flex items-center justify-center text-white font-bold shadow-lg shadow-brand-600/30">
-                                                    {u.name.charAt(0)}
-                                                </div>
-                                                <div className="font-medium text-gray-900">{u.name}</div>
                                             </div>
-                                        </td>
-                                        <td className="px-6 py-4 text-sm text-gray-600">{u.email}</td>
-                                        <td className="px-6 py-4">
-                                            {u.identityDocument ? (
-                                                <button
-                                                    onClick={() => setViewingDocument({ url: u.identityDocument!, userName: u.name })}
-                                                    className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors"
-                                                >
-                                                    <Eye size={14} />
-                                                    View Document
-                                                </button>
-                                            ) : (
-                                                <span className="text-sm text-gray-400 italic">Not uploaded</span>
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            {u.livenessVerified ? (
-                                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-bold">
-                                                    <CheckCircle size={12} /> Verified
+                                        </div>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
+
+                {/* User Info Section */}
+                {selectedUser && (
+                    <div className="border-t border-gray-100 pt-4">
+                        <h3 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-3">User Info</h3>
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-3 text-sm">
+                                <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center text-gray-500">
+                                    <FileText size={14} />
+                                </div>
+                                <div>
+                                    <div className="text-xs text-gray-400">Account Type</div>
+                                    <div className="font-medium text-gray-900">{selectedUser.isHost ? 'Host' : 'Guest'}</div>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-3 text-sm">
+                                <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center text-gray-500">
+                                    <UserCheck size={14} />
+                                </div>
+                                <div>
+                                    <div className="text-xs text-gray-400">Badge Status</div>
+                                    <div className="font-medium text-gray-900 capitalize">{selectedUser.badgeStatus || 'Standard'}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* Right Panel - Details */}
+            <div className="flex-1 min-w-0 overflow-y-auto">
+                {selectedUser ? (
+                    <div className="bg-white rounded-xl border border-gray-200">
+                        {/* User Header */}
+                        <div className="p-6 border-b border-gray-100">
+                            <div className="flex items-start justify-between">
+                                <div className="flex items-center gap-4">
+                                    <UserAvatar user={selectedUser} size="lg" />
+                                    <div>
+                                        <h2 className="text-xl font-semibold text-gray-900">{selectedUser.name}</h2>
+                                        <p className="text-sm text-gray-500">Joined: {formatDate(selectedUser.createdAt)}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <button className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2">
+                                        <Mail size={14} />
+                                        Mail
+                                    </button>
+                                    <button className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2">
+                                        <Phone size={14} />
+                                        Call
+                                    </button>
+                                    <button className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2">
+                                        <MoreHorizontal size={14} />
+                                        More
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Detail Tabs */}
+                        <div className="border-b border-gray-200">
+                            <div className="flex gap-1 px-6">
+                                {detailTabs.map((tab) => (
+                                    <button
+                                        key={tab}
+                                        onClick={() => setDetailTab(tab.toLowerCase())}
+                                        className={cn(
+                                            "px-4 py-3 text-sm font-medium border-b-2 -mb-px transition-colors",
+                                            detailTab === tab.toLowerCase()
+                                                ? "border-gray-900 text-gray-900"
+                                                : "border-transparent text-gray-500 hover:text-gray-700"
+                                        )}
+                                    >
+                                        {tab}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Content */}
+                        <div className="p-6">
+                            {detailTab === 'details' && (
+                                <>
+                                    {/* KYC Status Card */}
+                                    <div className={cn(
+                                        "p-4 rounded-xl border mb-6",
+                                        selectedUser.kycVerified 
+                                            ? "bg-green-50 border-green-200" 
+                                            : "bg-amber-50 border-amber-200"
+                                    )}>
+                                        <div className="flex items-center gap-3">
+                                            <div className={cn(
+                                                "w-10 h-10 rounded-full flex items-center justify-center",
+                                                selectedUser.kycVerified ? "bg-green-100" : "bg-amber-100"
+                                            )}>
+                                                {selectedUser.kycVerified ? (
+                                                    <Shield size={20} className="text-green-600" />
+                                                ) : (
+                                                    <AlertCircle size={20} className="text-amber-600" />
+                                                )}
+                                            </div>
+                                            <div>
+                                                <h4 className={cn(
+                                                    "font-semibold",
+                                                    selectedUser.kycVerified ? "text-green-800" : "text-amber-800"
+                                                )}>
+                                                    {selectedUser.kycVerified ? 'Identity Verified' : 'Verification Pending'}
+                                                </h4>
+                                                <p className={cn(
+                                                    "text-sm",
+                                                    selectedUser.kycVerified ? "text-green-600" : "text-amber-600"
+                                                )}>
+                                                    {selectedUser.kycVerified 
+                                                        ? 'User has completed Dojah identity verification' 
+                                                        : 'User needs to complete Dojah identity verification'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* User Details */}
+                                    <h3 className="text-sm font-semibold text-gray-900 mb-4">User Information</h3>
+                                    <div className="grid grid-cols-2 gap-4 mb-6">
+                                        <div className="p-3 bg-gray-50 rounded-lg">
+                                            <p className="text-xs text-gray-500 mb-1">Email</p>
+                                            <p className="text-sm font-medium text-gray-900">{selectedUser.email}</p>
+                                            <span className={cn(
+                                                "inline-flex items-center gap-1 text-xs mt-1",
+                                                selectedUser.emailVerified ? "text-green-600" : "text-gray-400"
+                                            )}>
+                                                {selectedUser.emailVerified ? <CheckCircle size={10} /> : <Clock size={10} />}
+                                                {selectedUser.emailVerified ? 'Verified' : 'Not verified'}
+                                            </span>
+                                        </div>
+                                        <div className="p-3 bg-gray-50 rounded-lg">
+                                            <p className="text-xs text-gray-500 mb-1">Phone</p>
+                                            <p className="text-sm font-medium text-gray-900">{selectedUser.phone || 'Not provided'}</p>
+                                            {selectedUser.phone && (
+                                                <span className={cn(
+                                                    "inline-flex items-center gap-1 text-xs mt-1",
+                                                    selectedUser.phoneVerified ? "text-green-600" : "text-gray-400"
+                                                )}>
+                                                    {selectedUser.phoneVerified ? <CheckCircle size={10} /> : <Clock size={10} />}
+                                                    {selectedUser.phoneVerified ? 'Verified' : 'Not verified'}
                                                 </span>
-                                            ) : (
-                                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-100 text-gray-600 text-xs font-medium">
-                                                    <Clock size={12} /> Pending
-                                                </span>
                                             )}
-                                        </td>
-                                        <td className="px-6 py-4">
+                                        </div>
+                                        <div className="p-3 bg-gray-50 rounded-lg">
+                                            <p className="text-xs text-gray-500 mb-1">Account Type</p>
+                                            <p className="text-sm font-medium text-gray-900">{selectedUser.isHost ? 'Host' : 'Guest'}</p>
+                                        </div>
+                                        <div className="p-3 bg-gray-50 rounded-lg">
+                                            <p className="text-xs text-gray-500 mb-1">Auth Provider</p>
+                                            <p className="text-sm font-medium text-gray-900 capitalize">{selectedUser.authProvider || 'Email'}</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Badge Assignment */}
+                                    <h3 className="text-sm font-semibold text-gray-900 mb-4">Badge Assignment</h3>
+                                    <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 mb-6">
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <h4 className="font-medium text-gray-900">User Badge Tier</h4>
+                                                <p className="text-sm text-gray-500 mt-0.5">Assign a badge tier to this user</p>
+                                            </div>
                                             <select
-                                                value={u.badgeStatus || 'standard'}
-                                                onChange={(e) => handleUpdateBadgeStatus(u.id, e.target.value as any)}
+                                                value={selectedUser.badgeStatus || 'standard'}
+                                                onChange={(e) => handleBadgeUpdateWithToast(selectedUser.id, e.target.value as any)}
+                                                className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none"
                                                 title="Select badge status"
                                                 aria-label="Select badge status"
-                                                className="text-sm border-2 border-gray-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none bg-white hover:border-gray-300 transition-colors"
                                             >
-                                                <option value="standard">⚪ Standard</option>
-                                                <option value="super_host">🟡 Super Host</option>
-                                                <option value="premium">🟣 Premium</option>
+                                                <option value="standard">Standard</option>
+                                                <option value="super_host">Super Host</option>
+                                                <option value="premium">Premium</option>
                                             </select>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex justify-end gap-2">
-                                                <Button
-                                                    size="sm"
-                                                    variant="danger"
-                                                    onClick={() => handleVerifyUser(u.id, false)}
-                                                    leftIcon={<X size={14} />}
-                                                    className="opacity-0 group-hover:opacity-100 transition-opacity"
-                                                >
-                                                    Reject
-                                                </Button>
-                                                <Button
-                                                    size="sm"
-                                                    variant="primary"
-                                                    className="bg-green-600 hover:bg-green-700 focus:ring-green-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    onClick={() => handleVerifyUser(u.id, true)}
-                                                    leftIcon={<Check size={14} />}
-                                                >
-                                                    Approve
-                                                </Button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+                                        </div>
+                                    </div>
 
-            {/* Document Viewer Modal */}
-            {viewingDocument && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden animate-in zoom-in-95">
-                        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                            <div>
-                                <h3 className="font-bold text-gray-900 flex items-center gap-2">
-                                    <FileText size={20} className="text-brand-600" />
-                                    Identity Document
-                                </h3>
-                                <p className="text-sm text-gray-500 mt-0.5">{viewingDocument.userName}</p>
-                            </div>
-                            <button
-                                type="button"
-                                onClick={() => setViewingDocument(null)}
-                                className="p-2 hover:bg-gray-200 rounded-full transition-colors"
-                                title="Close document viewer"
-                                aria-label="Close document viewer"
-                            >
-                                <X size={20} className="text-gray-500" />
-                            </button>
-                        </div>
-                        <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
-                            <img
-                                src={viewingDocument.url}
-                                alt="Identity Document"
-                                className="w-full h-auto rounded-lg shadow-lg"
-                            />
-                        </div>
-                        <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-2">
-                            <Button variant="outline" onClick={() => setViewingDocument(null)}>Close</Button>
-                            <a
-                                href={viewingDocument.url}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="inline-flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg font-medium hover:bg-brand-700 transition-colors"
-                            >
-                                <Eye size={16} />
-                                Open in New Tab
-                            </a>
+                                    {/* Action Buttons - Only show for pending users */}
+                                    {!selectedUser.kycVerified && (
+                                        <div className="flex items-center gap-3 pt-6 border-t border-gray-100">
+                                            <Button
+                                                variant="danger"
+                                                onClick={() => handleVerifyWithToast(selectedUser.id, false)}
+                                                leftIcon={<X size={16} />}
+                                                className="flex-1"
+                                            >
+                                                Reject
+                                            </Button>
+                                            <Button
+                                                variant="primary"
+                                                className="flex-1 bg-green-600 hover:bg-green-700"
+                                                onClick={() => handleVerifyWithToast(selectedUser.id, true)}
+                                                leftIcon={<Check size={16} />}
+                                            >
+                                                Approve
+                                            </Button>
+                                        </div>
+                                    )}
+                                </>
+                            )}
+
+                            {detailTab === 'activity' && (
+                                <div className="space-y-4">
+                                    <h3 className="text-sm font-semibold text-gray-900 mb-4">User Activity Timeline</h3>
+                                    
+                                    {/* Account Created */}
+                                    <div className="flex gap-3">
+                                        <div className="flex flex-col items-center">
+                                            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                                <UserCheck size={14} className="text-blue-600" />
+                                            </div>
+                                            <div className="w-0.5 flex-1 bg-gray-200 mt-2" />
+                                        </div>
+                                        <div className="pb-6">
+                                            <p className="text-sm font-medium text-gray-900">Account Created</p>
+                                            <p className="text-xs text-gray-500 mt-0.5">User registered on the platform</p>
+                                            <p className="text-xs text-gray-400 mt-1">{formatDate(selectedUser.createdAt)}</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Email Verification */}
+                                    <div className="flex gap-3">
+                                        <div className="flex flex-col items-center">
+                                            <div className={cn(
+                                                "w-8 h-8 rounded-full flex items-center justify-center",
+                                                selectedUser.emailVerified ? "bg-green-100" : "bg-gray-100"
+                                            )}>
+                                                <Mail size={14} className={selectedUser.emailVerified ? "text-green-600" : "text-gray-400"} />
+                                            </div>
+                                            <div className="w-0.5 flex-1 bg-gray-200 mt-2" />
+                                        </div>
+                                        <div className="pb-6">
+                                            <p className="text-sm font-medium text-gray-900">Email Verification</p>
+                                            <p className="text-xs text-gray-500 mt-0.5">
+                                                {selectedUser.emailVerified ? 'Email address verified' : 'Email verification pending'}
+                                            </p>
+                                            <span className={cn(
+                                                "inline-flex items-center gap-1 text-xs mt-1 px-2 py-0.5 rounded",
+                                                selectedUser.emailVerified 
+                                                    ? "bg-green-100 text-green-700" 
+                                                    : "bg-amber-100 text-amber-700"
+                                            )}>
+                                                {selectedUser.emailVerified ? 'Completed' : 'Pending'}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Phone Verification */}
+                                    {selectedUser.phone && (
+                                        <div className="flex gap-3">
+                                            <div className="flex flex-col items-center">
+                                                <div className={cn(
+                                                    "w-8 h-8 rounded-full flex items-center justify-center",
+                                                    selectedUser.phoneVerified ? "bg-green-100" : "bg-gray-100"
+                                                )}>
+                                                    <Phone size={14} className={selectedUser.phoneVerified ? "text-green-600" : "text-gray-400"} />
+                                                </div>
+                                                <div className="w-0.5 flex-1 bg-gray-200 mt-2" />
+                                            </div>
+                                            <div className="pb-6">
+                                                <p className="text-sm font-medium text-gray-900">Phone Verification</p>
+                                                <p className="text-xs text-gray-500 mt-0.5">
+                                                    {selectedUser.phoneVerified ? 'Phone number verified' : 'Phone verification pending'}
+                                                </p>
+                                                <span className={cn(
+                                                    "inline-flex items-center gap-1 text-xs mt-1 px-2 py-0.5 rounded",
+                                                    selectedUser.phoneVerified 
+                                                        ? "bg-green-100 text-green-700" 
+                                                        : "bg-amber-100 text-amber-700"
+                                                )}>
+                                                    {selectedUser.phoneVerified ? 'Completed' : 'Pending'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* KYC Verification */}
+                                    <div className="flex gap-3">
+                                        <div className="flex flex-col items-center">
+                                            <div className={cn(
+                                                "w-8 h-8 rounded-full flex items-center justify-center",
+                                                selectedUser.kycVerified ? "bg-green-100" : "bg-gray-100"
+                                            )}>
+                                                <Shield size={14} className={selectedUser.kycVerified ? "text-green-600" : "text-gray-400"} />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-medium text-gray-900">Identity Verification (Dojah)</p>
+                                            <p className="text-xs text-gray-500 mt-0.5">
+                                                {selectedUser.kycVerified ? 'Identity verified via Dojah' : 'Awaiting Dojah verification'}
+                                            </p>
+                                            <span className={cn(
+                                                "inline-flex items-center gap-1 text-xs mt-1 px-2 py-0.5 rounded",
+                                                selectedUser.kycVerified 
+                                                    ? "bg-green-100 text-green-700" 
+                                                    : "bg-amber-100 text-amber-700"
+                                            )}>
+                                                {selectedUser.kycVerified ? 'Verified' : 'Pending'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {detailTab === 'notes' && (
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h3 className="text-sm font-semibold text-gray-900">Admin Notes</h3>
+                                        <Button variant="outline" size="sm" leftIcon={<FileText size={14} />}>
+                                            Add Note
+                                        </Button>
+                                    </div>
+
+                                    {/* Notes List - Empty State for now */}
+                                    <div className="border border-dashed border-gray-200 rounded-xl p-8 text-center">
+                                        <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                            <FileText size={20} className="text-gray-400" />
+                                        </div>
+                                        <h4 className="text-sm font-medium text-gray-900 mb-1">No notes yet</h4>
+                                        <p className="text-xs text-gray-500 mb-4">Add notes about this user for your team</p>
+                                        <Button variant="outline" size="sm" leftIcon={<FileText size={14} />}>
+                                            Add First Note
+                                        </Button>
+                                    </div>
+
+                                    {/* Note Input */}
+                                    <div className="mt-6 pt-6 border-t border-gray-100">
+                                        <label className="text-sm font-medium text-gray-900 mb-2 block">Quick Note</label>
+                                        <textarea 
+                                            placeholder="Add a note about this user..."
+                                            className="w-full p-3 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none resize-none"
+                                            rows={3}
+                                        />
+                                        <div className="flex justify-end mt-2">
+                                            <Button variant="primary" size="sm">
+                                                Save Note
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
-                </div>
-            )}
+                ) : (
+                    <div className="bg-white rounded-xl border border-gray-200 h-full min-h-[500px] flex items-center justify-center">
+                        <div className="text-center">
+                            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <UserCheck size={28} className="text-gray-400" />
+                            </div>
+                            <h3 className="text-lg font-semibold text-gray-900 mb-1">Select a User</h3>
+                            <p className="text-sm text-gray-500">Choose a user from the list to view their details</p>
+                        </div>
+                    </div>
+                )}
+            </div>
         </div>
     );
 };

@@ -39,7 +39,7 @@ const HostFinancials: React.FC<HostFinancialsProps> = ({
     const escrowBalance = useMemo(() => {
         return hostBookings
             .filter(b => b.paymentStatus === 'Paid - Escrow')
-            .reduce((sum, b) => sum + (b.totalPrice - b.serviceFee - b.cautionFee), 0);
+            .reduce((sum, b) => sum + (b.hostPayout || (b.totalPrice - b.userServiceFee - b.cautionFee)), 0);
     }, [hostBookings]);
 
     const totalEarnings = useMemo(() => {
@@ -69,7 +69,7 @@ const HostFinancials: React.FC<HostFinancialsProps> = ({
                             bDate.getFullYear() === date.getFullYear() &&
                             (b.status === 'Confirmed' || b.status === 'Completed');
                     })
-                    .reduce((sum, b) => sum + (b.totalPrice - b.serviceFee - b.cautionFee), 0);
+                    .reduce((sum, b) => sum + (b.hostPayout || (b.totalPrice - b.userServiceFee - b.cautionFee)), 0);
 
                 return {
                     name: monthKey,
@@ -90,7 +90,7 @@ const HostFinancials: React.FC<HostFinancialsProps> = ({
                         const bDate = new Date(b.date).toISOString().split('T')[0];
                         return bDate === dateStr && (b.status === 'Confirmed' || b.status === 'Completed');
                     })
-                    .reduce((sum, b) => sum + (b.totalPrice - b.serviceFee - b.cautionFee), 0);
+                    .reduce((sum, b) => sum + (b.hostPayout || (b.totalPrice - b.userServiceFee - b.cautionFee)), 0);
 
                 return {
                     name: date.toLocaleDateString('en-US', { weekday: 'short' }),

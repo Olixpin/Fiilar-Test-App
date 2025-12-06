@@ -1,6 +1,6 @@
 import React from 'react';
 import { Listing } from '@fiilar/types';
-import { X, Star, Wifi, Wind, Utensils, Car, Dumbbell, Waves, Briefcase, Tv, Shirt, Scissors, Zap, Coffee, Music, Video, Shield, Sun, CheckCircle } from 'lucide-react';
+import { X, Star, Wifi, Wind, Utensils, Car, Dumbbell, Waves, Briefcase, Tv, Shirt, Scissors, Zap, Coffee, Music, Video, Shield, Sun, CheckCircle, Gamepad2, BatteryCharging, Circle } from 'lucide-react';
 import { useScrollLock } from '../../../../hooks/useScrollLock';
 import { getReviews, getAverageRating } from '@fiilar/reviews';
 import { getAllUsers } from '@fiilar/storage'; // Re-import getAllUsers if still needed
@@ -89,6 +89,12 @@ export const ReviewsModal: React.FC<ReviewsModalProps> = ({ isOpen, onClose, lis
                           case 'Shield': return <Shield size={18} />;
                           case 'Sun': return <Sun size={18} />;
                           case 'Star': return <Star size={18} />;
+                          case 'Snooker':
+                          case 'Circle': return <Circle size={18} />;
+                          case 'Game Console':
+                          case 'Gamepad2': return <Gamepad2 size={18} />;
+                          case 'Inverter':
+                          case 'BatteryCharging': return <BatteryCharging size={18} />;
                           default: return <CheckCircle size={18} />;
                         }
                       };

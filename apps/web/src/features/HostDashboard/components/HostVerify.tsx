@@ -37,12 +37,15 @@ const HostVerify: React.FC<HostVerifyProps> = ({ user, listings, onVerifySuccess
             }
 
             // 2. Verify the handshake
-            const success = verifyHandshake(booking.id, code.toUpperCase());
+            const result = verifyHandshake(booking.id, code.toUpperCase());
 
-            if (success) {
+            if (result === true) {
                 setStatus('success');
                 setVerifiedBooking(booking);
                 onVerifySuccess();
+            } else if (typeof result === 'object' && result.error) {
+                setStatus('error');
+                setErrorMessage(result.error);
             } else {
                 setStatus('error');
                 setErrorMessage('Verification failed. Please try again.');

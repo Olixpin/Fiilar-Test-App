@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Listing, User, BookingType, Booking } from '@fiilar/types';
+import { Listing, User, BookingType, Booking, CancellationPolicy } from '@fiilar/types';
 import { getBookings, toggleFavorite, saveBooking, deleteBooking, getAllUsers, trackListingView, trackFavorite, getBookingDraft, saveBookingDraft, deleteBookingDraft, formatDraftAge, BookingDraft } from '@fiilar/storage';
 import { startConversation } from '@fiilar/messaging';
 import { addNotification } from '@fiilar/notifications';
@@ -8,10 +8,35 @@ import { paymentService } from '@fiilar/escrow';
 import { SERVICE_FEE_PERCENTAGE } from '@fiilar/storage';
 import { useToast } from '@fiilar/ui';
 
+// Complete booking breakdown with all financial fields
+export interface BookingBreakdown {
+    // Base charges
+    basePrice: number;           // Listing price × duration
+    extraGuestFees: number;      // Extra guests × fee per guest
+    extrasTotal: number;         // Sum of add-ons
+    
+    // Fee-able amount
+    subtotal: number;            // basePrice + extraGuestFees
+    
+    // Fees
+    userServiceFee: number;      // 10% of subtotal (charged to guest)
+    hostServiceFee: number;      // 3-5% of subtotal (deducted from host)
+    cautionFee: number;          // Security deposit (fully refundable)
+    
+    // Totals
+    total: number;               // What guest pays
+    hostPayout: number;          // What host receives
+    platformFee: number;         // What platform keeps
+    
+    // Additional info
+    extraGuestCount: number;
+    datesCount: number;
+}
+
 interface UseListingDetailsProps {
     listing: Listing;
     user: User | null;
-    onBook: (dates: string[], duration: number, breakdown: { total: number, service: number, caution: number }, selectedHours?: number[], guestCount?: number, selectedAddOns?: string[]) => Promise<Booking[]>;
+    onBook: (dates: string[], duration: number, breakdown: BookingBreakdown, selectedHours?: number[], guestCount?: number, selectedAddOns?: string[]) => Promise<Booking[]>;
     onVerify?: () => void;
     onLogin: () => void;
     onRefreshUser?: () => void;
@@ -73,6 +98,9 @@ export const useListingDetails = ({ listing, user, onBook, onVerify, onLogin, on
         isOpen: boolean;
         draft: BookingDraft | null;
     }>({ isOpen: false, draft: null });
+
+    // Policy Warning Modal State (for strict/non-refundable policies)
+    const [showPolicyWarningModal, setShowPolicyWarningModal] = useState(false);
     const draftCheckedRef = useRef(false);
 
     useEffect(() => {
@@ -359,73 +387,101 @@ export const useListingDetails = ({ listing, user, onBook, onVerify, onLogin, on
         return series;
     }, [selectedDate, isRecurring, recurrenceFreq, recurrenceCount, listing.availability, listingBookings, isHourly, selectedDays]);
 
+    // Host service fee rates based on cancellation policy
+    const HOST_SERVICE_FEE_RATES: Record<string, number> = {
+        'Non-refundable': 0.05,  // 5%
+        'Strict': 0.04,          // 4%
+        'Moderate': 0.03,        // 3%
+        'Flexible': 0.03,        // 3%
+    };
+
     const calculateFees = () => {
         const datesCount = isRecurring ? recurrenceCount : 1;
-        let basePrice = listing.price;
-        let extraGuestFees = 0;
+        let basePricePerUnit = listing.price;
+        let extraGuestFeesPerBooking = 0;
 
         // NEW MODEL (v1.1): Calculate extra guest fees
         const maxGuests = listing.maxGuests ?? listing.capacity ?? 1;
         const allowExtraGuests = listing.allowExtraGuests ?? false;
-        const extraGuestFee = listing.extraGuestFee ?? listing.pricePerExtraGuest ?? 0;
+        const extraGuestFeePerPerson = listing.extraGuestFee ?? listing.pricePerExtraGuest ?? 0;
+        const extraGuestCount = allowExtraGuests && guestCount > maxGuests ? guestCount - maxGuests : 0;
         
-        if (allowExtraGuests && extraGuestFee > 0 && guestCount > maxGuests) {
+        if (allowExtraGuests && extraGuestFeePerPerson > 0 && guestCount > maxGuests) {
             // New model: extras are guests beyond maxGuests
-            const extraGuestsCount = guestCount - maxGuests;
-            extraGuestFees = extraGuestsCount * extraGuestFee;
+            extraGuestFeesPerBooking = extraGuestCount * extraGuestFeePerPerson;
         } else {
             // LEGACY: Fall back to old model for backward compatibility
             const included = listing.includedGuests || maxGuests;
             const extraCost = listing.pricePerExtraGuest || 0;
             if (guestCount > included && extraCost > 0) {
                 const extraGuests = guestCount - included;
-                extraGuestFees = extraGuests * extraCost;
+                extraGuestFeesPerBooking = extraGuests * extraCost;
             }
         }
 
-        let rentalCost = 0;
+        // Calculate base rental cost
+        let rentalCostPerBooking = 0;
         if (isHourly) {
-            rentalCost = selectedHours.length * basePrice;
+            rentalCostPerBooking = selectedHours.length * basePricePerUnit;
         } else {
-            rentalCost = selectedDays * basePrice;
+            rentalCostPerBooking = selectedDays * basePricePerUnit;
         }
 
         // Optional add-ons (unchanged - no service fee on these)
-        let addOnsCost = 0;
+        let addOnsCostPerBooking = 0;
         if (listing.addOns) {
             selectedAddOns.forEach(id => {
                 const addon = listing.addOns?.find(a => a.id === id);
                 if (addon) {
-                    addOnsCost += addon.price;
+                    addOnsCostPerBooking += addon.price;
                 }
             });
         }
 
-        // Extra guest fees are per booking (not per hour/day for simplicity)
-        const rentalSubtotal = rentalCost * datesCount;
-        const extraGuestTotal = extraGuestFees * datesCount;
+        // Calculate totals across all dates
+        const basePrice = rentalCostPerBooking * datesCount;
+        const extraGuestFees = extraGuestFeesPerBooking * datesCount;
+        const extrasTotal = addOnsCostPerBooking * datesCount;
         
-        // Service fee applies to rental + extra guest fees (NOT on add-ons per payment structure)
-        const feeableAmount = rentalSubtotal + extraGuestTotal;
-        const serviceFee = feeableAmount * SERVICE_FEE_PERCENTAGE;
+        // Subtotal = basePrice + extraGuestFees (fee-able amount)
+        const subtotal = basePrice + extraGuestFees;
         
-        // Add-ons are NOT subject to service fee
-        const addOnsTotal = addOnsCost * datesCount;
+        // User service fee: 10% of subtotal (charged to guest)
+        const userServiceFee = Math.round(subtotal * SERVICE_FEE_PERCENTAGE * 100) / 100;
         
-        const subtotal = rentalSubtotal + extraGuestTotal + addOnsTotal;
+        // Host service fee: 3-5% of subtotal based on cancellation policy (deducted from host)
+        const cancellationPolicy = listing.cancellationPolicy || 'Moderate';
+        const hostFeeRate = HOST_SERVICE_FEE_RATES[cancellationPolicy] || 0.03;
+        const hostServiceFee = Math.round(subtotal * hostFeeRate * 100) / 100;
+        
+        // Caution fee (security deposit - fully refundable)
         const cautionFee = listing.cautionFee || 0;
-        const total = subtotal + serviceFee + cautionFee;
+        
+        // Total guest pays: subtotal + userServiceFee + extrasTotal + cautionFee
+        const total = subtotal + userServiceFee + extrasTotal + cautionFee;
+        
+        // Host payout: subtotal - hostServiceFee + extrasTotal
+        const hostPayout = subtotal - hostServiceFee + extrasTotal;
+        
+        // Platform fee: userServiceFee + hostServiceFee
+        const platformFee = userServiceFee + hostServiceFee;
 
         return { 
-            subtotal, 
-            serviceFee, 
-            cautionFee, 
+            // Core fields for booking
+            basePrice,
+            extraGuestFees,
+            extrasTotal,
+            subtotal,
+            userServiceFee,
+            hostServiceFee,
+            cautionFee,
             total,
+            hostPayout,
+            platformFee,
             // Additional breakdown for display
-            rentalSubtotal,
-            extraGuestTotal,
-            addOnsTotal,
-        };
+            extraGuestCount,
+            datesCount,
+        } as BookingBreakdown;
     };
 
     const fees = calculateFees();
@@ -440,7 +496,7 @@ export const useListingDetails = ({ listing, user, onBook, onVerify, onLogin, on
         selectedDays,
         isHourly: false,
         isBookingSubmitted,
-        fees: { total: 0, serviceFee: 0, cautionFee: 0, subtotal: 0 }
+        fees: { total: 0, userServiceFee: 0, cautionFee: 0, subtotal: 0 }
     });
 
     useEffect(() => {
@@ -546,13 +602,38 @@ export const useListingDetails = ({ listing, user, onBook, onVerify, onLogin, on
             fees: fees,
             breakdown: {
                 total: fees.total,
-                service: fees.serviceFee,
-                caution: fees.cautionFee
+                basePrice: fees.basePrice,
+                extraGuestFees: fees.extraGuestFees,
+                extrasTotal: fees.extrasTotal,
+                subtotal: fees.subtotal,
+                userServiceFee: fees.userServiceFee,
+                hostServiceFee: fees.hostServiceFee,
+                cautionFee: fees.cautionFee,
+                hostPayout: fees.hostPayout,
+                platformFee: fees.platformFee,
+                extraGuestCount: fees.extraGuestCount,
             },
             hours: isHourly ? selectedHours : undefined,
             guestCount: guestCount,
             selectedAddOns: selectedAddOns
         });
+
+        // Check if listing has strict or non-refundable policy - show warning first
+        const isStrictPolicy = listing.cancellationPolicy === CancellationPolicy.STRICT || 
+                               listing.cancellationPolicy === CancellationPolicy.NON_REFUNDABLE;
+        
+        if (isStrictPolicy && !arg?.policyAcknowledged) {
+            setShowPolicyWarningModal(true);
+            return;
+        }
+
+        setShowConfirmModal(true);
+        setVerifiedLocally(false);
+    };
+
+    // Handler for when user acknowledges the strict policy warning
+    const handlePolicyWarningAcknowledge = () => {
+        setShowPolicyWarningModal(false);
         setShowConfirmModal(true);
         setVerifiedLocally(false);
     };
@@ -576,9 +657,18 @@ export const useListingDetails = ({ listing, user, onBook, onVerify, onLogin, on
                 date: selectedDate,
                 duration: isHourly ? selectedHours.length : selectedDays,
                 hours: isHourly ? selectedHours : undefined,
-                totalPrice: fees.total,
-                serviceFee: fees.serviceFee,
+                // Explicit financial fields
+                basePrice: fees.basePrice,
+                extraGuestFees: fees.extraGuestFees,
+                extrasTotal: fees.extrasTotal,
+                subtotal: fees.subtotal,
+                userServiceFee: fees.userServiceFee,
+                hostServiceFee: fees.hostServiceFee,
                 cautionFee: fees.cautionFee,
+                totalPrice: fees.total,
+                hostPayout: fees.hostPayout,
+                platformFee: fees.platformFee,
+                extraGuestCount: fees.extraGuestCount,
                 guestCount: guestCount,
                 selectedAddOns: selectedAddOns
             };
@@ -595,9 +685,18 @@ export const useListingDetails = ({ listing, user, onBook, onVerify, onLogin, on
                 duration: isHourly ? selectedHours.length : selectedDays,
                 hours: isHourly ? selectedHours : undefined,
                 bookingType: listing.priceUnit,
-                totalPrice: fees.total,
-                serviceFee: fees.serviceFee,
+                // Explicit financial fields
+                basePrice: fees.basePrice,
+                extraGuestFees: fees.extraGuestFees,
+                extrasTotal: fees.extrasTotal,
+                subtotal: fees.subtotal,
+                userServiceFee: fees.userServiceFee,
+                hostServiceFee: fees.hostServiceFee,
                 cautionFee: fees.cautionFee,
+                totalPrice: fees.total,
+                hostPayout: fees.hostPayout,
+                platformFee: fees.platformFee,
+                extraGuestCount: fees.extraGuestCount,
                 status: 'Reserved',
                 createdAt: new Date().toISOString(),
                 guestCount: guestCount,
@@ -814,6 +913,10 @@ export const useListingDetails = ({ listing, user, onBook, onVerify, onLogin, on
         draftRestoreDialog,
         handleRestoreBookingDraft,
         handleDiscardBookingDraft,
-        formatDraftAge
+        formatDraftAge,
+        // Policy Warning
+        showPolicyWarningModal,
+        setShowPolicyWarningModal,
+        handlePolicyWarningAcknowledge
     };
 };

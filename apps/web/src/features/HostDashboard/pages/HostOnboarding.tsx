@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Role } from '@fiilar/types';
-import { X } from 'lucide-react';
+import { X, ArrowLeft } from 'lucide-react';
 import { useToast, Form } from '@fiilar/ui';
 import LoginOptions from '../../Auth/components/Login/LoginOptions';
 import EmailLogin from '../../Auth/components/Login/EmailLogin';
@@ -127,6 +127,16 @@ const HostOnboarding: React.FC<HostOnboardingProps> = ({ onLogin, onBack }) => {
 
             {/* Right Side - Form Container */}
             <div className="shrink-0 w-full lg:flex-1 lg:h-full flex flex-col justify-center relative z-10 lg:bg-white/20 lg:backdrop-blur-xl lg:shadow-[0_4px_30px_rgba(0,0,0,0.1)] lg:overflow-hidden px-6 pb-12 lg:p-0">
+
+                {/* Back Button - Desktop Only */}
+                <button
+                    onClick={onBack}
+                    className="hidden lg:flex absolute top-8 left-8 items-center gap-2 px-3 py-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors z-10"
+                    title="Go back"
+                >
+                    <ArrowLeft size={20} />
+                    <span className="text-sm font-medium">Back</span>
+                </button>
 
                 {/* Desktop-only Decorations */}
                 <div className="hidden lg:block">

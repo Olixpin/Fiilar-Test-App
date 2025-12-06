@@ -12,6 +12,7 @@ interface UserBookingsTabProps {
   onCancelBooking: (booking: Booking, policy: CancellationPolicy, group?: Booking[]) => void;
   onReviewBooking: (bookingId: string, listingId: string, listingTitle: string) => void;
   onModifyBooking?: (booking: Booking) => void;
+  selectedBookingId?: string;
 }
 
 const formatTime = (timeStr: string) => {
@@ -104,12 +105,14 @@ export const UserBookingsTab: React.FC<UserBookingsTabProps> = ({
   onMessageHost,
   onCancelBooking,
   onReviewBooking,
-  onModifyBooking
+  onModifyBooking,
+  selectedBookingId
 }) => {
   const { locale } = useLocale();
   const [userBookings, setUserBookings] = React.useState<Booking[]>([]);
   const [activeFilter, setActiveFilter] = React.useState<BookingFilter>('all');
   const [viewMode, setViewMode] = React.useState<'list' | 'calendar'>('list');
+  const selectedBookingRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
     const fetchBookings = () => {
@@ -122,6 +125,14 @@ export const UserBookingsTab: React.FC<UserBookingsTabProps> = ({
     window.addEventListener('fiilar:bookings-updated', handler);
     return () => window.removeEventListener('fiilar:bookings-updated', handler);
   }, [user.id]);
+
+  // Scroll to selected booking when it changes
+  React.useEffect(() => {
+    if (selectedBookingId) {
+      // Switch to 'all' filter to ensure the selected booking is visible
+      setActiveFilter('all');
+    }
+  }, [selectedBookingId]);
 
   // Group bookings by groupId
   const displayItems = React.useMemo(() => {
@@ -181,6 +192,19 @@ export const UserBookingsTab: React.FC<UserBookingsTabProps> = ({
         return true;
     }
   });
+
+  // Scroll to selected booking after filter changes and component re-renders
+  React.useEffect(() => {
+    if (selectedBookingId && activeFilter === 'all') {
+      // Use a longer delay to ensure DOM has updated after filter change
+      const timeoutId = setTimeout(() => {
+        if (selectedBookingRef.current) {
+          selectedBookingRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 200);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [selectedBookingId, activeFilter, filteredItems]);
 
   const getCount = (filterId: BookingFilter) => {
     if (filterId === 'all') return displayItems.length;
@@ -338,9 +362,19 @@ export const UserBookingsTab: React.FC<UserBookingsTabProps> = ({
               const timeDisplay = getBookingTimeDisplay(b, listing);
               const isGroup = group && group.length > 1;
               const totalPrice = isGroup ? group.reduce((sum, item) => sum + item.totalPrice, 0) : b.totalPrice;
+              const isSelected = selectedBookingId === b.id || (group && group.some(gb => gb.id === selectedBookingId));
 
               return (
-                <div key={b.id} className="group bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col md:flex-row gap-6">
+                <div 
+                  key={b.id} 
+                  ref={isSelected ? selectedBookingRef : undefined}
+                  className={cn(
+                    "group bg-white p-6 rounded-2xl border shadow-sm hover:shadow-md transition-all duration-200 flex flex-col md:flex-row gap-6",
+                    isSelected 
+                      ? "border-brand-500 ring-2 ring-brand-500/20 bg-brand-50/30" 
+                      : "border-gray-200"
+                  )}
+                >
                   {listing && listing.images && listing.images[0] && (
                     <div className="relative w-full md:w-56 h-40 shrink-0">
                       <img src={listing.images[0]} alt={listing.title} className="w-full h-full object-cover rounded-xl" />

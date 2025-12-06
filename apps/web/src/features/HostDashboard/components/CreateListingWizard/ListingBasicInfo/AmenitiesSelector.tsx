@@ -23,7 +23,11 @@ const PRESET_AMENITIES = [
     { name: 'Wheelchair Accessible', icon: 'Accessibility' },
     { name: 'Step-free Access', icon: 'Footprints' },
     { name: 'Elevator', icon: 'ArrowUpCircle' },
-    { name: 'Wide Doorways', icon: 'Maximize' }
+    { name: 'Wide Doorways', icon: 'Maximize' },
+    // Entertainment & Power
+    { name: 'Snooker', icon: 'Circle' },
+    { name: 'Game Console', icon: 'Gamepad2' },
+    { name: 'Inverter', icon: 'BatteryCharging' },
 ];
 
 const AmenitiesSelector: React.FC<AmenitiesSelectorProps> = ({ newListing, setNewListing }) => {

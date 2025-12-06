@@ -51,16 +51,16 @@ const saveUserInternal = (user: User) => {
     console.log('Saving user to DB:', user);
     localStorage.setItem(STORAGE_KEYS.USERS_DB, JSON.stringify(users));
 
+    // Dispatch event to notify app of user database update
+    if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('fiilar:user-updated', { detail: { user } }));
+    }
+
     // Sync with current session if applicable
     const currentUser = getCurrentUser();
     if (currentUser && currentUser.id === user.id) {
         console.log('Updating session user storage');
         localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
-
-        // Dispatch event to notify app of user update
-        if (typeof window !== 'undefined') {
-            window.dispatchEvent(new CustomEvent('fiilar:user-updated', { detail: { user } }));
-        }
     }
 };
 

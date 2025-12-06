@@ -35,7 +35,7 @@ interface BookingModalProps {
     isSlotBooked: (date: string, hour: number) => boolean;
     selectedDays: number;
     _setSelectedDays: (days: number) => void;
-    fees: { subtotal: number; serviceFee: number; cautionFee: number; total: number };
+    fees: { subtotal: number; userServiceFee: number; cautionFee: number; total: number };
     isBookingLoading: boolean;
     handleBookClick: () => void;
     _isSavedForLater: boolean;
@@ -793,7 +793,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                             Helps us run and improve the platform, provide customer support, and keep your data secure.
                                         </div>
                                     </span>
-                                    <span className="font-medium text-gray-900">{formatCurrency(fees.serviceFee)}</span>
+                                    <span className="font-medium text-gray-900">{formatCurrency(fees.userServiceFee)}</span>
                                 </div>
 
                                 {/* Caution Fee with Tooltip */}

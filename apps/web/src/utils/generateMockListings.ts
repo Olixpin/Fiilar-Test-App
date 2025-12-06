@@ -130,6 +130,9 @@ const AMENITIES = [
   { name: 'Sound System', icon: 'speaker' },
   { name: 'Catering', icon: 'coffee' },
   { name: 'Reception', icon: 'user' },
+  { name: 'Snooker', icon: 'circle' },
+  { name: 'Game Console', icon: 'gamepad' },
+  { name: 'Inverter', icon: 'battery-charging' },
 ];
 
 const SAMPLE_IMAGES = [

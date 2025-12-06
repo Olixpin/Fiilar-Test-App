@@ -17,7 +17,7 @@ interface HostBookingsProps {
     onAccept: (booking: Booking) => void;
     onReject: (booking: Booking) => void;
     onRelease: (bookingId: string) => void;
-    onVerify: (bookingId: string, code: string) => boolean;
+    onVerify: (bookingId: string, code: string) => boolean | { success: false; error: string };
     onAllowModification: (booking: Booking) => void;
 }
 
@@ -82,7 +82,7 @@ const HostBookings: React.FC<HostBookingsProps> = ({ bookings, listings, filter,
     const { locale } = useLocale();
     const [verifyingId, setVerifyingId] = useState<string | null>(null);
     const [verificationCode, setVerificationCode] = useState('');
-    const [verificationError, setVerificationError] = useState(false);
+    const [verificationError, setVerificationError] = useState<string | null>(null);
 
     // Group bookings by groupId
     const displayItems = React.useMemo(() => {
@@ -119,13 +119,15 @@ const HostBookings: React.FC<HostBookingsProps> = ({ bookings, listings, filter,
 
     const handleVerifySubmit = () => {
         if (verifyingId) {
-            const success = onVerify(verifyingId, verificationCode);
-            if (success) {
+            const result = onVerify(verifyingId, verificationCode);
+            if (result === true) {
                 setVerifyingId(null);
                 setVerificationCode('');
-                setVerificationError(false);
+                setVerificationError(null);
+            } else if (typeof result === 'object' && result.error) {
+                setVerificationError(result.error);
             } else {
-                setVerificationError(true);
+                setVerificationError('Invalid verification code. Please try again.');
             }
         }
     };
@@ -164,9 +166,12 @@ const HostBookings: React.FC<HostBookingsProps> = ({ bookings, listings, filter,
                     </div>
 
                     {verificationError && (
-                        <p className="text-red-600 text-sm text-center font-medium animate-in fade-in slide-in-from-top-1 flex items-center justify-center gap-1">
-                            <X size={14} /> Invalid code. Please try again.
-                        </p>
+                        <div className="bg-red-50 border border-red-200 rounded-xl p-3 animate-in fade-in slide-in-from-top-1">
+                            <p className="text-red-700 text-sm text-center font-medium flex items-start justify-center gap-2">
+                                <X size={16} className="flex-shrink-0 mt-0.5" />
+                                <span>{verificationError}</span>
+                            </p>
+                        </div>
                     )}
 
                     <div className="flex gap-4 pt-4">
@@ -175,7 +180,7 @@ const HostBookings: React.FC<HostBookingsProps> = ({ bookings, listings, filter,
                             onClick={() => {
                                 setVerifyingId(null);
                                 setVerificationCode('');
-                                setVerificationError(false);
+                                setVerificationError(null);
                             }}
                         >
                             Cancel

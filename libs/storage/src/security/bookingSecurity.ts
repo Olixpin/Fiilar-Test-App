@@ -44,7 +44,7 @@ export interface PriceValidationResult {
         extraGuestFee: number;
         addOnsCost: number;
         subtotal: number;
-        serviceFee: number;
+        userServiceFee: number;
         cautionFee: number;
         total: number;
     };
@@ -203,20 +203,20 @@ export const calculateBookingPrice = (
 
     // Service fee (10% of rental + extra guest fees, NOT on add-ons per frontend logic)
     const feeableAmount = rentalSubtotal + extraGuestTotal;
-    const serviceFee = Math.round(feeableAmount * BOOKING_SECURITY_CONFIG.SERVICE_FEE_PERCENTAGE * 100) / 100;
+    const userServiceFee = Math.round(feeableAmount * BOOKING_SECURITY_CONFIG.SERVICE_FEE_PERCENTAGE * 100) / 100;
 
     // Caution fee (one-time, not multiplied by dates)
     const cautionFee = listing.cautionFee || 0;
 
     // Total
-    const total = Math.round((subtotal + serviceFee + cautionFee) * 100) / 100;
+    const total = Math.round((subtotal + userServiceFee + cautionFee) * 100) / 100;
 
     return {
         basePrice,
         extraGuestFee,
         addOnsCost,
         subtotal,
-        serviceFee,
+        userServiceFee,
         cautionFee,
         total,
     };
@@ -228,7 +228,7 @@ export const calculateBookingPrice = (
  */
 export const validateBookingPriceDetailed = (
     listing: Listing,
-    clientBreakdown: { total: number; service: number; caution: number },
+    clientBreakdown: { total: number; userServiceFee: number; caution: number },
     duration: number,
     guestCount: number,
     selectedHours: number[] | undefined,
@@ -250,7 +250,7 @@ export const validateBookingPriceDetailed = (
     // Allow small floating point discrepancies (1 cent)
     const tolerance = 0.01;
     const totalDiff = Math.abs(serverBreakdown.total - clientBreakdown.total);
-    const serviceDiff = Math.abs(serverBreakdown.serviceFee - clientBreakdown.service);
+    const serviceDiff = Math.abs(serverBreakdown.userServiceFee - clientBreakdown.userServiceFee);
     const cautionDiff = Math.abs(serverBreakdown.cautionFee - clientBreakdown.caution);
 
     if (totalDiff > tolerance) {
@@ -258,7 +258,7 @@ export const validateBookingPriceDetailed = (
     }
 
     if (serviceDiff > tolerance) {
-        errors.push(`Service fee mismatch: expected ${serverBreakdown.serviceFee}, got ${clientBreakdown.service}`);
+        errors.push(`Service fee mismatch: expected ${serverBreakdown.userServiceFee}, got ${clientBreakdown.userServiceFee}`);
     }
 
     if (cautionDiff > tolerance) {

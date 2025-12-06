@@ -32,7 +32,7 @@ interface BookingWidgetProps {
   isSlotBooked: (date: string, hour: number) => boolean;
   selectedDays: number;
   setSelectedDays: (days: number) => void;
-  fees: { subtotal: number; serviceFee: number; cautionFee: number; total: number };
+  fees: { subtotal: number; userServiceFee: number; cautionFee: number; total: number };
   isBookingLoading: boolean;
   handleBookClick: () => void;
   isSavedForLater: boolean;
@@ -497,7 +497,7 @@ export const BookingWidget: React.FC<BookingWidgetProps> = ({
           })()}
           <div className="flex justify-between text-sm text-gray-600">
             <span>Service Fee (10%)</span>
-            <span>{formatCurrency(fees.serviceFee)}</span>
+            <span>{formatCurrency(fees.userServiceFee)}</span>
           </div>
           {fees.cautionFee > 0 && (
             <div className="flex justify-between text-sm text-gray-600">

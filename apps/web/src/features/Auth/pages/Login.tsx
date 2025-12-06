@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Role } from '@fiilar/types';
-import { X } from 'lucide-react';
+import { X, ArrowLeft } from 'lucide-react';
 import { useToast, Form } from '@fiilar/ui';
 import { Link } from 'react-router-dom';
 import LoginOptions from '../components/Login/LoginOptions';
@@ -117,6 +117,17 @@ const Login: React.FC<LoginProps> = ({ onLogin, onBack }) => {
 
             {/* Right Side - Form */}
             <div className="flex-1 flex flex-col justify-center px-6 sm:px-12 lg:px-24 relative z-10 overflow-y-auto py-8 lg:py-0">
+                {/* Back Button - Desktop Only */}
+                <button
+                    onClick={onBack}
+                    className="hidden lg:flex absolute top-8 left-8 items-center gap-2 px-3 py-2 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                    title="Go back"
+                >
+                    <ArrowLeft size={20} />
+                    <span className="text-sm font-medium">Back</span>
+                </button>
+
+                {/* Close Button */}
                 <button
                     onClick={onBack}
                     className="absolute top-4 right-4 sm:top-8 sm:right-8 p-2 hover:bg-gray-50 rounded-full transition-colors text-gray-400 hover:text-gray-900"

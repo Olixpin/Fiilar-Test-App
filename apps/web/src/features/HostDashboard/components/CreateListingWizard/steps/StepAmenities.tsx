@@ -1,7 +1,7 @@
 import React from 'react';
 import { Listing, Amenity } from '@fiilar/types';
 import StepWrapper from './StepWrapper';
-import { Check, Wifi, Wind, Utensils, Car, Dumbbell, Waves, Briefcase, Tv, Shirt, Accessibility, ArrowUpCircle, Shield, Zap, Droplet, Home, LucideIcon } from 'lucide-react';
+import { Check, Wifi, Wind, Utensils, Car, Dumbbell, Waves, Briefcase, Tv, Shirt, Accessibility, ArrowUpCircle, Shield, Zap, Droplet, Home, LucideIcon, Gamepad2, BatteryCharging, Circle } from 'lucide-react';
 
 interface StepAmenitiesProps {
     newListing: Partial<Listing>;
@@ -29,6 +29,9 @@ const AMENITIES: { name: string; icon: LucideIcon }[] = [
     { name: 'Generator', icon: Zap },
     { name: 'Hot Water', icon: Droplet },
     { name: 'Balcony', icon: Home },
+    { name: 'Snooker', icon: Circle },
+    { name: 'Game Console', icon: Gamepad2 },
+    { name: 'Inverter', icon: BatteryCharging },
 ];
 
 const StepAmenities: React.FC<StepAmenitiesProps> = ({

@@ -246,6 +246,8 @@ const AMENITIES_BY_TYPE: Partial<Record<SpaceType, Array<{ name: string; icon: s
     { name: 'Parking', icon: 'Car' },
     { name: 'TV', icon: 'Monitor' },
     { name: 'Balcony', icon: 'Sun' },
+    { name: 'Game Console', icon: 'Gamepad2' },
+    { name: 'Inverter', icon: 'BatteryCharging' },
   ],
   [SpaceType.CONFERENCE]: [
     { name: 'Wifi', icon: 'Wifi' },
@@ -262,6 +264,8 @@ const AMENITIES_BY_TYPE: Partial<Record<SpaceType, Array<{ name: string; icon: s
     { name: 'Parking', icon: 'Car' },
     { name: 'Catering Area', icon: 'Coffee' },
     { name: 'AC', icon: 'Wind' },
+    { name: 'Snooker', icon: 'Circle' },
+    { name: 'Game Console', icon: 'Gamepad2' },
   ],
   [SpaceType.CO_WORKING]: [
     { name: 'Wifi', icon: 'Wifi' },

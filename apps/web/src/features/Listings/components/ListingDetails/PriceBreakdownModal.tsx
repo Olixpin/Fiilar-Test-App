@@ -10,7 +10,7 @@ interface PriceBreakdownModalProps {
     listing: Listing;
     fees: {
         subtotal: number;
-        serviceFee: number;
+        userServiceFee: number;
         cautionFee: number;
         total: number;
     };
@@ -76,7 +76,7 @@ export const PriceBreakdownModal: React.FC<PriceBreakdownModalProps> = ({
                                     </div>
                                 </div>
                             </div>
-                            <p className="text-gray-900 font-medium">{formatCurrency(fees.serviceFee)}</p>
+                            <p className="text-gray-900 font-medium">{formatCurrency(fees.userServiceFee)}</p>
                         </div>
 
                         {/* Caution Fee */}
