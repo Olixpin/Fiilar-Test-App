@@ -2,12 +2,13 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Listing, Booking, ListingStatus } from '@fiilar/types';
 import { useLocale } from '@fiilar/ui';
-import { DollarSign, TrendingUp, Home, Clock, Sparkles, Plus, FileText, MessageSquare, ChevronRight, Star, PieChart as PieChartIcon } from 'lucide-react';
+import { DollarSign, TrendingUp, Home, Clock, Sparkles, Plus, FileText, MessageSquare, ChevronRight, Star, PieChart as PieChartIcon, Share2 } from 'lucide-react';
 import { AreaChart, Area, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { cn } from '@fiilar/utils';
 
 import { getConversations } from '@fiilar/messaging';
 import ProfileCompletionWidget, { ProfileStepId } from './ProfileCompletionWidget';
+import { ShareLinkButton } from '../../HostStorefront';
 
 interface HostOverviewProps {
     user: User;
@@ -362,6 +363,9 @@ const HostOverview: React.FC<HostOverviewProps> = ({ user, listings, hostBooking
                             </button>
                         </div>
                     </div>
+
+                    {/* Share Your Profile */}
+                    <ShareLinkButton hostId={user.id} variant="primary" />
 
                     {/* Insights / Tips */}
                     <div className="glass-premium rounded-3xl p-6 relative overflow-hidden">

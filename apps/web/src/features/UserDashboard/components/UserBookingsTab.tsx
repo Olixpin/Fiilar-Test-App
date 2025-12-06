@@ -2,8 +2,8 @@ import React from 'react';
 import { User, Listing, Booking, CancellationPolicy, BookingType } from '@fiilar/types';
 import { getBookings } from '@fiilar/storage';
 import { getReviews } from '@fiilar/reviews';
-import { Calendar, MessageSquare, XCircle, Star, Key, CheckCircle, Clock, Edit, ShieldCheck, Filter, List, Grid, Map, CalendarPlus } from 'lucide-react';
-import { cn, useLocale } from '@fiilar/ui';
+import { Calendar, MessageSquare, XCircle, Star, Key, CheckCircle, Clock, Edit, ShieldCheck, Filter, List, Grid, Map, CalendarPlus, Copy, Check } from 'lucide-react';
+import { cn, useLocale, useToast } from '@fiilar/ui';
 
 interface UserBookingsTabProps {
   user: User;
@@ -109,9 +109,11 @@ export const UserBookingsTab: React.FC<UserBookingsTabProps> = ({
   selectedBookingId
 }) => {
   const { locale } = useLocale();
+  const { addToast } = useToast();
   const [userBookings, setUserBookings] = React.useState<Booking[]>([]);
   const [activeFilter, setActiveFilter] = React.useState<BookingFilter>('all');
   const [viewMode, setViewMode] = React.useState<'list' | 'calendar'>('list');
+  const [copiedBookingId, setCopiedBookingId] = React.useState<string | null>(null);
   const selectedBookingRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
@@ -133,6 +135,25 @@ export const UserBookingsTab: React.FC<UserBookingsTabProps> = ({
       setActiveFilter('all');
     }
   }, [selectedBookingId]);
+
+  // Handle copying guest code to clipboard
+  const handleCopyCode = async (bookingId: string, code: string) => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopiedBookingId(bookingId);
+      addToast({
+        type: 'success',
+        message: 'Check-in code copied to clipboard!'
+      });
+      // Reset after 2 seconds
+      setTimeout(() => setCopiedBookingId(null), 2000);
+    } catch (err) {
+      addToast({
+        type: 'error',
+        message: 'Failed to copy code'
+      });
+    }
+  };
 
   // Group bookings by groupId
   const displayItems = React.useMemo(() => {
@@ -458,19 +479,28 @@ export const UserBookingsTab: React.FC<UserBookingsTabProps> = ({
                           <div className="p-2 bg-brand-100 rounded-lg text-brand-600">
                             <Key size={18} />
                           </div>
-                          <div className="flex-1 flex justify-between items-center">
+                          <div className="flex-1 flex justify-between items-center gap-2">
                             <div>
                               <p className="text-xs font-bold text-brand-800 uppercase">Check-in Code</p>
                               <p className="text-xs text-brand-600">Show to host</p>
                             </div>
-                            <span className="text-xl font-mono font-bold text-brand-700 tracking-widest bg-white px-3 py-1 rounded border border-brand-200 shadow-sm">
-                              {b.guestCode}
-                            </span>
-                            {b.handshakeStatus === 'VERIFIED' && (
-                              <div className="flex flex-col items-center text-green-600 ml-2">
-                                <CheckCircle size={20} />
-                              </div>
-                            )}
+                            <div className="flex items-center gap-2">
+                              <span className="text-xl font-mono font-bold text-brand-700 tracking-widest bg-white px-3 py-1 rounded border border-brand-200 shadow-sm">
+                                {b.guestCode}
+                              </span>
+                              <button
+                                onClick={() => handleCopyCode(b.id, b.guestCode!)}
+                                className="p-2 bg-white rounded-lg border border-brand-200 text-brand-600 hover:bg-brand-50 hover:text-brand-700 transition-colors"
+                                title="Copy code"
+                              >
+                                {copiedBookingId === b.id ? <Check size={18} /> : <Copy size={18} />}
+                              </button>
+                              {b.handshakeStatus === 'VERIFIED' && (
+                                <div className="flex flex-col items-center text-green-600">
+                                  <CheckCircle size={20} />
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
                       )}

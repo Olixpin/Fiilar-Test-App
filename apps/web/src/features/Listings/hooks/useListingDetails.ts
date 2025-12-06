@@ -785,26 +785,63 @@ export const useListingDetails = ({ listing, user, onBook, onVerify, onLogin, on
             setConfirmedBookings(bookings);
             setShowSuccessModal(true);
             if (user) {
-                addNotification({
-                    userId: user.id,
-                    type: 'booking',
-                    title: 'Booking Request Sent',
-                    message: `Your booking request for "${listing.title}" has been sent to the host`,
-                    severity: 'info',
-                    read: false,
-                    actionRequired: false,
-                    metadata: { link: '/dashboard?tab=bookings' }
-                });
-                addNotification({
-                    userId: listing.hostId,
-                    type: 'booking',
-                    title: 'New Booking Request',
-                    message: `${user.name} requested to book "${listing.title}"`,
-                    severity: 'warning',
-                    read: false,
-                    actionRequired: true,
-                    metadata: { link: '/dashboard?view=bookings' }
-                });
+                const isInstantBook = listing.settings?.instantBook;
+                const isRecurringBooking = bookings.length > 1;
+                
+                // Different notifications for instant book vs request-based bookings
+                if (isInstantBook) {
+                    // Instant Book - Booking is confirmed immediately
+                    addNotification({
+                        userId: user.id,
+                        type: 'booking',
+                        title: isRecurringBooking ? 'Recurring Booking Confirmed!' : 'Booking Confirmed!',
+                        message: isRecurringBooking 
+                            ? `Your ${bookings.length} bookings for "${listing.title}" have been confirmed. See you soon!`
+                            : `Your booking for "${listing.title}" has been confirmed. See you soon!`,
+                        severity: 'success',
+                        read: false,
+                        actionRequired: false,
+                        metadata: { link: '/dashboard?tab=bookings' }
+                    });
+                    addNotification({
+                        userId: listing.hostId,
+                        type: 'booking',
+                        title: isRecurringBooking ? 'New Recurring Booking!' : 'New Booking!',
+                        message: isRecurringBooking
+                            ? `${user.name} booked "${listing.title}" for ${bookings.length} dates (Instant Book)`
+                            : `${user.name} booked "${listing.title}" (Instant Book)`,
+                        severity: 'success',
+                        read: false,
+                        actionRequired: false,
+                        metadata: { link: '/host/dashboard?view=bookings' }
+                    });
+                } else {
+                    // Request-based - Needs host approval
+                    addNotification({
+                        userId: user.id,
+                        type: 'booking',
+                        title: isRecurringBooking ? 'Booking Requests Sent' : 'Booking Request Sent',
+                        message: isRecurringBooking
+                            ? `Your ${bookings.length} booking requests for "${listing.title}" have been sent to the host for approval`
+                            : `Your booking request for "${listing.title}" has been sent to the host for approval`,
+                        severity: 'info',
+                        read: false,
+                        actionRequired: false,
+                        metadata: { link: '/dashboard?tab=bookings' }
+                    });
+                    addNotification({
+                        userId: listing.hostId,
+                        type: 'booking',
+                        title: isRecurringBooking ? 'New Booking Requests' : 'New Booking Request',
+                        message: isRecurringBooking
+                            ? `${user.name} requested to book "${listing.title}" for ${bookings.length} dates - Action required`
+                            : `${user.name} requested to book "${listing.title}" - Action required`,
+                        severity: 'warning',
+                        read: false,
+                        actionRequired: true,
+                        metadata: { link: '/host/dashboard?view=bookings' }
+                    });
+                }
 
                 // Clear the booking draft after successful booking
                 deleteBookingDraft(user.id, listing.id);

@@ -24,6 +24,7 @@ export * from './phoneService';
 export * from './security';
 export * from './config';
 export * from './analytics';
+export * from './shareLinks';
 
 // Export utilities
 export * from './utils/mockListingGenerator';

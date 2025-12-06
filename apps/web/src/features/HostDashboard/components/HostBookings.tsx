@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { Booking, Listing } from '@fiilar/types';
-import { Briefcase, FileText, MapPin, Calendar as CalendarIcon, CheckCircle, X, DollarSign, ShieldCheck, MessageCircle, Edit, Clock, User } from 'lucide-react';
+import { Booking, Listing, User } from '@fiilar/types';
+import { Briefcase, FileText, MapPin, Calendar as CalendarIcon, CheckCircle, X, DollarSign, ShieldCheck, MessageCircle, Edit, Clock, User as UserIcon, ChevronRight, Info } from 'lucide-react';
 import { useLocale } from '@fiilar/ui';
 import { OTPInput } from '../../../components/OTPInput';
 import { cn } from '@fiilar/utils';
+import { getAllUsers } from '@fiilar/storage';
 
 interface HostBookingsProps {
     bookings: Booking[];
@@ -83,6 +84,17 @@ const HostBookings: React.FC<HostBookingsProps> = ({ bookings, listings, filter,
     const [verifyingId, setVerifyingId] = useState<string | null>(null);
     const [verificationCode, setVerificationCode] = useState('');
     const [verificationError, setVerificationError] = useState<string | null>(null);
+    const [selectedBooking, setSelectedBooking] = useState<{ booking: Booking; group?: Booking[] } | null>(null);
+
+    // Get all users for displaying guest names
+    const users = useMemo(() => getAllUsers(), []);
+    const getUserName = (userId: string): string => {
+        const user = users.find(u => u.id === userId);
+        return user ? user.name : 'Guest';
+    };
+    const getUser = (userId: string): User | undefined => {
+        return users.find(u => u.id === userId);
+    };
 
     // Group bookings by groupId
     const displayItems = React.useMemo(() => {
@@ -199,10 +211,210 @@ const HostBookings: React.FC<HostBookingsProps> = ({ bookings, listings, filter,
         document.body
     ) : null;
 
+    // Booking Details Modal
+    const bookingDetailsModal = selectedBooking ? createPortal(
+        (() => {
+            const { booking, group } = selectedBooking;
+            const listing = listings.find(l => l.id === booking.listingId);
+            const guest = getUser(booking.userId);
+            const isGroup = group && group.length > 1;
+            const totalPrice = isGroup ? group.reduce((sum, item) => sum + item.totalPrice, 0) : booking.totalPrice;
+            const totalHostPayout = isGroup ? group.reduce((sum, item) => sum + (item.hostPayout || 0), 0) : (booking.hostPayout || 0);
+            const totalBasePrice = isGroup ? group.reduce((sum, item) => sum + (item.basePrice || 0), 0) : (booking.basePrice || 0);
+            const totalExtraGuestFees = isGroup ? group.reduce((sum, item) => sum + (item.extraGuestFees || 0), 0) : (booking.extraGuestFees || 0);
+            const totalExtras = isGroup ? group.reduce((sum, item) => sum + (item.extrasTotal || 0), 0) : (booking.extrasTotal || 0);
+            const totalHostServiceFee = isGroup ? group.reduce((sum, item) => sum + (item.hostServiceFee || 0), 0) : (booking.hostServiceFee || 0);
+            const totalCautionFee = isGroup ? group.reduce((sum, item) => sum + (item.cautionFee || 0), 0) : (booking.cautionFee || 0);
+
+            return (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4 animate-in fade-in duration-200">
+                    <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl animate-in zoom-in-95 duration-300 border border-gray-100 max-h-[90vh] overflow-hidden flex flex-col">
+                        {/* Header */}
+                        <div className="p-6 border-b border-gray-100">
+                            <div className="flex items-start justify-between">
+                                <div>
+                                    <h3 className="text-xl font-bold text-gray-900">Booking Details</h3>
+                                    <p className="text-sm text-gray-500 mt-1">#{booking.id.slice(0, 8)}</p>
+                                </div>
+                                <button
+                                    onClick={() => setSelectedBooking(null)}
+                                    className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                                >
+                                    <X size={20} className="text-gray-500" />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Content */}
+                        <div className="p-6 overflow-y-auto flex-1 space-y-6">
+                            {/* Guest Info */}
+                            <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl">
+                                {guest?.avatar ? (
+                                    <img 
+                                        src={guest.avatar} 
+                                        alt={guest.name} 
+                                        className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-sm"
+                                    />
+                                ) : (
+                                    <div className="w-12 h-12 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-bold text-lg border-2 border-white shadow-sm">
+                                        {guest?.name?.charAt(0).toUpperCase() || 'G'}
+                                    </div>
+                                )}
+                                <div className="flex-1">
+                                    <p className="font-semibold text-gray-900">{guest?.name || 'Guest'}</p>
+                                    {guest?.phone && (
+                                        <p className="text-sm text-gray-500">{guest.phone}</p>
+                                    )}
+                                </div>
+                                <span className={cn(
+                                    "px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border",
+                                    booking.status === 'Confirmed' || booking.status === 'Started' ? 'bg-green-50 text-green-700 border-green-200' :
+                                        booking.status === 'Pending' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
+                                            booking.status === 'Completed' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                                'bg-gray-100 text-gray-500 border-gray-200'
+                                )}>
+                                    {booking.status}
+                                </span>
+                            </div>
+
+                            {/* Property Info */}
+                            <div className="flex items-center gap-4">
+                                <div className="w-16 h-16 rounded-xl bg-gray-100 overflow-hidden">
+                                    <img src={listing?.images[0]} alt="" className="w-full h-full object-cover" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="font-semibold text-gray-900 truncate">{listing?.title || 'Unknown'}</p>
+                                    <p className="text-sm text-gray-500 flex items-center gap-1">
+                                        <MapPin size={12} /> {listing?.location}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Booking Date/Time */}
+                            <div className="bg-gray-50 rounded-xl p-4">
+                                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                                    {isGroup ? 'Session Dates' : 'Date & Time'}
+                                </p>
+                                {isGroup ? (
+                                    <div className="flex flex-wrap gap-2">
+                                        {group.map(s => (
+                                            <span key={s.id} className="text-sm bg-white px-3 py-1.5 rounded-lg border border-gray-200 font-medium">
+                                                {new Date(s.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                                {getBookingTimeDisplay(s, listing) && (
+                                                    <span className="text-gray-500 ml-1">• {getBookingTimeDisplay(s, listing)}</span>
+                                                )}
+                                            </span>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-4 text-sm">
+                                        <div className="flex items-center gap-2">
+                                            <CalendarIcon size={16} className="text-brand-500" />
+                                            <span className="font-medium">{new Date(booking.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</span>
+                                        </div>
+                                        {getBookingTimeDisplay(booking, listing) && (
+                                            <div className="flex items-center gap-2">
+                                                <Clock size={16} className="text-brand-500" />
+                                                <span className="font-medium">{getBookingTimeDisplay(booking, listing)}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                                {booking.guestCount && (
+                                    <div className="flex items-center gap-2 text-sm text-gray-600 mt-3 pt-3 border-t border-gray-200">
+                                        <UserIcon size={14} />
+                                        <span>{booking.guestCount} guest{booking.guestCount > 1 ? 's' : ''}</span>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Your Earnings - Host-focused breakdown */}
+                            <div className="border border-green-200 rounded-xl overflow-hidden bg-green-50/30">
+                                <div className="bg-green-100/50 px-4 py-3 border-b border-green-200">
+                                    <p className="text-sm font-bold text-green-800">Your Earnings</p>
+                                </div>
+                                <div className="p-4 space-y-3">
+                                    {/* Booking Value */}
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-gray-600">Base price {isGroup ? `(${group.length} sessions)` : ''}</span>
+                                        <span className="font-medium text-gray-900">{locale.currencySymbol}{totalBasePrice.toLocaleString()}</span>
+                                    </div>
+                                    {totalExtraGuestFees > 0 && (
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-gray-600">Extra guest fees</span>
+                                            <span className="font-medium text-gray-900">{locale.currencySymbol}{totalExtraGuestFees.toLocaleString()}</span>
+                                        </div>
+                                    )}
+                                    {totalExtras > 0 && (
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-gray-600">Add-ons</span>
+                                            <span className="font-medium text-gray-900">{locale.currencySymbol}{totalExtras.toLocaleString()}</span>
+                                        </div>
+                                    )}
+                                    
+                                    {/* Platform Fee - Host's fee only */}
+                                    <div className="flex justify-between text-sm pt-2 border-t border-green-200/50">
+                                        <span className="text-gray-600">Platform fee ({((totalHostServiceFee / (totalBasePrice + totalExtraGuestFees)) * 100).toFixed(0) || 3}%)</span>
+                                        <span className="font-medium text-red-600">-{locale.currencySymbol}{totalHostServiceFee.toLocaleString()}</span>
+                                    </div>
+
+                                    {/* Final Payout */}
+                                    <div className="flex justify-between items-center pt-3 mt-2 border-t-2 border-green-300">
+                                        <span className="font-bold text-green-800">You receive</span>
+                                        <span className="text-xl font-bold text-green-700">{locale.currencySymbol}{totalHostPayout.toLocaleString()}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Payment Status */}
+                            <div className="flex items-center justify-between p-4 bg-blue-50 rounded-xl border border-blue-100">
+                                <div className="flex items-center gap-2">
+                                    <DollarSign size={18} className="text-blue-600" />
+                                    <span className="text-sm font-semibold text-blue-900">Payment Status</span>
+                                </div>
+                                <span className={cn(
+                                    "px-3 py-1 rounded-full text-xs font-bold border",
+                                    booking.paymentStatus === 'Released' ? 'bg-green-100 text-green-700 border-green-200' :
+                                        booking.paymentStatus === 'Refunded' ? 'bg-red-100 text-red-700 border-red-200' :
+                                            'bg-blue-100 text-blue-700 border-blue-200'
+                                )}>
+                                    {booking.paymentStatus || 'Paid - Escrow'}
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Footer Actions */}
+                        <div className="p-4 border-t border-gray-100 bg-gray-50/50 flex gap-3">
+                            <button
+                                onClick={() => {
+                                    setSelectedBooking(null);
+                                    navigate(`?view=messages&userId=${booking.userId}&bookingId=${booking.id}`);
+                                }}
+                                className="flex-1 px-4 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl text-sm font-semibold hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+                            >
+                                <MessageCircle size={16} /> Message Guest
+                            </button>
+                            <button
+                                onClick={() => setSelectedBooking(null)}
+                                className="px-6 py-2.5 bg-gray-900 text-white rounded-xl text-sm font-semibold hover:bg-gray-800 transition-colors"
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        })(),
+        document.body
+    ) : null;
+
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
             {/* Verification Modal - rendered via portal */}
             {verificationModal}
+
+            {/* Booking Details Modal - rendered via portal */}
+            {bookingDetailsModal}
 
             {/* Header Section */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -285,12 +497,17 @@ const HostBookings: React.FC<HostBookingsProps> = ({ bookings, listings, filter,
                                 .filter(({ booking: b }) => filter === 'all' || b.status.toLowerCase() === filter)
                                 .map(({ booking, group }) => {
                                     const listing = listings.find(l => l.id === booking.listingId);
+                                    const guest = getUser(booking.userId);
                                     const isGroup = group && group.length > 1;
-                                    const totalPrice = isGroup ? group.reduce((sum, item) => sum + item.totalPrice, 0) : booking.totalPrice;
+                                    const hostPayout = isGroup ? group.reduce((sum, item) => sum + (item.hostPayout || 0), 0) : (booking.hostPayout || 0);
 
                                     return (
                                         <div key={booking.id} className="glass-card rounded-2xl overflow-hidden group hover:border-brand-200 transition-all duration-300">
-                                            <div className="p-5 flex gap-5">
+                                            {/* Clickable card body */}
+                                            <div 
+                                                className="p-5 flex gap-5 cursor-pointer hover:bg-gray-50/50 transition-colors"
+                                                onClick={() => setSelectedBooking({ booking, group })}
+                                            >
                                                 <div className="w-24 h-24 rounded-xl bg-gray-100 overflow-hidden shrink-0 relative shadow-sm">
                                                     <img src={listing?.images[0]} alt="" className="w-full h-full object-cover" />
                                                 </div>
@@ -306,7 +523,7 @@ const HostBookings: React.FC<HostBookingsProps> = ({ bookings, listings, filter,
                                                         </div>
                                                         <span className={cn(
                                                             "px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border whitespace-nowrap",
-                                                            booking.status === 'Confirmed' ? 'bg-green-50 text-green-700 border-green-200' :
+                                                            booking.status === 'Confirmed' || booking.status === 'Started' ? 'bg-green-50 text-green-700 border-green-200' :
                                                                 booking.status === 'Pending' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
                                                                     booking.status === 'Completed' ? 'bg-blue-50 text-blue-700 border-blue-200' :
                                                                         'bg-gray-100 text-gray-500 border-gray-200'
@@ -317,8 +534,14 @@ const HostBookings: React.FC<HostBookingsProps> = ({ bookings, listings, filter,
 
                                                     <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
                                                         <div className="flex items-center gap-1.5">
-                                                            <User size={14} className="text-gray-400" />
-                                                            <span className="font-medium">Guest User</span>
+                                                            {guest?.avatar ? (
+                                                                <img src={guest.avatar} alt={guest.name} className="w-5 h-5 rounded-full object-cover" />
+                                                            ) : (
+                                                                <div className="w-5 h-5 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-semibold text-[10px]">
+                                                                    {guest?.name?.charAt(0).toUpperCase() || 'G'}
+                                                                </div>
+                                                            )}
+                                                            <span className="font-medium">{guest?.name || 'Guest'}</span>
                                                         </div>
                                                         <div className="flex items-center gap-1.5">
                                                             <MapPin size={14} className="text-gray-400" />
@@ -359,7 +582,10 @@ const HostBookings: React.FC<HostBookingsProps> = ({ bookings, listings, filter,
                                                     )}
 
                                                     <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-                                                        <span className="font-bold text-gray-900 text-lg">{locale.currencySymbol}{totalPrice.toFixed(2)}</span>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="font-bold text-green-700 text-lg">{locale.currencySymbol}{hostPayout.toLocaleString()}</span>
+                                                            <span className="text-xs text-green-600 font-medium">You earn</span>
+                                                        </div>
                                                         <span className={cn(
                                                             "px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5",
                                                             booking.paymentStatus === 'Released' ? 'bg-green-50 text-green-700' :
@@ -441,7 +667,7 @@ const HostBookings: React.FC<HostBookingsProps> = ({ bookings, listings, filter,
                                             <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Guest</th>
                                             <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Property</th>
                                             <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Date</th>
-                                            <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Amount</th>
+                                            <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Earnings</th>
                                             <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
                                             <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Payment</th>
                                             <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Action</th>
@@ -452,17 +678,26 @@ const HostBookings: React.FC<HostBookingsProps> = ({ bookings, listings, filter,
                                             .filter(({ booking: b }) => filter === 'all' || b.status.toLowerCase() === filter)
                                             .map(({ booking, group }) => {
                                                 const listing = listings.find(l => l.id === booking.listingId);
+                                                const guest = getUser(booking.userId);
                                                 const isGroup = group && group.length > 1;
-                                                const totalPrice = isGroup ? group.reduce((sum, item) => sum + item.totalPrice, 0) : booking.totalPrice;
+                                                const hostPayout = isGroup ? group.reduce((sum, item) => sum + (item.hostPayout || 0), 0) : (booking.hostPayout || 0);
 
                                                 return (
-                                                    <tr key={booking.id} className="hover:bg-gray-50/50 transition-colors">
+                                                    <tr 
+                                                        key={booking.id} 
+                                                        className="hover:bg-gray-50/50 transition-colors cursor-pointer"
+                                                        onClick={() => setSelectedBooking({ booking, group })}
+                                                    >
                                                         <td className="px-6 py-4 whitespace-nowrap">
                                                             <div className="flex items-center gap-3">
-                                                                <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500">
-                                                                    <User size={14} />
-                                                                </div>
-                                                                <div className="text-sm font-medium text-gray-900">Guest User</div>
+                                                                {guest?.avatar ? (
+                                                                    <img src={guest.avatar} alt={guest?.name} className="w-8 h-8 rounded-full object-cover border border-gray-200" />
+                                                                ) : (
+                                                                    <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-semibold text-sm">
+                                                                        {guest?.name?.charAt(0).toUpperCase() || 'G'}
+                                                                    </div>
+                                                                )}
+                                                                <div className="text-sm font-medium text-gray-900">{guest?.name || 'Guest'}</div>
                                                             </div>
                                                         </td>
                                                         <td className="px-6 py-4">
@@ -501,12 +736,15 @@ const HostBookings: React.FC<HostBookingsProps> = ({ bookings, listings, filter,
                                                             )}
                                                         </td>
                                                         <td className="px-6 py-4 whitespace-nowrap">
-                                                            <div className="text-sm font-bold text-gray-900">{locale.currencySymbol}{totalPrice.toFixed(2)}</div>
+                                                            <div className="text-sm font-bold text-green-700 flex items-center gap-2">
+                                                                {locale.currencySymbol}{hostPayout.toLocaleString()}
+                                                                <span className="text-xs text-green-600 font-medium">earn</span>
+                                                            </div>
                                                         </td>
                                                         <td className="px-6 py-4 whitespace-nowrap">
                                                             <span className={cn(
                                                                 "px-2.5 py-1 text-xs font-bold rounded-full border",
-                                                                booking.status === 'Confirmed' ? 'bg-green-50 text-green-700 border-green-200' :
+                                                                booking.status === 'Confirmed' || booking.status === 'Started' ? 'bg-green-50 text-green-700 border-green-200' :
                                                                     booking.status === 'Pending' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
                                                                         booking.status === 'Completed' ? 'bg-blue-50 text-blue-700 border-blue-200' :
                                                                             'bg-gray-100 text-gray-700 border-gray-200'
@@ -525,7 +763,7 @@ const HostBookings: React.FC<HostBookingsProps> = ({ bookings, listings, filter,
                                                             </span>
                                                         </td>
                                                         <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                                            <div className="flex gap-2">
+                                                            <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                                                                 {booking.status === 'Pending' && (
                                                                     <>
                                                                         <button
